@@ -1,0 +1,8 @@
+<h1>Welcome to ParkEasy</h1>
+
+{% if user.is_authenticated %}
+    <p>Hello, {{ user.username }}! You are logged in.</p>
+    <a href="{% url 'logout' %}">Logout</a>
+{% else %}
+    <p><a href="{% url 'login' %}">Login</a> | <a href="{% url 'register' %}">Register</a></p>
+{% endif %}
