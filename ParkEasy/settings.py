@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'accounts',
     'listings',
     'widget_tweaks',
+    'booking',
 ]
 
 MIDDLEWARE = [
