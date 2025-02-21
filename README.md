@@ -44,7 +44,8 @@ sudo systemctl enable postgresql # Start PostgreSQL on boot
 
 ##### Log in to PostgreSQL
 ```bash
-psql -U postgres
+sudo -i -u postgres
+psql
 ```
 
 ##### Create Database
