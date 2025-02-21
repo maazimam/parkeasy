@@ -1,0 +1,25 @@
+<!-- listings/templates/listings/view_listings.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>All Listings</title>
+</head>
+<body>
+    <h1>All Parking Spot Listings</h1>
+
+    <ul>
+        {% for listing in listings %}
+            <li>
+                <strong>Location:</strong> {{ listing.location }} <br>
+                <strong>Rent per hour:</strong> ${{ listing.rent_per_hour }} <br>
+                <strong>Additional Info:</strong> {{ listing.additional_info }} <br>
+                <em>Listed by: {{ listing.user.username }}</em>
+            </li>
+            <hr>
+        {% endfor %}
+    </ul>
+
+    <a href="{% url 'create_listing' %}">Create a new listing</a>
+</body>
+</html>
