@@ -1,0 +1,19 @@
+<!-- listings/templates/listings/create_listing.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Listing</title>
+</head>
+<body>
+    <h1>Create a New Parking Spot Listing</h1>
+
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Submit</button>
+    </form>
+
+    <a href="{% url 'view_listings' %}">View All Listings</a>
+</body>
+</html>
