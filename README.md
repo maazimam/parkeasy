@@ -7,6 +7,62 @@ No more circling the block—just book a spot, park, and go.
 
 ## Instructions
 
+### PostgreSQL Setup Instructions
+
+#### Install PostgreSQL and psycopg2
+
+##### On macOS/Linux
+
+```bash
+# For Ubuntu/Debian
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+```
+
+For macOS (using Homebrew):
+```bash
+brew install postgresql
+```
+
+##### On Windows
+1. Download and install PostgreSQL from official website
+2. During installation, note the username (`postgres`) and password
+
+#### Start PostgreSQL Service
+
+##### For Linux/macOS (systemd)
+```bash
+sudo systemctl start postgresql
+sudo systemctl enable postgresql # Start PostgreSQL on boot
+```
+
+##### For Windows
+1. Open **pgAdmin** or use **Windows Services** (`services.msc`) to start PostgreSQL
+2. Ensure **PostgreSQL Server** is running
+
+#### Create the Database
+
+##### Log in to PostgreSQL
+```bash
+psql -U postgres
+```
+
+##### Create Database
+```sql
+CREATE DATABASE parkeasy_db;
+```
+
+##### Configure User Privileges
+```sql
+ALTER USER postgres WITH PASSWORD 'postgres';
+GRANT ALL PRIVILEGES ON DATABASE parkeasy_db TO postgres;
+```
+
+### Exit PostgreSQL
+```sql
+\q
+```
+
 ### 📌 1. Set Up the Virtual Environment
 Before running the Django app, create and activate a virtual environment.
 

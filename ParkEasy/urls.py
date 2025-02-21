@@ -22,5 +22,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home, name='home'),
     path('accounts/', include('accounts.urls')),
-    path('park_listings/', include('parking_spot_listing.urls')),
+    path('listings/', include('listings.urls')), # new listings app routes
 ]

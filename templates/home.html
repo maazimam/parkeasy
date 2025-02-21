@@ -1,14 +1,16 @@
-{% extends 'base.html' %}
+{% extends 'base.html' %} {% block content %}
+<h1>Welcome to ParkEasy</h1>
+{% if user.is_authenticated %}
+<p>Hello, {{ user.username }}! You are logged in.</p>
 
-{% block content %}
-    <h1>Welcome to ParkEasy</h1>
-    {% if user.is_authenticated %}
-        <p>Hello, {{ user.username }}! You are logged in.</p>
-        <a href="{% url 'logout' %}">Logout</a>
-    {% else %}
-        <p><a href="{% url 'login' %}">Login</a> | <a href="{% url 'register' %}">Register</a></p>
-    {% endif %}
-{% endblock %}
-
-
-
+<ul>
+  <li><a href="{% url 'create_listing' %}">Create a Listing</a></li>
+  <li><a href="{% url 'view_listings' %}">View Listings</a></li>
+  <li><a href="{% url 'logout' %}">Logout</a></li>
+</ul>
+{% else %}
+<p>
+  <a href="{% url 'login' %}">Login</a> |
+  <a href="{% url 'register' %}">Register</a>
+</p>
+{% endif %} {% endblock %}
