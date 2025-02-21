@@ -9,7 +9,12 @@
                 <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'register' %}">Register</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'view_listings' %}">View Listings</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'create_listing' %}">Post a Spot</a></li>
+                <li class="nav-item">
+                    {% if user.is_authenticated %}
+                        <a class="nav-link" href="{% url 'create_listing' %}">Post a Spot</a>
+                    {% endif %}
+                </li>
+                
             </ul>
         </div>
     </div>
