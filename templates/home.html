@@ -4,13 +4,14 @@
 <p>Hello, {{ user.username }}! You are logged in.</p>
 
 <ul>
-  <li><a href="{% url 'create_listing' %}">Create a Listing</a></li>
-  <li><a href="{% url 'view_listings' %}">View Listings</a></li>
-  <li><a href="{% url 'logout' %}">Logout</a></li>
+    <li><a href="{% url 'create_listing' %}">Create a Listing</a></li>
+    <li><a href="{% url 'view_listings' %}">View Listings</a></li>
+    <li><a href="{% url 'manage_listings' %}">Manage Listings</a></li>
+    <li><a href="{% url 'logout' %}">Logout</a></li>
 </ul>
 {% else %}
 <p>
-  <a href="{% url 'login' %}">Login</a> |
-  <a href="{% url 'register' %}">Register</a>
+    <a href="{% url 'login' %}">Login</a> |
+    <a href="{% url 'register' %}">Register</a>
 </p>
 {% endif %} {% endblock %}

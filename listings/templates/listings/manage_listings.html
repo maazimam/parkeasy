@@ -1,8 +1,6 @@
-<!-- listings/templates/listings/view_listings.html -->
-
-{% extends 'base.html' %} {% block title %}All Listings{% endblock %} {% block content %}
+{% extends 'base.html' %} {% block title %}Manage Your Listings{% endblock %} {% block content %}
 <div class="container mt-5">
-    <h2 class="text-center">Available Parking Spots</h2>
+    <h2 class="text-center">Your Parking Listings</h2>
     <div class="listings-container p-3 border rounded">
         {% for listing in listings %}
         <div class="card mb-3">
@@ -22,22 +20,18 @@
                 </p>
                 <p class="card-text">{{ listing.description }}</p>
                 <p class="card-text">
-                    <small class="text-muted">Listed by: {{ listing.user.username }}</small
-          >
-        </p>
-        <button class="btn btn-success">Book Now</button>
-      </div>
+                    <small class="text-muted">Listed by: You</small>
+                </p>
+                <a href="{% url 'edit_listing' listing.id %}" class="btn btn-warning">Edit</a>
+                <a href="{% url 'delete_listing' listing.id %}" class="btn btn-danger">Delete</a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center p-4">
+            <p>You haven't posted any listings yet.</p>
+            <a href="{% url 'create_listing' %}" class="btn btn-primary">Create a new listing</a>
+        </div>
+        {% endfor %}
     </div>
-    {% empty %}
-    <div class="text-center p-4">
-      <p>No parking spots available at the moment.</p>
-    </div>
-    {% endfor %}
-  </div>
-  <div class="text-center mt-3">
-    <a href="{% url 'create_listing' %}" class="btn btn-primary"
-      >Create a new listing</a
-    >
-  </div>
 </div>
 {% endblock %}
