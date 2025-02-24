@@ -1,0 +1,37 @@
+{% extends 'base.html' %} {% block title %}Manage Your Listings{% endblock %} {% block content %}
+<div class="container mt-5">
+    <h2 class="text-center">Your Parking Listings</h2>
+    <div class="listings-container p-3 border rounded">
+        {% for listing in listings %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">{{ listing.title }}</h5>
+                <p class="card-text">
+                    <strong>Location:</strong> {{ listing.location }}
+                </p>
+                <p class="card-text">
+                    <strong>Price:</strong> ${{ listing.rent_per_hour }}/hour
+                </p>
+                <p class="card-text">
+                    <strong>Available:</strong> {{ listing.available_from|date:"M d, Y" }} to {{ listing.available_until|date:"M d, Y" }}
+                </p>
+                <p class="card-text">
+                    <strong>Hours:</strong> {{ listing.available_time_from|time:"g:i A" }} to {{ listing.available_time_until|time:"g:i A" }}
+                </p>
+                <p class="card-text">{{ listing.description }}</p>
+                <p class="card-text">
+                    <small class="text-muted">Listed by: You</small>
+                </p>
+                <a href="{% url 'edit_listing' listing.id %}" class="btn btn-warning">Edit</a>
+                <a href="{% url 'delete_listing' listing.id %}" class="btn btn-danger">Delete</a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center p-4">
+            <p>You haven't posted any listings yet.</p>
+            <a href="{% url 'create_listing' %}" class="btn btn-primary">Create a new listing</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
