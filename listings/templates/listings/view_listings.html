@@ -1,47 +1,117 @@
-<!-- listings/templates/listings/view_listings.html -->
+{% extends 'base.html' %} 
 
-{% extends 'base.html' %} {% block title %}All Listings{% endblock %} 
+{% block title %}All Listings{% endblock %} 
+
 {% block content %}
 <div class="container mt-5">
   <h2 class="text-center">Available Parking Spots</h2>
+
+  <!-- Filter Form -->
+  <form method="GET" action="{% url 'view_listings' %}" class="p-3 border rounded bg-light mb-4">
+    <div class="row">
+      <!-- Max Price -->
+      <div class="col-md-2">
+        <label for="max_price" class="form-label">Max Price ($/hr)</label>
+        <input 
+          type="number" 
+          step="0.01" 
+          class="form-control" 
+          id="max_price" 
+          name="max_price" 
+          value="{{ request.GET.max_price|default_if_none:'' }}"
+          placeholder="Enter max price">
+      </div>
+
+      <!-- Start Date -->
+      <div class="col-md-2">
+        <label for="start_date" class="form-label">Start Date</label>
+        <input 
+          type="date" 
+          class="form-control" 
+          id="start_date" 
+          name="start_date" 
+          value="{{ request.GET.start_date|default_if_none:'' }}"
+          placeholder="Earliest available date">
+      </div>
+
+      <!-- End Date -->
+      <div class="col-md-2">
+        <label for="end_date" class="form-label">End Date</label>
+        <input 
+          type="date" 
+          class="form-control" 
+          id="end_date" 
+          name="end_date" 
+          value="{{ request.GET.end_date|default_if_none:'' }}"
+          placeholder="Latest available date">
+      </div>
+
+      <!-- Start Time -->
+      <div class="col-md-2">
+        <label for="start_time" class="form-label">Start Time</label>
+        <input 
+          type="time" 
+          class="form-control" 
+          id="start_time" 
+          name="start_time" 
+          value="{{ request.GET.start_time|default_if_none:'' }}"
+          placeholder="Earliest available time">
+      </div>
+
+      <!-- End Time -->
+      <div class="col-md-2">
+        <label for="end_time" class="form-label">End Time</label>
+        <input 
+          type="time" 
+          class="form-control" 
+          id="end_time" 
+          name="end_time" 
+          value="{{ request.GET.end_time|default_if_none:'' }}"
+          placeholder="Latest available time">
+      </div>
+
+      <!-- Buttons -->
+      <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary me-2">Filter</button>
+        <a href="{% url 'view_listings' %}" class="btn btn-secondary">Clear Filters</a>
+      </div>
+    </div>
+  </form>
+
+  <!-- Listings Display -->
   <div class="listings-container p-3 border rounded">
     {% for listing in listings %}
     <div class="card mb-3">
       <div class="card-body">
         <h5 class="card-title">{{ listing.title }}</h5>
+        <p class="card-text"><strong>Location:</strong> {{ listing.location }}</p>
+        <p class="card-text"><strong>Price:</strong> ${{ listing.rent_per_hour }}/hour</p>
         <p class="card-text">
-          <strong>Location:</strong> {{ listing.location }}
+          <strong>Available:</strong> 
+          {{ listing.available_from|date:"M d, Y" }} to 
+          {{ listing.available_until|date:"M d, Y" }}
         </p>
         <p class="card-text">
-          <strong>Price:</strong> ${{ listing.rent_per_hour }}/hour
-        </p>
-        <p class="card-text">
-          <strong>Available:</strong> {{ listing.available_from|date:"M d, Y" }}
-          to {{ listing.available_until|date:"M d, Y" }}
-        </p>
-        <p class="card-text">
-          <strong>Hours:</strong> {{ listing.available_time_from|time:"g:i A" }}
-          to {{ listing.available_time_until|time:"g:i A" }}
+          <strong>Hours:</strong> 
+          {{ listing.available_time_from|time:"g:i A" }} to 
+          {{ listing.available_time_until|time:"g:i A" }}
         </p>
         <p class="card-text">{{ listing.description }}</p>
         <p class="card-text">
-          <small class="text-muted"
-            >Listed by: {{ listing.user.username }}</small
-          >
+          <small class="text-muted">Listed by: {{ listing.user.username }}</small>
         </p>
         <a href="{% url 'book_listing' listing.id %}" class="btn btn-success">Book Now</a>
       </div>
     </div>
     {% empty %}
     <div class="text-center p-4">
-      <p>No parking spots available at the moment.</p>
+      <p>No parking spots available that match your filters.</p>
     </div>
     {% endfor %}
   </div>
+
   <div class="text-center mt-3">
-    <a href="{% url 'create_listing' %}" class="btn btn-primary"
-      >Create a new listing</a
-    >
+    <a href="{% url 'create_listing' %}" class="btn btn-primary">Create a new listing</a>
   </div>
 </div>
 {% endblock %}

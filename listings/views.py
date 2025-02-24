@@ -4,6 +4,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from .forms import ListingForm
 from .models import Listing
+from datetime import datetime
 
 @login_required
 def create_listing(request):
@@ -21,4 +22,64 @@ def create_listing(request):
 
 def view_listings(request):
     all_listings = Listing.objects.all()
+
+    #Extract GET paramters
+    max_price = request.GET.get('max_price')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    start_time = request.GET.get('start_time')
+    end_time = request.GET.get('end_time')
+
+    #Apply filters if parameters are provided
+    if max_price:
+        try:
+            max_price = float(max_price)
+            all_listings = all_listings.filter(rent_per_hour__lte=max_price)
+        except ValueError:
+            pass
+
+    if start_date:
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            all_listings = all_listings.filter(available_from__lte=start_date, available_until__gte=start_date)  
+            # The listing must start on or after the availbe_from
+            # and end before or on the end date.
+        except ValueError:
+            pass
+
+    if end_date:
+        try:
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            all_listings = all_listings.filter(available_from__lte=end_date, available_until__gte=end_date)
+            # The listing must start on or after the availbe_from
+            # and end before or on the end date.
+        except ValueError:
+            pass
+
+    if start_date and end_date:
+        if start_date > end_date:
+            all_listings = all_listings.none() # No listings should appear if start date is after end date.
+
+    if start_time:
+        try:
+            start_time = datetime.strptime(start_time, '%H:%M').time()
+            all_listings = all_listings.filter(available_time_from__lte=start_time, available_time_until__gte=start_time)
+            # The listing must start on or after the availbe_from
+            # and end before or on the end time
+        except ValueError:
+            pass
+
+    if end_time:
+        try:
+            end_time = datetime.strptime(end_time, '%H:%M').time()
+            all_listings = all_listings.filter(available_time_until__gte=end_time, available_time_from__lte=end_time)
+            # The listing must start on or after the availbe_from
+            # and end before or on the end time
+        except ValueError:
+            pass
+
+    if start_time and end_time:
+        if start_time > end_time:
+            all_listings = all_listings.none()
+
     return render(request, 'listings/view_listings.html', {'listings': all_listings})
