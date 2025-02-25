@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-y!ckd0em%l#u3ja&a9la938#9l$f50bhye-=-zp7rww1q*qg5l
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['ParkEasyIntegration.us-east-1.elasticbeanstalk.com','127.0.0.1',]
 
 
 # Application definition
@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'accounts',
     'listings',
     'widget_tweaks',
+    'booking',
 ]
 
 MIDDLEWARE = [
@@ -79,16 +80,29 @@ WSGI_APPLICATION = 'ParkEasy.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "parkeasy_db",
-        "USER": "postgres",
-        "PASSWORD": "postgres",
-        "HOST": "localhost",
-        "PORT": "5432",
+if 'RDS_DB_NAME' in os.environ:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'NAME': os.environ['RDS_DB_NAME'],
+            'USER': os.environ['RDS_USERNAME'],
+            'PASSWORD': os.environ['RDS_PASSWORD'],
+            'HOST': os.environ['RDS_HOSTNAME'],
+            'PORT': os.environ['RDS_PORT'],
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": "parkeasy_db",
+            "USER": "postgres",
+            "PASSWORD": "postgres",
+            "HOST": "localhost",
+            "PORT": "5432",
+        }
+    }
+    
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
