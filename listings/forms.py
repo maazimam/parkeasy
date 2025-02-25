@@ -46,12 +46,6 @@ class ListingForm(forms.ModelForm):
                 errors.append(
                     "Available Time From and Available Time Until must start at hour:00 or hour:30")
 
-            # Calculate time difference in minutes
-            minutes_diff = (available_time_until.hour * 60 + available_time_until.minute) - \
-                (available_time_from.hour * 60 + available_time_from.minute)
-            if minutes_diff != 30:
-                errors.append("Available time must be in 30 minute increments")
-
         if errors:
             raise forms.ValidationError(errors)
 
