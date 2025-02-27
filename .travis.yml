@@ -1,0 +1,27 @@
+dist: focal
+language: python
+python:
+  - "3.10"  
+
+# install:
+#   - pip install -r requirements.txt
+#   - pip install black flake8 coverage coveralls
+
+# script:
+#   - black --check .
+#   - flake8 .
+#   - coverage run manage.py test
+
+# after_success:
+#   - coveralls
+
+deploy:
+  provider: elasticbeanstalk
+  access_key_id: "$AWS_ACCESS_KEY_ID"
+  secret_access_key: "$AWS_SECRET_ACCESS_KEY"
+  region: "us-east-1" 
+  app: "ParkEasy"
+  env: "ParkEasy-dev"
+  bucket_name: "elasticbeanstalk-us-west-1-536697258874"
+  on:
+    branch: develop
