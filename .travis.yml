@@ -1,27 +1,36 @@
 dist: focal
 language: python
 python:
-  - "3.10"  
+  - "3.10"
 
-install:
-  - pip install -r requirements.txt
-#   - pip install black flake8 coverage coveralls
+branches:
+  only:
+    - develop
+    - main
 
-# script:
-#   - black --check .
-#   - flake8 .
-#   - coverage run manage.py test
+script: true #where we would put tests
 
-# after_success:
-#   - coveralls
+jobs:
+  include:
+    - stage: "Deploy to Develop Environment"
+      if: branch = develop AND env(TRAVIS_REPO_SLUG) = "gcivil-nyu-org/team3-wed-spring25"
+      deploy:
+        provider: elasticbeanstalk
+        region: "us-east-1"              
+        app: "ParkEasy"                    
+        env: "ParkEasy-dev"          
+        bucket_name: "elasticbeanstalk-us-west-1-536697258874"   
+        on:
+          branch: develop
 
-deploy:
-  provider: elasticbeanstalk
-  access_key_id: "$AWS_ACCESS_KEY_ID"
-  secret_access_key: "$AWS_SECRET_ACCESS_KEY"
-  region: "us-east-1" 
-  app: "ParkEasy"
-  env: "ParkEasy-dev"
-  bucket_name: "elasticbeanstalk-us-west-1-536697258874"
-  on:
-    branch: develop
+    # - stage: "Deploy to Main Environment"
+    #   if: branch = main AND env(TRAVIS_REPO_SLUG) = "gcivil-nyu-org/team3-wed-spring25"
+    #   deploy:
+    #     provider: elasticbeanstalk
+    #     region: "us-east-1"              # Adjust to your region
+    #     app: ""                    # Your Elastic Beanstalk application name
+    #     env: ""               # The EB environment for the main branch
+    #     bucket_name: ""      # S3 bucket used for EB deployments
+    #     bucket_path: "my-app/main"       # Path in the S3 bucket
+    #     on:
+    #       branch: main
