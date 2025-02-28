@@ -34,3 +34,20 @@ def user_login(request):
 def user_logout(request):
     logout(request)
     return redirect("login")  # Redirect to login page after logout
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+
+def verify(request):
+    if request.method == "POST":
+        # Replace with your actual question logic. For now, assume the correct answer is "42"
+        answer = request.POST.get("answer")
+        if answer == "ParkEasy":
+            # Mark user as verified
+            request.user.profile.is_verified = True
+            request.user.profile.save()
+            messages.success(request, "Your account has been verified!")
+            return redirect("create_listing")  # or wherever you want to redirect verified users
+        else:
+            messages.error(request, "Incorrect answer. Please try again.")
+    return render(request, "accounts/verify.html")

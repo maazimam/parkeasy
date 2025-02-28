@@ -1,0 +1,17 @@
+<!-- accounts/templates/accounts/verify.html -->
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="container mt-5">
+    <h2>Verification</h2>
+    <p>To verify your account, please answer the following question:</p>
+    <p><strong>What is the best app for renting parking spots?</strong></p>
+    <form method="POST">
+      {% csrf_token %}
+      <div class="mb-3">
+        <input type="text" name="answer" class="form-control" placeholder="Your answer">
+      </div>
+      <button type="submit" class="btn btn-primary">Submit Answer</button>
+    </form>
+  </div>
+{% endblock %}
