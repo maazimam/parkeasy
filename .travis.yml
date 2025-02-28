@@ -21,7 +21,7 @@ script:
 
 before_deploy:
   # Only deploy if we're in the target repository and branch.
-  - if [ "$TRAVIS_REPO_SLUG" != "gcivil-nyu-org/team3-wed-spring25" ]; then echo "Not the gcivil repo, skipping deploy."; exit 0; fi
+  #- if [ "$TRAVIS_REPO_SLUG" != "gcivil-nyu-org/team3-wed-spring25" ]; then echo "Not the gcivil repo, skipping deploy."; exit 0; fi
   # Package the deployable artifact.
   - zip -r deploy_package.zip . -x "*.git*" -x "**/__pycache__/*" -x "*.pyc" -x "venv/*"
 
