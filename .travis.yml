@@ -3,6 +3,10 @@ language: python
 python:
   - "3.10"
 
+# Only run this repo's builds.
+before_install:
+  - if [ "$TRAVIS_REPO_SLUG" != "gcivil-nyu-org/team3-wed-spring25" ]; then echo "Not the gcivil repo, skipping build."; exit 0; fi
+
 branches:
   only:
     - develop
@@ -18,23 +22,26 @@ before_script:
 
 script:
   - black --check .
+  # Add any additional checks or tests here.
+  
+# after_script:
+#   - coveralls
 
 before_deploy:
-  # Only deploy if we're in the target repository and branch.
-  - if [ "$TRAVIS_REPO_SLUG" != "gcivil-nyu-org/team3-wed-spring25" ]; then echo "Not the gcivil repo, skipping deploy."; exit 0; fi
+  # Only deploy if this is a merge build, not a PR.
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then echo "Pull request build, skipping deploy."; exit 0; fi
   # Package the deployable artifact.
   - zip -r deploy_package.zip . -x "*.git*" -x "**/__pycache__/*" -x "*.pyc" -x "venv/*"
-
 
 jobs:
   include:
     - stage: "Deploy to Develop Environment"
       deploy:
         provider: elasticbeanstalk
-        region: "us-east-1"              
-        app: "ParkEasy"                    
-        env: "ParkEasy-dev"          
-        bucket_name: "elasticbeanstalk-us-east-1-536697258874"   
+        region: "us-east-1"
+        app: "ParkEasy"
+        env: "ParkEasy-dev"
+        bucket_name: "elasticbeanstalk-us-east-1-536697258874"
         bucket_path: "ParkEasy"
         zip_file: deploy_package.zip
         skip_cleanup: true
