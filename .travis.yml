@@ -43,6 +43,8 @@ jobs:
     - stage: "Deploy to Develop Environment"
       deploy:
         provider: elasticbeanstalk
+        access_key_id: "$AWS_ACCESS_KEY_ID_INT"
+        secret_access_key: "$AWS_SECRET_ACCESS_KEY_INT"
         region: "us-east-1"
         app: "ParkEasy"
         env: "ParkEasy-dev"
@@ -53,14 +55,17 @@ jobs:
         on:
           branch: develop
 
-    # - stage: "Deploy to Main Environment"
-    #   if: branch = main AND env(TRAVIS_REPO_SLUG) = "gcivil-nyu-org/team3-wed-spring25"
-    #   deploy:
-    #     provider: elasticbeanstalk
-    #     region: "us-east-1"              # Adjust to your region
-    #     app: ""                    # Your Elastic Beanstalk application name
-    #     env: ""               # The EB environment for the main branch
-    #     bucket_name: ""      # S3 bucket used for EB deployments
-    #     bucket_path: "my-app/main"       # Path in the S3 bucket
-    #     on:
-    #       branch: main
+    - stage: "Deploy to Production Environment"
+      deploy:
+        provider: elasticbeanstalk
+        access_key_id: "$AWS_ACCESS_KEY_ID_MAIN"
+        secret_access_key: "$AWS_SECRET_ACCESS_KEY_MAIN"
+        region: "us-east-1"
+        app: "ParkEasyMain"
+        env: "ParkEasyMain-dev"
+        bucket_name: "elasticbeanstalk-us-east-1-490004620598"
+        bucket_path: "ParkEasyMain"
+        zip_file: deploy_package.zip
+        skip_cleanup: true
+        on:
+          branch: main
