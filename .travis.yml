@@ -18,7 +18,7 @@ script:
 jobs:
   include:
     - stage: "Deploy to Develop Environment"
-      if: branch = develop AND env(TRAVIS_REPO_SLUG) = "gcivil-nyu-org/team3-wed-spring25"
+      if: branch = develop AND TRAVIS_REPO_SLUG = "gcivil-nyu-org/team3-wed-spring25"
       deploy:
         provider: elasticbeanstalk
         region: "us-east-1"              
