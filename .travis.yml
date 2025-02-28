@@ -20,7 +20,7 @@ install:
   - pip install black
 
 before_script:
-  - psql -c 'CREATE DATABASE mytestdb;' -U postgres
+  - psql -c 'CREATE DATABASE parkeasy_db;' -U postgres
   - python manage.py migrate
   - python manage.py collectstatic --noinput
 
