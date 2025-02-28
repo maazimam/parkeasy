@@ -8,7 +8,12 @@ branches:
     - develop
     - main
 
-script: true #where we would put tests
+install:
+  - pip install -r requirements.txt
+  - pip install black
+
+script:
+  - black --check .
 
 jobs:
   include:

@@ -26,4 +26,4 @@ class Listing(models.Model):
         return f"{self.title} - {self.location}"
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
