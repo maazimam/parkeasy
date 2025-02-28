@@ -1,17 +1,29 @@
-<!-- accounts/templates/accounts/verify.html -->
 {% extends "base.html" %}
 
 {% block content %}
-  <div class="container mt-5">
-    <h2>Verification</h2>
-    <p>To verify your account, please answer the following question:</p>
-    <p><strong>What is the best app for renting parking spots?</strong></p>
-    <form method="POST">
-      {% csrf_token %}
-      <div class="mb-3">
-        <input type="text" name="answer" class="form-control" placeholder="Your answer">
-      </div>
-      <button type="submit" class="btn btn-primary">Submit Answer</button>
-    </form>
-  </div>
+<div class="container mt-5">
+    {% if success %}
+        <div class="alert alert-success">
+            Congratulations, you are verified and can now post spots!
+        </div>
+        <!-- Optionally, provide a link to where they can post a spot -->
+        <a href="{% url 'create_listing' %}" class="btn btn-primary">Post a Spot</a>
+    {% else %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        <h2>Account Verification</h2>
+        <p>Please answer the following question to verify your account:</p>
+        <p><strong>What is the best app for renting parking spots?</strong></p>
+        <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+                <input type="text" name="answer" class="form-control" placeholder="Enter your answer">
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Answer</button>
+        </form>
+    {% endif %}
+</div>
 {% endblock %}
