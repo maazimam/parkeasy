@@ -12,19 +12,32 @@ install:
   - pip install -r requirements.txt
   - pip install black
 
+before_script:
+  - python manage.py migrate
+  - python manage.py collectstatic --noinput
+
 script:
   - black --check .
+
+before_deploy:
+  # Only deploy if we're in the target repository and branch.
+  - if [ "$TRAVIS_REPO_SLUG" != "gcivil-nyu-org/team3-wed-spring25" ]; then echo "Not the gcivil repo, skipping deploy."; exit 0; fi
+  # Package the deployable artifact.
+  - zip -r deploy_package.zip . -x "*.git*" -x "**/__pycache__/*" -x "*.pyc" -x "venv/*"
+
 
 jobs:
   include:
     - stage: "Deploy to Develop Environment"
-      if: branch = develop #AND TRAVIS_REPO_SLUG = "gcivil-nyu-org/team3-wed-spring25"
       deploy:
         provider: elasticbeanstalk
         region: "us-east-1"              
         app: "ParkEasy"                    
         env: "ParkEasy-dev"          
-        bucket_name: "elasticbeanstalk-us-west-1-536697258874"   
+        bucket_name: "elasticbeanstalk-us-east-1-536697258874"   
+        bucket_path: "ParkEasy"
+        zip_file: deploy_package.zip
+        skip_cleanup: true
         on:
           branch: develop
 
