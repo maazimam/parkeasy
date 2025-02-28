@@ -43,6 +43,8 @@ jobs:
     - stage: "Deploy to Develop Environment"
       deploy:
         provider: elasticbeanstalk
+        access_key_id: "$AWS_ACCESS_KEY_ID_INT"
+        secret_access_key: "$AWS_SECRET_ACCESS_KEY_INT"
         region: "us-east-1"
         app: "ParkEasy"
         env: "ParkEasy-dev"
