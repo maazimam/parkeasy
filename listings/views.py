@@ -145,3 +145,13 @@ def delete_listing(request, listing_id):
         return redirect("manage_listings")
 
     return render(request, "listings/confirm_delete.html", {"listing": listing})
+
+
+def listing_reviews(request, listing_id):
+    listing = get_object_or_404(Listing, pk=listing_id)
+    reviews = listing.reviews.all()  # using the related_name set in the Review model
+    return render(
+        request,
+        "listings/listing_reviews.html",
+        {"listing": listing, "reviews": reviews},
+    )
