@@ -12,34 +12,38 @@ from .models import Listing
 
 @login_required
 def create_listing(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ListingForm(request.POST)
         if form.is_valid():
             listing = form.save(commit=False)
             listing.user = request.user
             listing.save()
-            messages.success(request, 'Listing created successfully!')
-            return redirect('view_listings')
+            messages.success(request, "Listing created successfully!")
+            return redirect("view_listings")
         else:
             print(form.errors)
-            messages.error(request, 'Please correct the errors below.')
+            messages.error(request, "Please correct the errors below.")
     else:
         form = ListingForm()
 
-    return render(request, 'listings/create_listing.html', {
-        'form': form,
-    })
+    return render(
+        request,
+        "listings/create_listing.html",
+        {
+            "form": form,
+        },
+    )
 
 
 def view_listings(request):
     all_listings = Listing.objects.all()
 
     # Extract GET paramters
-    max_price = request.GET.get('max_price')
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    start_time = request.GET.get('start_time')
-    end_time = request.GET.get('end_time')
+    max_price = request.GET.get("max_price")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+    start_time = request.GET.get("start_time")
+    end_time = request.GET.get("end_time")
 
     # Apply filters if parameters are provided
     if max_price:
@@ -51,9 +55,10 @@ def view_listings(request):
 
     if start_date:
         try:
-            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
             all_listings = all_listings.filter(
-                available_from__lte=start_date, available_until__gte=start_date)
+                available_from__lte=start_date, available_until__gte=start_date
+            )
             # The listing must start on or after the availbe_from
             # and end before or on the end date.
         except ValueError:
@@ -61,9 +66,10 @@ def view_listings(request):
 
     if end_date:
         try:
-            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
             all_listings = all_listings.filter(
-                available_from__lte=end_date, available_until__gte=end_date)
+                available_from__lte=end_date, available_until__gte=end_date
+            )
             # The listing must start on or after the availbe_from
             # and end before or on the end date.
         except ValueError:
@@ -76,9 +82,11 @@ def view_listings(request):
 
     if start_time:
         try:
-            start_time = datetime.strptime(start_time, '%H:%M').time()
+            start_time = datetime.strptime(start_time, "%H:%M").time()
             all_listings = all_listings.filter(
-                available_time_from__lte=start_time, available_time_until__gte=start_time)
+                available_time_from__lte=start_time,
+                available_time_until__gte=start_time,
+            )
             # The listing must start on or after the availbe_from
             # and end before or on the end time
         except ValueError:
@@ -86,9 +94,10 @@ def view_listings(request):
 
     if end_time:
         try:
-            end_time = datetime.strptime(end_time, '%H:%M').time()
+            end_time = datetime.strptime(end_time, "%H:%M").time()
             all_listings = all_listings.filter(
-                available_time_until__gte=end_time, available_time_from__lte=end_time)
+                available_time_until__gte=end_time, available_time_from__lte=end_time
+            )
             # The listing must start on or after the availbe_from
             # and end before or on the end time
         except ValueError:
@@ -98,12 +107,17 @@ def view_listings(request):
         if start_time > end_time:
             all_listings = all_listings.none()
 
-    return render(request, 'listings/view_listings.html', {'listings': all_listings})
+    return render(request, "listings/view_listings.html", {"listings": all_listings})
 
 
 def manage_listings(request):
     owner_listings = Listing.objects.filter(user=request.user)
-    return render(request, 'listings/manage_listings.html', {'listings': owner_listings})
+
+    for listing in owner_listings:
+        listing.pending_bookings = listing.booking_set.filter(status="PENDING")
+    return render(
+        request, "listings/manage_listings.html", {"listings": owner_listings}
+    )
 
 
 @login_required
@@ -117,14 +131,14 @@ def edit_listing(request, listing_id):
     else:
         form = ListingForm(instance=listing)
 
-    return render(request, 'listings/edit_listing.html', {'form': form})
+    return render(request, "listings/edit_listing.html", {"form": form})
 
 
 @login_required
 def delete_listing(request, listing_id):
     listing = get_object_or_404(Listing, id=listing_id, user=request.user)
-    if request.method == 'POST':
+    if request.method == "POST":
         listing.delete()
-        return redirect('manage_listings')
+        return redirect("manage_listings")
 
-    return render(request, 'listings/confirm_delete.html', {'listing': listing})
+    return render(request, "listings/confirm_delete.html", {"listing": listing})
