@@ -3,6 +3,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initialize the map
   let map = L.map("map").setView([43.6532, -79.3832], 13); // Default to Toronto
+  let marker;
+  let locationData = {
+    address: "",
+    lat: "",
+    lng: "",
+  };
 
   // Add OpenStreetMap tiles
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -10,27 +16,32 @@ document.addEventListener("DOMContentLoaded", function () {
     attribution: "© OpenStreetMap contributors",
   }).addTo(map);
 
-  // Initialize marker variable
-  let marker;
+  function updateLocationField(address, lat, lng) {
+    // Update the hidden location field with formatted data
+    const locationString = `${address} [${lat}, ${lng}]`;
+    document.getElementById("id_location").value = locationString;
+
+    // Store the data for later use
+    locationData.address = address;
+    locationData.lat = lat;
+    locationData.lng = lng;
+  }
 
   // Function to handle location selection
   function onMapClick(e) {
-    // Remove existing marker if any
     if (marker) {
       map.removeLayer(marker);
     }
 
-    // Add new marker
     marker = L.marker(e.latlng).addTo(map);
 
-    // Reverse geocode the coordinates
     fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`
     )
       .then((response) => response.json())
       .then((data) => {
         const address = data.display_name;
-        document.getElementById("id_location").value = address;
+        updateLocationField(address, e.latlng.lat, e.latlng.lng);
         marker.bindPopup(address).openPopup();
       })
       .catch((error) => console.error("Error:", error));
@@ -62,7 +73,11 @@ document.addEventListener("DOMContentLoaded", function () {
           }
 
           marker = L.marker([location.lat, location.lon]).addTo(map);
-          document.getElementById("id_location").value = location.display_name;
+          updateLocationField(
+            location.display_name,
+            location.lat,
+            location.lon
+          );
           marker.bindPopup(location.display_name).openPopup();
         }
       })
@@ -81,6 +96,20 @@ document.addEventListener("DOMContentLoaded", function () {
       searchLocation();
     }
   });
+
+  // If there's an existing location, show it on the map
+  const existingLocation = document.getElementById("id_location").value;
+  if (existingLocation) {
+    // Try to parse coordinates if they exist
+    const match = existingLocation.match(/\[([-\d.]+),\s*([-\d.]+)\]/);
+    if (match) {
+      const lat = parseFloat(match[1]);
+      const lng = parseFloat(match[2]);
+      map.setView([lat, lng], 16);
+      marker = L.marker([lat, lng]).addTo(map);
+      marker.bindPopup(existingLocation.split("[")[0].trim()).openPopup();
+    }
+  }
 });
 console.log("map.js loaded");
 console.log("mkdkkdkd");
