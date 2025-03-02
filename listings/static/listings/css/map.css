@@ -4,19 +4,3 @@
     width: 100%;
     margin-bottom: 1rem;
 }
-
-.map-container {
-    position: relative;
-}
-
-/* Search box styles */
-.search-container {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 1000;
-    background: white;
-    padding: 10px;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-} 

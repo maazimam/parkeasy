@@ -42,18 +42,18 @@
 
   <div class="mb-3">
     <label class="form-label">Location</label>
-    <div class="map-container">
-      <div class="search-container">
-        <div class="input-group">
-          <input
-            type="text"
-            id="location-search"
-            class="form-control"
-            placeholder="Search location..."
-          />
-          <button class="btn btn-primary" id="search-location">Search</button>
-        </div>
+    <div class="search-container mb-2">
+      <div class="input-group">
+        <input
+          type="text"
+          id="location-search"
+          class="form-control"
+          placeholder="Search location..."
+        />
+        <button class="btn btn-primary" id="search-location">Search</button>
       </div>
+    </div>
+    <div class="map-container">
       <div id="map"></div>
     </div>
     {{ form.location|add_class:"form-control" }}
