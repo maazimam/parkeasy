@@ -9,4 +9,5 @@ urlpatterns = [
     path('manage_listings/', views.manage_listings, name= 'manage_listings'),
     path('<int:listing_id>/edit/', views.edit_listing, name='edit_listing'),
     path('<int:listing_id>/delete/', views.delete_listing, name='delete_listing'),
+    path('map/', views.map, name='map'),
 ]

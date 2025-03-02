@@ -128,3 +128,7 @@ def delete_listing(request, listing_id):
         return redirect('manage_listings')
 
     return render(request, 'listings/confirm_delete.html', {'listing': listing})
+
+
+def map(request):
+    return render(request, 'listings/map.html')
