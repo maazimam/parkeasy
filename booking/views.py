@@ -66,6 +66,7 @@ def cancel_booking(request, booking_id):
     booking.delete()
     return redirect("my_bookings")
 
+
 @login_required
 def manage_booking(request, booking_id, action):
     """
@@ -84,6 +85,7 @@ def manage_booking(request, booking_id, action):
     booking.save()
 
     return redirect("manage_listings")
+
 
 @login_required
 def review_booking(request, booking_id):
