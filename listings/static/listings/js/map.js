@@ -110,6 +110,64 @@ document.addEventListener("DOMContentLoaded", function () {
       marker.bindPopup(existingLocation.split("[")[0].trim()).openPopup();
     }
   }
+
+  function parseLocation(locationString) {
+    try {
+      const match = locationString.match(/\[([-\d.]+),\s*([-\d.]+)\]/);
+      if (match) {
+        return {
+          lat: parseFloat(match[1]),
+          lng: parseFloat(match[2]),
+          address: locationString.split("[")[0].trim(),
+        };
+      }
+    } catch (error) {
+      console.log("Error parsing location:", error);
+    }
+    return {
+      lat: 43.6532, // Default to Toronto
+      lng: -79.3832,
+      address: locationString || "Location not specified",
+    };
+  }
+
+  function initMap() {
+    if (!map) {
+      map = L.map("map-view").setView([43.6532, -79.3832], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap contributors",
+      }).addTo(map);
+
+      // Add markers for all listings
+      const listings = document.querySelectorAll(".card");
+      const bounds = [];
+
+      listings.forEach((listing) => {
+        const location = parseLocation(listing.dataset.location);
+        const marker = L.marker([location.lat, location.lng]).addTo(map);
+        bounds.push([location.lat, location.lng]);
+
+        // Create popup content
+        const title = listing.querySelector(".card-title").textContent;
+        const price = listing.querySelector(
+          ".card-text:nth-child(2)"
+        ).textContent;
+        const popupContent = `
+          <strong>${title}</strong><br>
+          ${location.address}<br>
+          ${price}<br>
+          <a href="#" class="btn btn-sm btn-success mt-2">Book Now</a>
+        `;
+        marker.bindPopup(popupContent);
+      });
+
+      // Fit map to show all markers if there are any
+      if (bounds.length > 0) {
+        map.fitBounds(bounds);
+      }
+    }
+  }
 });
 console.log("map.js loaded");
 console.log("mkdkkdkd");
