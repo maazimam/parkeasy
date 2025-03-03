@@ -41,7 +41,7 @@ def user_logout(request):
 def verify(request):
     if request.method == "GET":
         list(get_messages(request))
-    
+
     # If the user is already verified, show success message
     if request.user.profile.is_verified:
         return render(request, "accounts/verify.html", {"success": True})
