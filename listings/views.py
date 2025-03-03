@@ -98,6 +98,10 @@ def view_listings(request):
         if start_time > end_time:
             all_listings = all_listings.none()
 
+    # add location name where it is location field without lat and lng
+    for listing in all_listings:
+        listing.location_name = listing.location.split("[")[0].strip()
+
     return render(request, 'listings/view_listings.html', {'listings': all_listings})
 
 

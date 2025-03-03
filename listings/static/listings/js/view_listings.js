@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", function () {
           lat: parseFloat(match[1]),
           lng: parseFloat(match[2]),
           address: locationString.split("[")[0].trim(),
+          location_name: locationString.split("[")[0].trim(),
         };
       }
     } catch (error) {
@@ -44,17 +45,18 @@ document.addEventListener("DOMContentLoaded", function () {
         const location = parseLocation(listing.dataset.location);
         const marker = L.marker([location.lat, location.lng]).addTo(map);
         bounds.push([location.lat, location.lng]);
+        console.log(location);
 
         // Create popup content
         const title = listing.querySelector(".card-title").textContent;
         const price = listing.querySelector(
           ".card-text:nth-child(2)"
         ).textContent;
+
         const popupContent = `
           <strong>${title}</strong><br>
-          ${location.address}<br>
+          ${location.location_name}<br>
           ${price}<br>
-          <a href="#" class="btn btn-sm btn-success mt-2">Book Now</a>
         `;
         marker.bindPopup(popupContent);
       });
@@ -81,7 +83,7 @@ document.addEventListener("DOMContentLoaded", function () {
     mapViewBtn.classList.add("btn-primary");
     mapViewBtn.classList.remove("btn-outline-primary");
 
-    // change list view button style since we are switching to map view
+    // change list view button style since we are switching to map viewfd
     listViewBtn.classList.remove("btn-primary");
     listViewBtn.classList.add("btn-outline-primary");
     // remove active from list view button
