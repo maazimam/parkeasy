@@ -121,7 +121,10 @@
     </div>
   </form>
 
-  <!-- List View -->
+  
+
+
+  <!-- List View print -->
   <div
     id="list-view"
     class="view-container listings-container p-3 border rounded active-view"
@@ -138,13 +141,13 @@
         </p>
         <p class="card-text">
           <strong>Available:</strong>
-          {{ listing.available_from|date:"M d, Y" }} to {{
-          listing.available_until|date:"M d, Y" }}
+          {{ listing.available_from|date:"M d, Y" }} to
+          {{ listing.available_until|date:"M d, Y" }}
         </p>
         <p class="card-text">
           <strong>Hours:</strong>
-          {{ listing.available_time_from|time:"g:i A" }} to {{
-          listing.available_time_until|time:"g:i A" }}
+          {{ listing.available_time_from|time:"g:i A" }} to 
+          {{ listing.available_time_until|time:"g:i A" }}
         </p>
         <p class="card-text">{{ listing.description }}</p>
         <p class="card-text">
@@ -184,3 +187,4 @@
 ></script>
 <script src="{% static 'listings/js/view_listings.js' %}"></script>
 {% endblock %}
+

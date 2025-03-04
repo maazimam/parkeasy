@@ -23,8 +23,8 @@ document.addEventListener("DOMContentLoaded", function () {
       console.log("Error parsing location:", error);
     }
     return {
-      lat: 43.6532, // Default to Toronto
-      lng: -79.3832,
+      lat: 40.69441, // Default to NYU tandon
+      lng: -73.98653,
       address: locationString || "Location not specified",
     };
   }
