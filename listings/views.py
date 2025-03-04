@@ -193,7 +193,3 @@ def listing_reviews(request, listing_id):
         "listings/listing_reviews.html",
         {"listing": listing, "reviews": reviews},
     )
-
-
-def map(request):
-    return render(request, 'listings/map.html')
