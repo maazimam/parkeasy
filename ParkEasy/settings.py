@@ -33,7 +33,7 @@ ALLOWED_HOSTS = [
     "parkeasyintegration.us-east-1.elasticbeanstalk.com",
     "parkeasymain.us-east-1.elasticbeanstalk.com",
     "127.0.0.1",
-    "localhost"
+    "localhost",
 ]
 
 
