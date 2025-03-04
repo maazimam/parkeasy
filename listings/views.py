@@ -118,17 +118,6 @@ def view_listings(request):
         "listings": all_listings,
         "half_hour_choices": half_hour_choices,
     }
-    # print all listings
-    for listing in all_listings:
-        print(listing.location)
-        print(listing.location_name)
-        print(listing.title)
-        print(listing.description)
-        print(listing.rent_per_hour)
-        print(listing.available_from)
-        print(listing.available_until)
-        print(listing.available_time_from)
-        print(listing.available_time_until)
     return render(request, "listings/view_listings.html", context)
 
 
