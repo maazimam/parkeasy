@@ -1,8 +1,6 @@
 <!-- listings/templates/listings/create_listing.html -->
 
-{% extends 'base.html' %} 
-{% load widget_tweaks %} 
-{% load static %} 
+{% extends 'base.html' %} {% load widget_tweaks %} {% load static %} 
 {% block extra_head %}
 <!-- Leaflet CSS -->
 <link
@@ -12,18 +10,18 @@
   crossorigin=""
 />
 <!-- Custom CSS -->
-<link rel="stylesheet" href="{% static 'listings/css/map.css' %}" />
-
-
+<!-- <link rel="stylesheet" href="{% static 'listings/css/map.css' %}" /> -->
 {% endblock %} 
-{% block content %}
-  {% if not request.user.profile.is_verified %}
-    <div class="container mt-5 text-center">
-      <h2>You need to be verified before posting a parking spot.</h2>
-      <a href="{% url 'verify' %}" class="btn btn-warning">Get Verified to Post a Spot</a>
-    </div>
-  {% else %}
-    <h2 class="text-center">Post A Parking Spot</h2>
+{% block content %} 
+{% if not request.user.profile.is_verified %}
+<div class="container mt-5 text-center">
+  <h2>You need to be verified before posting a parking spot.</h2>
+  <a href="{% url 'verify' %}" class="btn btn-warning"
+    >Get Verified to Post a Spot</a
+  >
+</div>
+{% else %}
+<h2 class="text-center">Post A Parking Spot</h2>
 
 {% if form.errors %}
 <div class="alert alert-danger">
@@ -36,8 +34,8 @@
 </div>
 {% endif %}
 
-    <form class="w-50 mx-auto" method="POST" id="parkingForm">
-      {% csrf_token %}
+<form class="w-50 mx-auto" method="POST" id="parkingForm">
+  {% csrf_token %}
 
   <div class="mb-3">
     <label for="{{ form.title.id_for_label }}" class="form-label"
@@ -59,8 +57,8 @@
         <button class="btn btn-primary" id="search-location">Search</button>
       </div>
     </div>
-    <div class="map-container">
-      <div id="map"></div>
+    <div class="map-container" style="height: 400px; width: 100%;">
+      <div id="map" style="height: 100%; width: 100%;"></div>
     </div>
     {{ form.location|add_class:"form-control" }}
   </div>
@@ -87,17 +85,25 @@
     </div>
   </div>
 
-      <!-- Available Times -->
-      <div class="row mb-3">
-        <div class="col">
-          <label for="{{ form.available_time_from.id_for_label }}" class="form-label">Available Time From</label>
-          {{ form.available_time_from|add_class:"form-control" }}
-        </div>
-        <div class="col">
-          <label for="{{ form.available_time_until.id_for_label }}" class="form-label">Available Time Until</label>
-          {{ form.available_time_until|add_class:"form-control" }}
-        </div>
-      </div>
+  <!-- Available Times -->
+  <div class="row mb-3">
+    <div class="col">
+      <label
+        for="{{ form.available_time_from.id_for_label }}"
+        class="form-label"
+        >Available Time From</label
+      >
+      {{ form.available_time_from|add_class:"form-control" }}
+    </div>
+    <div class="col">
+      <label
+        for="{{ form.available_time_until.id_for_label }}"
+        class="form-label"
+        >Available Time Until</label
+      >
+      {{ form.available_time_until|add_class:"form-control" }}
+    </div>
+  </div>
 
   <div class="mb-3">
     <label for="{{ form.description.id_for_label }}" class="form-label"
@@ -108,15 +114,189 @@
 
   <button type="submit" class="btn btn-primary w-100">Post Spot</button>
 </form>
-{% endif %}
+{% endif %} 
 {% endblock %} 
+
 {% block scripts %}
-<!-- Leaflet JS -->
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
   integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
   crossorigin=""
 ></script>
-<!-- Add defer attribute to ensure DOM is loaded -->
-<script src="{% static 'listings/js/map.js' %}" defer></script>
+
+<script>
+let map;
+let marker;
+let locationData = {
+  address: "",
+  lat: "",
+  lng: ""
+};
+
+// Initialize the map when the document is ready
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("Initializing map");
+  
+  // Make sure the map div exists
+  const mapDiv = document.getElementById("map");
+  if (!mapDiv) {
+    console.error("Map container not found! Make sure a div with id 'map' exists.");
+    return;
+  }
+  
+  // Initialize the map
+  map = L.map("map").setView([43.6532, -79.3832], 13); // Default to Toronto
+  console.log("Map initialized");
+  
+  // Add OpenStreetMap tiles
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "© OpenStreetMap contributors",
+  }).addTo(map);
+
+  // Add click event to map
+  map.on("click", onMapClick);
+
+  // Set up search functionality
+  setupSearch();
+  
+  // Load existing location if available
+  loadExistingLocation();
+});
+
+function updateLocationField(address, lat, lng) {
+  // Update the hidden location field with formatted data
+  const locationString = `${address} [${lat}, ${lng}]`;
+  const locationField = document.getElementById("id_location");
+  if (locationField) {
+    locationField.value = locationString;
+  }
+
+  // Store the data for later use
+  locationData.address = address;
+  locationData.lat = lat;
+  locationData.lng = lng;
+}
+
+// Function to handle location selection
+function onMapClick(e) {
+  console.log("onMapClick", e);
+  if (marker) {
+    map.removeLayer(marker);
+  }
+
+  marker = L.marker(e.latlng).addTo(map);
+
+  fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`
+  )
+    .then((response) => response.json())
+    .then((data) => {
+      const address = data.display_name;
+      updateLocationField(address, e.latlng.lat, e.latlng.lng);
+      marker.bindPopup(address).openPopup();
+    })
+    .catch((error) => console.error("Error:", error));
+}
+
+// Set up search functionality
+function setupSearch() {
+  console.log("setupSearch");
+  const searchInput = document.getElementById("location-search");
+  const searchButton = document.getElementById("search-location");
+  
+  if (!searchInput || !searchButton) {
+    console.warn("Search elements not found");
+    return;
+  }
+
+  // Add event listeners
+  searchButton.addEventListener("click", (e) => {
+    e.preventDefault();
+    searchLocation();
+  });
+
+  searchInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      searchLocation();
+    }
+  });
+}
+
+function searchLocation() {
+  console.log("searchLocation");
+  const searchInput = document.getElementById("location-search");
+  if (!searchInput) return;
+  
+  const query = searchInput.value;
+  if (!query) return;
+
+  fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+      query
+    )}`
+  )
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.length > 0) {
+        const location = data[0];
+        map.setView([location.lat, location.lon], 16);
+
+        if (marker) {
+          map.removeLayer(marker);
+        }
+
+        marker = L.marker([location.lat, location.lon]).addTo(map);
+        updateLocationField(
+          location.display_name,
+          location.lat,
+          location.lon
+        );
+        marker.bindPopup(location.display_name).openPopup();
+      }
+    })
+    .catch((error) => console.error("Error:", error));
+}
+
+// Load existing location from the form if available
+function loadExistingLocation() {
+  const locationField = document.getElementById("id_location");
+  if (!locationField || !locationField.value) return;
+  
+  const existingLocation = locationField.value;
+  
+  // Try to parse coordinates if they exist
+  const match = existingLocation.match(/\[([-\d.]+),\s*([-\d.]+)\]/);
+  if (match) {
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
+    map.setView([lat, lng], 16);
+    marker = L.marker([lat, lng]).addTo(map);
+    marker.bindPopup(existingLocation.split("[")[0].trim()).openPopup();
+  }
+}
+
+// Helper function to parse location string
+function parseLocation(locationString) {
+  try {
+    const match = locationString.match(/\[([-\d.]+),\s*([-\d.]+)\]/);
+    if (match) {
+      return {
+        lat: parseFloat(match[1]),
+        lng: parseFloat(match[2]),
+        address: locationString.split("[")[0].trim(),
+      };
+    }
+  } catch (error) {
+    console.log("Error parsing location:", error);
+  }
+  return {
+    lat: 43.6532, // Default to Toronto
+    lng: -79.3832,
+    address: locationString || "Location not specified",
+  };
+}
+</script>
+
 {% endblock %}
