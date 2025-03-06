@@ -22,7 +22,7 @@ install:
 before_script:
   - psql -c 'CREATE DATABASE parkeasy_db;' -U postgres
   - python manage.py migrate
-  - python manage.py collectstatic --noinput
+  #- python manage.py collectstatic --noinput
 
 script:
   - black --check .
