@@ -71,7 +71,7 @@ class ListingForm(forms.ModelForm):
         # 1. Check date validation
         available_from = cleaned_data.get("available_from")
         available_until = cleaned_data.get("available_until")
-        if available_from and available_until and available_from >= available_until:
+        if available_from and available_until and available_from > available_until:
             errors.append("Available from date must be before available until date")
 
         # 2. Check rent validation
@@ -106,3 +106,9 @@ class ReviewForm(forms.ModelForm):
             ),
             "comment": forms.Textarea(attrs={"rows": 4, "class": "form-control"}),
         }
+
+    def clean_rating(self):
+        rating = self.cleaned_data.get("rating")
+        if rating < 1 or rating > 5:
+            raise forms.ValidationError("Rating must be between 1 and 5")
+        return rating
