@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Initialize the map
-  map = L.map("map").setView([43.6532, -79.3832], 13); // Default to Toronto
+  map = L.map("map").setView([40.69441, -73.98653], 13); // Default to NYU tandon
   console.log("Map initialized");
   
   // Add OpenStreetMap tiles
@@ -275,27 +275,6 @@ function loadExistingLocation() {
     marker = L.marker([lat, lng]).addTo(map);
     marker.bindPopup(existingLocation.split("[")[0].trim()).openPopup();
   }
-}
-
-// Helper function to parse location string
-function parseLocation(locationString) {
-  try {
-    const match = locationString.match(/\[([-\d.]+),\s*([-\d.]+)\]/);
-    if (match) {
-      return {
-        lat: parseFloat(match[1]),
-        lng: parseFloat(match[2]),
-        address: locationString.split("[")[0].trim(),
-      };
-    }
-  } catch (error) {
-    console.log("Error parsing location:", error);
-  }
-  return {
-    lat: 43.6532, // Default to Toronto
-    lng: -79.3832,
-    address: locationString || "Location not specified",
-  };
 }
 </script>
 
