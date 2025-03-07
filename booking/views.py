@@ -135,5 +135,6 @@ def my_bookings(request):
         now_naive = datetime.now()
         booking.has_started = now_naive >= booking_datetime
         booking.is_reviewed = hasattr(booking, "review")
+        booking.can_be_reviewed = booking.has_started and booking.status != "DECLINED"
 
     return render(request, "booking/my_bookings.html", {"bookings": user_bookings})

@@ -25,8 +25,10 @@
           {% if booking.is_reviewed %}
             <span class="badge bg-success">Reviewed</span>
           {% else %}
-            {% if booking.has_started %}
+            {% if booking.can_be_reviewed %}
               <a href="{% url 'review_booking' booking.id %}" class="btn btn-primary btn-sm mt-2">Review</a>
+            {% elif booking.status == "DECLINED" %}
+              <a href="{% url 'cancel_booking' booking.id %}" class="btn btn-danger btn-sm mt-2">Remove</a>
             {% else %}
               <a href="{% url 'cancel_booking' booking.id %}" class="btn btn-danger btn-sm mt-2">Cancel</a>
             {% endif %}
