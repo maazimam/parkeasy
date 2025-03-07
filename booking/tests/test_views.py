@@ -3,7 +3,6 @@ from decimal import Decimal
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from django.utils import timezone
 from listings.models import Listing, Review
 from ..models import Booking
 from ..forms import BookingForm
