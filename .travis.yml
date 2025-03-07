@@ -45,6 +45,8 @@ jobs:
     - stage: test
       script:
         - black --check .
+        - flake8 .
+        - coverage run manage.py test
         
     - stage: deploy_develop
       before_deploy:
