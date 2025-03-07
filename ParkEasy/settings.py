@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "listings",
     "widget_tweaks",
     "booking",
+    "messaging",
     "storages",
 ]
 
