@@ -49,7 +49,11 @@ INSTALLED_APPS = [
     "listings",
     "widget_tweaks",
     "booking",
+<<<<<<< HEAD
     "messaging",
+=======
+    "storages",
+>>>>>>> upstream/develop
 ]
 
 MIDDLEWARE = [
