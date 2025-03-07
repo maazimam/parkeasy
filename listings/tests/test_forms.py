@@ -3,7 +3,6 @@ from datetime import date, timedelta
 from ..forms import ListingForm, ReviewForm
 
 
-
 class ListingFormTest(TestCase):
     def setUp(self):
         self.valid_data = {
