@@ -73,6 +73,7 @@ class TestBookingModel(TestCase):
             end_time=datetime.time(16, 0),
             total_price=Decimal("100.00"),
         )
+        booking2.status = "DECLINED"
 
         self.assertEqual(Booking.objects.count(), 2)
         self.assertEqual(self.user.booking_set.count(), 2)

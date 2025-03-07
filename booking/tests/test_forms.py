@@ -1,10 +1,7 @@
 import datetime
-import pytest
-from django import forms
 from django.test import TestCase
 from datetime import date, timedelta
 from ..forms import BookingForm, HALF_HOUR_CHOICES
-from ..models import Booking
 
 
 class TestBookingForm(TestCase):
