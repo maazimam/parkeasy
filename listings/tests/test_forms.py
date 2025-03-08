@@ -4,6 +4,7 @@ from ..forms import ListingForm, ReviewForm
 import pytz
 from django.utils import timezone
 
+
 class ListingFormTest(TestCase):
     def setUp(self):
         """Set up valid form data for reuse."""
