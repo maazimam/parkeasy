@@ -3,7 +3,8 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 from ..models import Listing
 from ..forms import ListingForm
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
+from unittest.mock import patch
 
 
 class ListingsViewsTests(TestCase):
@@ -110,3 +111,89 @@ class ListingsViewsTests(TestCase):
         response = self.client.get(reverse("listing_reviews", args=[self.listing.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "listings/listing_reviews.html")
+
+
+class ListingsFilterTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="testuser", password="12345")
+
+        # Set a fixed "now" time for testing
+        self.test_now = datetime(2025, 3, 15, 14, 30)  # March 15, 2025, 2:30 PM
+        self.test_date = self.test_now.date()
+        self.test_time = self.test_now.time()
+
+    @patch("listings.views.datetime")
+    def test_listing_time_filtering(self, mock_datetime):
+        # Mock datetime.now() to return our fixed test time
+        mock_datetime.now.return_value = self.test_now
+
+        # Create test listings with various date/time combinations
+
+        # 1. Future date - should be included
+        future_listing = Listing.objects.create(
+            user=self.user,
+            title="Future Listing",
+            location="Future Location",
+            rent_per_hour=10.0,
+            description="This should be included",
+            available_from=self.test_date,
+            available_until=self.test_date + timedelta(days=5),  # 5 days in future
+            available_time_from=time(9, 0),
+            available_time_until=time(17, 0),
+        )
+
+        # 2. Today with future time - should be included
+        today_future_time_listing = Listing.objects.create(
+            user=self.user,
+            title="Today Future Time",
+            location="Today Location",
+            rent_per_hour=10.0,
+            description="This should be included",
+            available_from=self.test_date - timedelta(days=5),
+            available_until=self.test_date,  # Today
+            available_time_from=time(9, 0),
+            available_time_until=time(17, 0),  # 5:00 PM (after our test time)
+        )
+
+        # 3. Today with past time - should be excluded
+        today_past_time_listing = Listing.objects.create(
+            user=self.user,
+            title="Today Past Time",
+            location="Today Past Location",
+            rent_per_hour=10.0,
+            description="This should be excluded",
+            available_from=self.test_date - timedelta(days=5),
+            available_until=self.test_date,  # Today
+            available_time_from=time(9, 0),
+            available_time_until=time(12, 0),  # 12:00 PM (before our test time)
+        )
+
+        # 4. Past date - should be excluded
+        past_listing = Listing.objects.create(
+            user=self.user,
+            title="Past Listing",
+            location="Past Location",
+            rent_per_hour=10.0,
+            description="This should be excluded",
+            available_from=self.test_date - timedelta(days=10),
+            available_until=self.test_date - timedelta(days=1),  # Yesterday
+            available_time_from=time(9, 0),
+            available_time_until=time(17, 0),
+        )
+
+        # Access the view
+        response = self.client.get(reverse("view_listings"))
+
+        # Get listings from context
+        context_listings = response.context["listings"]
+        listing_titles = [listing.title for listing in context_listings]
+
+        # Verify correct listings are included/excluded
+        self.assertIn("Future Listing", listing_titles)
+        self.assertIn("Today Future Time", listing_titles)
+        self.assertNotIn("Today Past Time", listing_titles)
+        self.assertNotIn("Past Listing", listing_titles)
+
+        # Also check by count - should be exactly 2 listings
+        self.assertEqual(len(context_listings), 2)

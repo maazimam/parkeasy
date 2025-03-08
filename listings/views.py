@@ -35,7 +35,21 @@ def create_listing(request):
 
 
 def view_listings(request):
-    all_listings = Listing.objects.all()
+    # Get current date and time
+    now = datetime.now()
+    today = now.date()
+    current_time = now.time()
+
+    # Start with listings where available_until is in the future
+    all_listings = Listing.objects.filter(available_until__gt=today)
+
+    # For listings ending today, ensure the time hasn't passed
+    today_listings = Listing.objects.filter(
+        available_until=today, available_time_until__gt=current_time
+    )
+
+    # Combine the two querysets
+    all_listings = all_listings | today_listings
 
     # Extract GET parameters
     max_price = request.GET.get("max_price")
