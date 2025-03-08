@@ -131,7 +131,7 @@ class ListingsFilterTest(TestCase):
         # Create test listings with various date/time combinations
 
         # 1. Future date - should be included
-        future_listing = Listing.objects.create(
+        _ = Listing.objects.create(
             user=self.user,
             title="Future Listing",
             location="Future Location",
@@ -144,7 +144,7 @@ class ListingsFilterTest(TestCase):
         )
 
         # 2. Today with future time - should be included
-        today_future_time_listing = Listing.objects.create(
+        _ = Listing.objects.create(
             user=self.user,
             title="Today Future Time",
             location="Today Location",
@@ -157,7 +157,7 @@ class ListingsFilterTest(TestCase):
         )
 
         # 3. Today with past time - should be excluded
-        today_past_time_listing = Listing.objects.create(
+        _ = Listing.objects.create(
             user=self.user,
             title="Today Past Time",
             location="Today Past Location",
@@ -170,7 +170,7 @@ class ListingsFilterTest(TestCase):
         )
 
         # 4. Past date - should be excluded
-        past_listing = Listing.objects.create(
+        _ = Listing.objects.create(
             user=self.user,
             title="Past Listing",
             location="Past Location",
