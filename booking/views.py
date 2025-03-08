@@ -7,11 +7,17 @@ from .models import Booking
 from .forms import BookingForm
 from listings.models import Listing
 from listings.forms import ReviewForm
+from django.contrib import messages
 
 
 @login_required
 def book_listing(request, listing_id):
     listing = get_object_or_404(Listing, pk=listing_id)
+
+    # Prevent owners from booking their own spots
+    if request.user == listing.user:
+        messages.error(request, "You cannot book your own parking spot.")
+        return redirect("view_listings")
 
     if request.method == "POST":
         form = BookingForm(request.POST, listing=listing)

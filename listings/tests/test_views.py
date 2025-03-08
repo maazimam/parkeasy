@@ -197,3 +197,72 @@ class ListingsFilterTest(TestCase):
 
         # Also check by count - should be exactly 2 listings
         self.assertEqual(len(context_listings), 2)
+
+
+class ListingOwnerBookingTest(TestCase):
+    def setUp(self):
+        # Create two users: owner and non-owner
+        self.owner = User.objects.create_user(username="owner", password="ownerpass123")
+        self.non_owner = User.objects.create_user(
+            username="renter", password="renterpass123"
+        )
+
+        # Create a listing owned by the owner
+        self.listing = Listing.objects.create(
+            user=self.owner,
+            title="Test Parking Spot",
+            location="Test Location [123.456, 789.012]",
+            rent_per_hour=10.0,
+            description="Test Description",
+            available_from=(datetime.now() - timedelta(days=1)).date(),
+            available_until=(datetime.now() + timedelta(days=30)).date(),
+            available_time_from=time(9, 0),
+            available_time_until=time(17, 0),
+        )
+
+        # URL for viewing listings
+        self.view_listings_url = reverse("view_listings")
+
+    def test_owner_sees_badge_not_book_button(self):
+        """Test that owners see 'Your listing' badge instead of 'Book Now' button"""
+        # Login as the owner
+        self.client.login(username="owner", password="ownerpass123")
+
+        # Access the view_listings page
+        response = self.client.get(self.view_listings_url)
+
+        # Check response is successful
+        self.assertEqual(response.status_code, 200)
+
+        # Check that the 'Your listing' badge is present
+        self.assertContains(
+            response, '<span class="badge bg-secondary">Your listing</span>'
+        )
+
+        # Check that the 'Book Now' button for this listing is NOT present
+        book_url = reverse("book_listing", args=[self.listing.id])
+        self.assertNotContains(
+            response, f'href="{book_url}" class="btn btn-success">Book Now</a>'
+        )
+
+    def test_non_owner_sees_book_button(self):
+        """Test that non-owners see the 'Book Now' button"""
+        # Login as the non-owner
+        self.client.login(username="renter", password="renterpass123")
+
+        # Access the view_listings page
+        response = self.client.get(self.view_listings_url)
+
+        # Check response is successful
+        self.assertEqual(response.status_code, 200)
+
+        # Check that the 'Your listing' badge is NOT present
+        self.assertNotContains(
+            response, '<span class="badge bg-secondary">Your listing</span>'
+        )
+
+        # Check that the 'Book Now' button for this listing is present
+        book_url = reverse("book_listing", args=[self.listing.id])
+        self.assertContains(
+            response, f'href="{book_url}" class="btn btn-success">Book Now</a>'
+        )
