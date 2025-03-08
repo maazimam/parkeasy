@@ -112,6 +112,57 @@ class ListingsViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "listings/listing_reviews.html")
 
+    def test_delete_listing_with_active_bookings(self):
+        """Test that listings with pending or approved bookings cannot be deleted"""
+        # First login as the listing owner
+        self.client.login(username="testuser", password="12345")
+
+        # Create a booking for the listing with PENDING status
+        from booking.models import Booking
+
+        active_booking = Booking.objects.create(
+            user=User.objects.create_user(username="renter", password="12345"),
+            listing=self.listing,
+            booking_date=datetime.now().date() + timedelta(days=1),
+            start_time=time(10, 0),
+            end_time=time(12, 0),
+            total_price=20.0,
+            status="PENDING",
+        )
+
+        # Attempt to delete the listing
+        response = self.client.post(reverse("delete_listing", args=[self.listing.id]))
+
+        # Response should be 200 (render the manage_listings template) instead of 302 (redirect)
+        self.assertEqual(response.status_code, 200)
+
+        # Check that the error message is in the context
+        self.assertIn("delete_error", response.context)
+        self.assertEqual(
+            response.context["delete_error"],
+            "Cannot delete listing with pending or approved bookings. Please handle those bookings first.",
+        )
+
+        # Check that the error_listing_id is set correctly
+        self.assertEqual(response.context["error_listing_id"], self.listing.id)
+
+        # Verify the listing was NOT deleted
+        self.assertTrue(Listing.objects.filter(id=self.listing.id).exists())
+
+        # Now change the booking status to something that allows deletion (e.g., DECLINED)
+        active_booking.status = "DECLINED"
+        active_booking.save()
+
+        # Try deleting again
+        response = self.client.post(reverse("delete_listing", args=[self.listing.id]))
+
+        # Now it should redirect to manage_listings
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("manage_listings"))
+
+        # Verify the listing was deleted
+        self.assertFalse(Listing.objects.filter(id=self.listing.id).exists())
+
 
 class ListingsFilterTest(TestCase):
     def setUp(self):

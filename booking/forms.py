@@ -20,7 +20,12 @@ class BookingForm(forms.ModelForm):
         model = Booking
         fields = ["booking_date", "start_time", "end_time"]
         widgets = {
-            "booking_date": forms.DateInput(attrs={"type": "date"}),
+            "booking_date": forms.DateInput(
+                attrs={
+                    "type": "date",
+                    "min": datetime.date.today().strftime("%Y-%m-%d"),
+                }
+            ),
         }
 
     def __init__(self, *args, **kwargs):

@@ -36,8 +36,18 @@ class ListingForm(forms.ModelForm):
             "available_time_until",
         ]
         widgets = {
-            "available_from": forms.DateInput(attrs={"type": "date"}),
-            "available_until": forms.DateInput(attrs={"type": "date"}),
+            "available_from": forms.DateInput(
+                attrs={
+                    "type": "date",
+                    "min": datetime.date.today().strftime("%Y-%m-%d"),
+                }
+            ),
+            "available_until": forms.DateInput(
+                attrs={
+                    "type": "date",
+                    "min": datetime.date.today().strftime("%Y-%m-%d"),
+                }
+            ),
         }
 
     def clean_available_from(self):
