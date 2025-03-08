@@ -4,7 +4,7 @@ from datetime import datetime
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
+
 from .forms import ListingForm
 from .models import Listing
 
@@ -36,7 +36,7 @@ def create_listing(request):
 
 def view_listings(request):
     # Get current date and time
-    now = timezone.now()
+    now = datetime.now()
     today = now.date()
     current_time = now.time()
 
