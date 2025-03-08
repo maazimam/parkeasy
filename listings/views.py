@@ -174,7 +174,8 @@ def delete_listing(request, listing_id):
             "listings/manage_listings.html",
             {
                 "listings": Listing.objects.filter(user=request.user),
-                "delete_error": "Cannot delete listing with pending or approved bookings. Please handle those bookings first.",
+                "delete_error": """Cannot delete listing with pending or approved bookings. 
+                Please handle those bookings first.""",
                 "error_listing_id": listing_id,  # To highlight which listing has the error
             },
         )
