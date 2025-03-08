@@ -36,7 +36,7 @@ def create_listing(request):
 
 def view_listings(request):
     # Get current date and time
-    now = datetime.now()
+    now = timezone.now()
     today = now.date()
     current_time = now.time()
 
