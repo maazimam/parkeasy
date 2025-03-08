@@ -155,9 +155,11 @@
             >Listed by: {{ listing.user.username }}</small
           >
         </p>
-        <a href="{% url 'book_listing' listing.id %}" class="btn btn-success"
-          >Book Now</a
-        >
+        {% if user != listing.user %}  
+          <a href="{% url 'book_listing' listing.id %}" class="btn btn-success">Book Now</a>
+        {% else %}
+          <span class="badge bg-secondary">Your listing</span>
+        {% endif %}
         <a href="{% url 'listing_reviews' listing.id %}" class="btn btn-info btn-sm">Reviews</a>
       </div>
     </div>
