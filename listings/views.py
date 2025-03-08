@@ -35,7 +35,21 @@ def create_listing(request):
 
 
 def view_listings(request):
-    all_listings = Listing.objects.all()
+    # Get current date and time
+    now = datetime.now()
+    today = now.date()
+    current_time = now.time()
+
+    # Start with listings where available_until is in the future
+    all_listings = Listing.objects.filter(available_until__gt=today)
+
+    # For listings ending today, ensure the time hasn't passed
+    today_listings = Listing.objects.filter(
+        available_until=today, available_time_until__gt=current_time
+    )
+
+    # Combine the two querysets
+    all_listings = all_listings | today_listings
 
     # Extract GET parameters
     max_price = request.GET.get("max_price")
@@ -126,6 +140,7 @@ def manage_listings(request):
 
     for listing in owner_listings:
         listing.pending_bookings = listing.booking_set.filter(status="PENDING")
+        listing.approved_bookings = listing.booking_set.filter(status="APPROVED")
     return render(
         request, "listings/manage_listings.html", {"listings": owner_listings}
     )
@@ -148,6 +163,23 @@ def edit_listing(request, listing_id):
 @login_required
 def delete_listing(request, listing_id):
     listing = get_object_or_404(Listing, id=listing_id, user=request.user)
+
+    # Check for pending or approved bookings
+    active_bookings = listing.booking_set.filter(status__in=["PENDING", "APPROVED"])
+
+    if active_bookings.exists():
+        # Instead of using messages, return directly to manage_listings with an error
+        return render(
+            request,
+            "listings/manage_listings.html",
+            {
+                "listings": Listing.objects.filter(user=request.user),
+                "delete_error": """Cannot delete listing with pending or approved bookings.
+                Please handle those bookings first.""",
+                "error_listing_id": listing_id,  # To highlight which listing has the error
+            },
+        )
+
     if request.method == "POST":
         listing.delete()
         return redirect("manage_listings")
