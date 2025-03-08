@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from ..forms import ListingForm, ReviewForm
 import pytz
 from django.utils import timezone
+from django.contrib.auth.models import User
 
 
 class ListingFormTest(TestCase):
