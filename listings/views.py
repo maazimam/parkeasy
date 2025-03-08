@@ -134,6 +134,7 @@ def manage_listings(request):
 @login_required
 def edit_listing(request, listing_id):
     listing = get_object_or_404(Listing, id=listing_id, user=request.user)
+    form = None
     if request.method == "POST":
         form = ListingForm(request.POST, instance=listing)
         if form.is_valid():
@@ -141,6 +142,7 @@ def edit_listing(request, listing_id):
             return redirect("manage_listings")
     else:
         form = ListingForm(instance=listing)
+        print("error", form.errors)
 
     return render(request, "listings/edit_listing.html", {"form": form})
 
