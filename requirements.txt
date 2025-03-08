@@ -14,3 +14,5 @@ six==1.17.0
 sqlparse==0.5.3
 typing_extensions==4.12.2
 urllib3==1.26.20
+black==23.1.0
+flake8==6.0.0
