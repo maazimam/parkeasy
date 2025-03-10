@@ -68,14 +68,14 @@ class ListingModelTest(TestCase):
             listing=self.listing,
             user=self.user,
             rating=4,
-            comment="Good place!"
+            comment="Good place!",
         )
         Review.objects.create(
             booking=booking2,
             listing=self.listing,
             user=self.user,
             rating=5,
-            comment="Excellent place!"
+            comment="Excellent place!",
         )
 
         # Test the average calculation

@@ -62,7 +62,6 @@ document.addEventListener("DOMContentLoaded", function () {
           ${location.location_name}<br>
           $${price}/hour
           ${ratingHtml}
-          <br><a href="/book/${listing.dataset.id}" class="btn btn-sm btn-success mt-2">Book Now</a>
         `;
         marker.bindPopup(popupContent);
       });
