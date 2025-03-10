@@ -182,4 +182,3 @@ cython_debug/
 
 *.pyc
 __pycache__/
-g i
