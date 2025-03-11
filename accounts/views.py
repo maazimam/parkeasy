@@ -1,6 +1,4 @@
 from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.contrib.messages import get_messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 
@@ -39,27 +37,28 @@ def user_logout(request):
 
 
 def verify(request):
-    if request.method == "GET":
-        list(get_messages(request))
-
     # If the user is already verified, show success message
     if request.user.profile.is_verified:
         return render(request, "accounts/verify.html", {"success": True})
 
+    context = {}
     if request.method == "POST":
         answer = request.POST.get("answer")
         if answer == "ParkEasy":
             request.user.profile.is_verified = True
             request.user.profile.save()
-            messages.success(
-                request, "Congratulations, you are verified and can now post spots!"
+            return render(
+                request,
+                "accounts/verify.html",
+                {
+                    "success": True,
+                    "success_message": "Congratulations, you are verified and can now post spots!",
+                },
             )
-            # Render the page with success flag instead of redirecting
-            return render(request, "accounts/verify.html", {"success": True})
         else:
-            messages.error(
-                request, "Incorrect answer, verification failed. Please try again."
+            context["error_message"] = (
+                "Incorrect answer, verification failed. Please try again."
             )
 
     # If GET or POST with errors, render the form as normal
-    return render(request, "accounts/verify.html")
+    return render(request, "accounts/verify.html", context)
