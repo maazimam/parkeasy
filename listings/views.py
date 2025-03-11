@@ -126,7 +126,7 @@ def view_listings(request):
         listing.location_name = listing.location.split("[")[0].strip()
         print("listing average rating", listing.average_rating())
         listing.avg_rating = listing.average_rating()
-        listing.lol=5
+        listing.lol = 5
 
     # Build half-hour choices for the dropdowns
     half_hour_choices = []
