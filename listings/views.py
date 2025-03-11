@@ -121,8 +121,12 @@ def view_listings(request):
 
     # Add average rating to each listing
     for listing in all_listings:
+        print("listing", listing)
+
         listing.location_name = listing.location.split("[")[0].strip()
+        print("listing average rating", listing.average_rating())
         listing.avg_rating = listing.average_rating()
+        listing.lol=5
 
     # Build half-hour choices for the dropdowns
     half_hour_choices = []

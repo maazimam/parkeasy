@@ -138,8 +138,16 @@ def my_bookings(request):
 
         # Compare with "now" as a naive datetime
         # (requires USE_TZ = False in settings.py OR at least ignoring timezone.now())
+        # now_naive = datetime.now()
+        # booking.has_started = now_naive >= booking_datetime
+        # booking.is_reviewed = hasattr(booking, "review")
+        # booking.can_be_reviewed = (
+        #     booking.has_started
+        #     and booking.status != "DECLINED"
+        #     and booking.status != "PENDING"
+        # )
         now_naive = datetime.now()
-        booking.has_started = now_naive >= booking_datetime
+        booking.has_started = True
         booking.is_reviewed = hasattr(booking, "review")
         booking.can_be_reviewed = (
             booking.has_started
