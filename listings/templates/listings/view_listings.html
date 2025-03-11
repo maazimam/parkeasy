@@ -1,5 +1,5 @@
-{% extends 'base.html' %} {% load static %} {% load listing_extras %} {% block
-extra_head %}
+{% extends 'base.html' %} {% load static %} {% load listing_extras %} 
+{% block extra_head %}
 <!-- Leaflet CSS -->
 <link
   rel="stylesheet"
@@ -157,37 +157,36 @@ extra_head %}
         </p>
         <p class="card-text">
           <strong>Available:</strong>
-          {{ listing.available_from|date:"M d, Y" }} to {{
-          listing.available_until|date:"M d, Y" }}
+          {{ listing.available_from|date:"M d, Y" }} to {{ listing.available_until|date:"M d, Y" }}
         </p>
         <p class="card-text">
           <strong>Hours:</strong>
-          {{ listing.available_time_from|time:"g:i A" }} to {{
-          listing.available_time_until|time:"g:i A" }}
+          {{ listing.available_time_from|time:"g:i A" }} to {{ listing.available_time_until|time:"g:i A" }}
         </p>
         <p class="card-text">{{ listing.description }}</p>
         {% if listing.avg_rating %}
         <p class="card-text">
           <strong>Average Rating:</strong>
           <span class="rating-stars">
-            {% with rating_val=listing.avg_rating|floatformat:1|add:"0" %} {%
-            for i in "12345" %} {% if forloop.counter <= rating_val %}
-            <i class="fas fa-star text-warning"></i>
-            {% elif forloop.counter|add:"-0.5" <= rating_val %}
-            <i class="fas fa-star-half-alt text-warning"></i>
-            {% else %}
-            <i class="far fa-star text-warning"></i>
-            {% endif %} {% endfor %} {% endwith %}
+            {% with rating_val=listing.avg_rating|floatformat:1|add:"0" %}
+              {% for i in "12345" %}
+                {% if forloop.counter <= rating_val %}
+                  <i class="fas fa-star text-warning"></i>
+                {% elif forloop.counter|add:"-0.5" <= rating_val %}
+                  <i class="fas fa-star-half-alt text-warning"></i>
+                {% else %}
+                  <i class="far fa-star text-warning"></i>
+                {% endif %}
+              {% endfor %}
+            {% endwith %}
           </span>
-          <span class="rating-number"
-            >{{ listing.avg_rating|floatformat:1 }}</span
-          >
+          <span class="rating-number">{{ listing.avg_rating|floatformat:1 }}</span>
         </p>
         {% else %}
         <p class="card-text text-muted">
           <span class="rating-stars">
             {% for _ in "12345" %}
-            <i class="far fa-star text-warning"></i>
+              <i class="far fa-star text-warning"></i>
             {% endfor %}
           </span>
           <span class="text-muted">No ratings yet</span>
@@ -198,18 +197,12 @@ extra_head %}
             >Listed by: {{ listing.user.username }}</small
           >
         </p>
-        {% if user != listing.user %}
-        <a href="{% url 'book_listing' listing.id %}" class="btn btn-success"
-          >Book Now</a
-        >
+        {% if user != listing.user %}  
+          <a href="{% url 'book_listing' listing.id %}" class="btn btn-success">Book Now</a>
         {% else %}
-        <span class="badge bg-secondary">Your listing</span>
+          <span class="badge bg-secondary">Your listing</span>
         {% endif %}
-        <a
-          href="{% url 'listing_reviews' listing.id %}"
-          class="btn btn-info btn-sm"
-          >Reviews</a
-        >
+        <a href="{% url 'listing_reviews' listing.id %}" class="btn btn-info btn-sm">Reviews</a>
       </div>
     </div>
     {% empty %}
