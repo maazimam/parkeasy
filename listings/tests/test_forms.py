@@ -52,11 +52,19 @@ class ListingFormTest(TestCase):
 
     def test_listing_form_invalid_time_range(self):
         data = self.valid_data.copy()
+        # Set same date for both from and until to test time validation
+        today = date.today() + timedelta(days=1)
+        data["available_from"] = today
+        data["available_until"] = today
         data["available_time_from"] = "18:00"
         data["available_time_until"] = "08:00"
         form = ListingForm(data=data)
         self.assertFalse(form.is_valid())
-        self.assertIn("__all__", form.errors)
+        self.assertIn("available_time_until", form.errors)
+        self.assertIn(
+            "When start and end dates are the same, the end time must be after the start time",
+            str(form.errors["available_time_until"]),
+        )
 
 
 class ReviewFormTest(TestCase):

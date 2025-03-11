@@ -14,13 +14,14 @@ class ListingsViewsTests(TestCase):
         self.user.profile.is_verified = True  # Ensure the user is verified
         self.user.profile.save()
         self.client.login(username="testuser", password="12345")
+        tomorrow = datetime.now().date() + timedelta(days=1)
         self.listing = Listing.objects.create(
             user=self.user,
             title="Test Listing",
             location="Test Location [123, 456]",
             rent_per_hour=10.0,
-            available_from=datetime.now().date(),
-            available_until=datetime.now().date(),
+            available_from=tomorrow,
+            available_until=tomorrow,
             available_time_from=time(9, 0),  # 9:00 AM
             available_time_until=time(17, 0),  # 5:00 PM
             description="Test Description",
@@ -33,14 +34,15 @@ class ListingsViewsTests(TestCase):
         self.assertIsInstance(response.context["form"], ListingForm)
 
     def test_create_listing_view_post(self):
+        tomorrow = datetime.now().date() + timedelta(days=1)
         response = self.client.post(
             reverse("create_listing"),
             {
                 "title": "New Listing",
                 "description": "New Description",
                 "rent_per_hour": 15.0,
-                "available_from": datetime.now().date(),
-                "available_until": datetime.now().date(),
+                "available_from": tomorrow,
+                "available_until": tomorrow,
                 "available_time_from": "09:00",  # 9:00 AM
                 "available_time_until": "17:00",  # 5:00 PM
                 "location": "New Location [123, 456]",
@@ -73,14 +75,15 @@ class ListingsViewsTests(TestCase):
 
     def test_edit_listing_view_post(self):
         self.client.login(username="testuser", password="12345")
+        tomorrow = datetime.now().date() + timedelta(days=1)
         response = self.client.post(
             reverse("edit_listing", args=[self.listing.id]),
             {
                 "title": "Updated Listing",
                 "description": "Updated Description",
                 "rent_per_hour": 20.0,
-                "available_from": datetime.now().date(),
-                "available_until": datetime.now().date(),
+                "available_from": tomorrow,
+                "available_until": tomorrow,
                 "available_time_from": "09:00",  # 9:00 AM
                 "available_time_until": "17:00",  # 5:00 PM
                 "location": "Updated Location [123, 456]",
