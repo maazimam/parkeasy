@@ -104,13 +104,13 @@ def review_booking(request, booking_id):
         naive_booking_datetime, timezone.get_current_timezone()
     )
 
-    # if timezone.now() < booking_datetime:
-    #     # Booking hasn't started yet; redirect or show an error.
-    #     return redirect("my_bookings")
+    if timezone.now() < booking_datetime:
+        # Booking hasn't started yet; redirect or show an error.
+        return redirect("my_bookings")
 
-    # # Check if this booking has already been reviewed
-    # if hasattr(booking, "review"):
-    #     return redirect("my_bookings")
+    # Check if this booking has already been reviewed
+    if hasattr(booking, "review"):
+        return redirect("my_bookings")
 
     if request.method == "POST":
         form = ReviewForm(request.POST)
@@ -138,17 +138,13 @@ def my_bookings(request):
 
         # Compare with "now" as a naive datetime
         # (requires USE_TZ = False in settings.py OR at least ignoring timezone.now())
-        # now_naive = datetime.now()
-        # booking.has_started = now_naive >= booking_datetime
-        # booking.is_reviewed = hasattr(booking, "review")
-        # booking.can_be_reviewed = (
-        #     booking.has_started
-        #     and booking.status != "DECLINED"
-        #     and booking.status != "PENDING"
-        # )
         now_naive = datetime.now()
-        booking.has_started = True
+        booking.has_started = now_naive >= booking_datetime
         booking.is_reviewed = hasattr(booking, "review")
-        booking.can_be_reviewed = True
+        booking.can_be_reviewed = (
+            booking.has_started
+            and booking.status != "DECLINED"
+            and booking.status != "PENDING"
+        )
 
     return render(request, "booking/my_bookings.html", {"bookings": user_bookings})
