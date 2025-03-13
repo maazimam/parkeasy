@@ -34,6 +34,35 @@ def create_listing(request):
     )
 
 
+def simplify_location(location_string):
+    """
+    Simplifies a location string before sending to template.
+    Example: "Tandon School of Engineering, Johnson Street, Downtown Brooklyn, Brooklyn..." 
+    becomes "Tandon School of Engineering, Brooklyn"
+    """
+    if not location_string:
+        return ""
+
+    parts = [part.strip() for part in location_string.split(',')]
+    if len(parts) < 2:
+        return location_string
+
+    building = parts[0]
+
+    # Find the city (Brooklyn, Manhattan, etc.)
+    city = next((part for part in parts if part.strip() in
+                ['Brooklyn', 'Manhattan', 'Queens', 'Bronx', 'Staten Island']),
+                'New York')
+
+    # For educational institutions, keep the full name
+    if any(term in building.lower() for term in ['school', 'university', 'college', 'institute']):
+        return f"{building}, {city}"
+
+    # For other locations, use first two parts
+    street = parts[1]
+    return f"{building}, {street}, {city}"
+
+
 def view_listings(request):
     # Get current date and time
     now = datetime.now()
@@ -119,14 +148,15 @@ def view_listings(request):
         except ValueError:
             pass
 
-    # Add average rating to each listing
+    # Add average rating to each listing and a simplified location name
     for listing in all_listings:
-        print("listing", listing)
+        # Get the location name (before the coordinates)
+        location_full = listing.location.split("[")[0].strip()
+        # Simplify it
+        listing.location_name = simplify_location(location_full)
 
-        listing.location_name = listing.location.split("[")[0].strip()
-        print("listing average rating", listing.average_rating())
+        # Add average rating to each listing
         listing.avg_rating = listing.average_rating()
-        listing.lol = 5
 
     # Build half-hour choices for the dropdowns
     half_hour_choices = []

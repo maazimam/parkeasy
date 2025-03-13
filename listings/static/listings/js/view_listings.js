@@ -39,19 +39,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Add markers for all listings
       const listings = document.querySelectorAll(".card");
+      console.log("listings", listings);
       const bounds = [];
 
       listings.forEach((listing) => {
         const location = parseLocation(listing.dataset.location);
+        const locationName = listing.dataset.locationName;
+        console.log("locationName", locationName);
         const marker = L.marker([location.lat, location.lng]).addTo(map);
         bounds.push([location.lat, location.lng]);
         console.log("location", location);
 
         // Create popup content
         const title = listing.querySelector(".card-title").textContent;
-        const price = listing.querySelector(
-          ".card-text:nth-child(2)"
-        ).textContent;
+        const price = listing.dataset.price;
         console.log(listing);
         // get rating number from span with class rating-number
         const ratingElement = listing.querySelector(".rating-number");
@@ -99,7 +100,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const popupContent = `
           <strong>${title}</strong><br>
-          ${location.location_name}<br>
+          ${locationName}<br>
           $${price}/hour
           ${ratingHtml}
         `;
