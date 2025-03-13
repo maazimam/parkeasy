@@ -1,15 +1,14 @@
 {% extends 'base.html' %}
 {% load widget_tweaks %}
 {% load static %}
+
 {% block extra_head %}
 <!-- Leaflet CSS -->
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-  crossorigin=""
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+      crossorigin=""/>
 {% endblock %}
+
 {% block content %}
 <h2 class="text-center">Post A Parking Spot</h2>
 
@@ -28,8 +27,8 @@
     </ul>
   </div>
   {% endif %}
-
-  <form method="POST" class="w-75 mx-auto">
+  
+  <form method="POST" class="w-75 mx-auto" id="create-listing-form">
     {% csrf_token %}
     
     <h4>Spot Details</h4>
@@ -40,14 +39,12 @@
     
     <div class="mb-3">
       <label class="form-label">Location (Click on map to select)</label>
-      <!-- Search container for the map -->
       <div class="search-container mb-2">
         <div class="input-group">
-          <input type="text" id="location-search" class="form-control" placeholder="Search location..." />
+          <input type="text" id="location-search" class="form-control" placeholder="Search location..."/>
           <button class="btn btn-primary" id="search-location">Search</button>
         </div>
       </div>
-      <!-- Map container -->
       <div class="map-container" style="height: 400px; width: 100%;">
         <div id="map" style="height: 100%; width: 100%;"></div>
       </div>
@@ -66,14 +63,16 @@
     
     <hr>
     <h4>Availability Slots</h4>
-    <!-- Render management form and each slot form -->
     {{ slot_formset.management_form }}
-    {% for slot_form in slot_formset %}
-      <div class="border p-3 mb-3">
-        <h5>Time Slot {{ forloop.counter }}</h5>
-        {{ slot_form.as_p }}
-      </div>
-    {% endfor %}
+    <div id="slot-forms-container">
+      {% for slot_form in slot_formset %}
+        <div class="slot-form border p-3 mb-3">
+          <h5>Time Slot {{ forloop.counter }}</h5>
+          {{ slot_form.as_p }}
+        </div>
+      {% endfor %}
+    </div>
+    <button type="button" class="btn btn-secondary mb-3" id="add-slot-btn">Add Another Slot</button>
     
     <button type="submit" class="btn btn-primary w-100">Post Spot</button>
   </form>
@@ -82,10 +81,90 @@
 
 {% block scripts %}
 <!-- Leaflet JS -->
-<script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-  crossorigin=""
-></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+        crossorigin=""></script>
 <script src="{% static 'listings/js/create_listings.js' %}"></script>
+<script>
+// (Optional) You can add frontend overlap checking here if desired.
+// For now, we rely on backend validation and an alert on form submit.
+
+document.addEventListener("DOMContentLoaded", function() {
+  console.log("Create Listing JS loaded.");
+
+  // Simple frontend check for overlapping intervals before submission.
+  function checkOverlappingSlots() {
+    const forms = document.querySelectorAll(".slot-form");
+    const intervals = [];
+    for (const formDiv of forms) {
+      const startDateVal = formDiv.querySelector("input[name$='start_date']").value;
+      const endDateVal = formDiv.querySelector("input[name$='end_date']").value;
+      const startTimeVal = formDiv.querySelector("select[name$='start_time']").value;
+      const endTimeVal = formDiv.querySelector("select[name$='end_time']").value;
+      if (startDateVal && startTimeVal && endDateVal && endTimeVal) {
+        const start = new Date(startDateVal + "T" + startTimeVal);
+        const end = new Date(endDateVal + "T" + endTimeVal);
+        if (start >= end) {
+          alert("Each slot's start time must be before its end time.");
+          return false;
+        }
+        // Check overlap with existing intervals.
+        for (const interval of intervals) {
+          if (!(end <= interval.start || start >= interval.end)) {
+            alert("Availability slots cannot overlap.");
+            return false;
+          }
+        }
+        intervals.push({ start: start, end: end });
+      }
+    }
+    return true;
+  }
+
+  // Attach submit handler to the form.
+  document.getElementById("create-listing-form").addEventListener("submit", function(event) {
+    if (!checkOverlappingSlots()) {
+      event.preventDefault();
+    }
+  });
+
+  // Dynamic form addition logic.
+  const addSlotBtn = document.getElementById("add-slot-btn");
+  const slotFormsContainer = document.getElementById("slot-forms-container");
+  const totalFormsInput = document.querySelector('[name$="-TOTAL_FORMS"]');
+  if (!addSlotBtn || !slotFormsContainer || !totalFormsInput) {
+    console.error("Required elements for adding new slot not found.");
+    return;
+  }
+  const formDivs = slotFormsContainer.getElementsByClassName("slot-form");
+  if (formDivs.length === 0) {
+    console.error("No slot form found to clone.");
+    return;
+  }
+  const blankForm = formDivs[0].cloneNode(true);
+  blankForm.querySelectorAll("input, select, textarea").forEach(el => el.value = "");
+  const blankHeading = blankForm.querySelector("h5");
+  if (blankHeading) blankHeading.textContent = "Time Slot ???";
+  
+  addSlotBtn.addEventListener("click", function() {
+    let formCount = parseInt(totalFormsInput.value);
+    let newForm = blankForm.cloneNode(true);
+    newForm.querySelectorAll("input, select, textarea, label").forEach(function(el) {
+      if (el.name) {
+        el.name = el.name.replace(/-\d+-/, `-${formCount}-`);
+      }
+      if (el.id) {
+        el.id = el.id.replace(/_\d+_/, `_${formCount}_`);
+      }
+    });
+    const newHeading = newForm.querySelector("h5");
+    if (newHeading) {
+      newHeading.textContent = `Time Slot ${formCount + 1}`;
+    }
+    slotFormsContainer.appendChild(newForm);
+    formCount++;
+    totalFormsInput.value = formCount.toString();
+  });
+});
+</script>
 {% endblock %}

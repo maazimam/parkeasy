@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from listings.models import Listing
 
+
 class Booking(models.Model):
     STATUS_CHOICES = [
         ("PENDING", "Pending"),
@@ -20,12 +21,14 @@ class Booking(models.Model):
     def __str__(self):
         return f"Booking #{self.pk} by {self.user.username} for {self.listing.title}"
 
+
 class BookingSlot(models.Model):
     """
-    A single interval of time within a booking. 
-    E.g. from 3/14 13:00 to 3/14 17:00, 
+    A single interval of time within a booking.
+    E.g. from 3/14 13:00 to 3/14 17:00,
     or from 3/30 10:00 to 3/30 12:00, etc.
     """
+
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name="slots")
     start_date = models.DateField()
     start_time = models.TimeField()
@@ -33,5 +36,7 @@ class BookingSlot(models.Model):
     end_time = models.TimeField()
 
     def __str__(self):
-        return (f"BookingSlot for Booking #{self.booking.pk}: "
-                f"{self.start_date} {self.start_time} - {self.end_date} {self.end_time}")
+        return (
+            f"BookingSlot for Booking #{self.booking.pk}: "
+            f"{self.start_date} {self.start_time} - {self.end_date} {self.end_time}"
+        )

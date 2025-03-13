@@ -5,10 +5,15 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import ListingForm, ListingSlotFormSet
+from .forms import ListingForm, ListingSlotFormSet, validate_non_overlapping_slots
 from .models import Listing
 
-
+# Define half-hour choices for use in the search form
+HALF_HOUR_CHOICES = [
+    (f"{hour:02d}:{minute:02d}", f"{hour:02d}:{minute:02d}")
+    for hour in range(24)
+    for minute in (0, 30)
+]
 
 @login_required
 def create_listing(request):
@@ -16,6 +21,15 @@ def create_listing(request):
         listing_form = ListingForm(request.POST)
         slot_formset = ListingSlotFormSet(request.POST)
         if listing_form.is_valid() and slot_formset.is_valid():
+            try:
+                validate_non_overlapping_slots(slot_formset)
+            except:
+                messages.error(request, "Overlapping slots detected. Please correct.")
+                return render(
+                    request,
+                    "listings/create_listing.html",
+                    {"form": listing_form, "slot_formset": slot_formset},
+                )
             new_listing = listing_form.save(commit=False)
             new_listing.user = request.user
             new_listing.save()
@@ -34,6 +48,8 @@ def create_listing(request):
         "listings/create_listing.html",
         {"form": listing_form, "slot_formset": slot_formset},
     )
+
+
 
 @login_required
 def edit_listing(request, listing_id):
@@ -57,17 +73,14 @@ def edit_listing(request, listing_id):
 
 
 
+
 def view_listings(request):
     all_listings = Listing.objects.all()
 
-    # Extract GET parameters
-    max_price = request.GET.get("max_price")
-    start_date = request.GET.get("start_date")  # e.g. "2025-03-12"
-    end_date = request.GET.get("end_date")
-    start_time = request.GET.get("start_time")  # e.g. "10:00"
-    end_time = request.GET.get("end_time")
+    # Extract common filter parameters
+    max_price   = request.GET.get("max_price")
+    filter_type = request.GET.get("filter_type", "single")  # "single" or "multiple"
 
-    # Filter by max price if given
     if max_price:
         try:
             max_price_val = float(max_price)
@@ -75,38 +88,83 @@ def view_listings(request):
         except ValueError:
             pass
 
-    # If we have a full set of date/time params, do the advanced filter
-    if start_date and end_date and start_time and end_time:
-        try:
-            user_start_str = f"{start_date} {start_time}"  # "2025-03-12 10:00"
-            user_end_str   = f"{end_date} {end_time}"
-            user_start_dt = datetime.strptime(user_start_str, "%Y-%m-%d %H:%M")
-            user_end_dt   = datetime.strptime(user_end_str, "%Y-%m-%d %H:%M")
+    if filter_type == "single":
+        # Single continuous interval filter
+        start_date = request.GET.get("start_date")  # e.g., "2025-03-12"
+        end_date   = request.GET.get("end_date")
+        start_time = request.GET.get("start_time")    # e.g., "10:00"
+        end_time   = request.GET.get("end_time")      # e.g., "14:00"
+        if start_date and end_date and start_time and end_time:
+            try:
+                user_start_str = f"{start_date} {start_time}"  # "2025-03-12 10:00"
+                user_end_str   = f"{end_date} {end_time}"
+                user_start_dt  = datetime.strptime(user_start_str, "%Y-%m-%d %H:%M")
+                user_end_dt    = datetime.strptime(user_end_str, "%Y-%m-%d %H:%M")
+                filtered = []
+                for listing in all_listings:
+                    if listing.is_available_for_range(user_start_dt, user_end_dt):
+                        filtered.append(listing)
+                all_listings = filtered
+            except ValueError:
+                pass
 
-            # Filter out listings that don't fully cover this entire range
+    elif filter_type == "multiple":
+        # Multiple intervals filter.
+        try:
+            interval_count = int(request.GET.get("interval_count", "0"))
+        except ValueError:
+            interval_count = 0
+
+        intervals = []
+        for i in range(1, interval_count + 1):
+            s_date = request.GET.get(f"start_date_{i}")
+            e_date = request.GET.get(f"end_date_{i}")
+            s_time = request.GET.get(f"start_time_{i}")
+            e_time = request.GET.get(f"end_time_{i}")
+            if s_date and e_date and s_time and e_time:
+                try:
+                    s_dt = datetime.strptime(f"{s_date} {s_time}", "%Y-%m-%d %H:%M")
+                    e_dt = datetime.strptime(f"{e_date} {e_time}", "%Y-%m-%d %H:%M")
+                    intervals.append((s_dt, e_dt))
+                except ValueError:
+                    continue
+
+        if intervals:
             filtered = []
             for listing in all_listings:
-                if listing.is_available_for_range(user_start_dt, user_end_dt):
+                # The listing must be available for every requested interval.
+                available_for_all = True
+                for (s_dt, e_dt) in intervals:
+                    if not listing.is_available_for_range(s_dt, e_dt):
+                        available_for_all = False
+                        break
+                if available_for_all:
                     filtered.append(listing)
             all_listings = filtered
-        except ValueError:
-            pass
 
-
-    # Add average rating to each listing
+    # Add extra display information to each listing.
     for listing in all_listings:
-        print("listing", listing)
-
+        # Assuming your location is stored like "Address [lat, lng]"
         listing.location_name = listing.location.split("[")[0].strip()
-        print("listing average rating", listing.average_rating())
         listing.avg_rating = listing.average_rating()
-        listing.lol = 5
-
 
     context = {
         "listings": all_listings,
+        "half_hour_choices": HALF_HOUR_CHOICES,
+        "filter_type": filter_type,
+        # Pass along single-interval filter fields
+        "max_price": max_price or "",
+        "start_date": request.GET.get("start_date", ""),
+        "end_date": request.GET.get("end_date", ""),
+        "start_time": request.GET.get("start_time", ""),
+        "end_time": request.GET.get("end_time", ""),
+        # For multiple intervals, also pass the interval_count and the individual interval fields as needed.
+        "interval_count": request.GET.get("interval_count", "0"),
     }
     return render(request, "listings/view_listings.html", context)
+
+
+
 
 
 def manage_listings(request):
