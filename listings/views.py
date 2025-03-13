@@ -37,25 +37,34 @@ def create_listing(request):
 def simplify_location(location_string):
     """
     Simplifies a location string before sending to template.
-    Example: "Tandon School of Engineering, Johnson Street, Downtown Brooklyn, Brooklyn..." 
+    Example: "Tandon School of Engineering, Johnson Street, Downtown Brooklyn, Brooklyn..."
     becomes "Tandon School of Engineering, Brooklyn"
     """
     if not location_string:
         return ""
 
-    parts = [part.strip() for part in location_string.split(',')]
+    parts = [part.strip() for part in location_string.split(",")]
     if len(parts) < 2:
         return location_string
 
     building = parts[0]
 
     # Find the city (Brooklyn, Manhattan, etc.)
-    city = next((part for part in parts if part.strip() in
-                ['Brooklyn', 'Manhattan', 'Queens', 'Bronx', 'Staten Island']),
-                'New York')
+    city = next(
+        (
+            part
+            for part in parts
+            if part.strip()
+            in ["Brooklyn", "Manhattan", "Queens", "Bronx", "Staten Island"]
+        ),
+        "New York",
+    )
 
     # For educational institutions, keep the full name
-    if any(term in building.lower() for term in ['school', 'university', 'college', 'institute']):
+    if any(
+        term in building.lower()
+        for term in ["school", "university", "college", "institute"]
+    ):
         return f"{building}, {city}"
 
     # For other locations, use first two parts

@@ -25,4 +25,3 @@ def add(value, arg):
         return float(value) + float(arg)
     except (ValueError, TypeError):
         return value
-    
