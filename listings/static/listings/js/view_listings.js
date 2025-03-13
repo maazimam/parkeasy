@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function initMap() {
     if (!map) {
       map = L.map("map-view").setView([40.69441, -73.98653], 13); // Default to NYU tandon
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      L.tileLayer("https://tile.openstreetmap.bzh/ca/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap contributors",
       }).addTo(map);
