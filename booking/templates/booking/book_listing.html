@@ -5,16 +5,31 @@
 {% block content %}
 <div class="container mt-5">
   <h2>Book: {{ listing.title }}</h2>
-  <p>Location: {{ listing.location }}</p>
-  <p>Hourly Rate: ${{ listing.rent_per_hour }}</p>
-  <p>Available From: {{ listing.available_from|date:"M d, Y" }} to {{ listing.available_until|date:"M d, Y" }}</p>
-  <p>Available Time: {{ listing.available_time_from|time:"g:i A" }} to {{ listing.available_time_until|time:"g:i A" }}</p>
+  <p><strong>Location:</strong> {{ listing.location }}</p>
+  <p><strong>Hourly Rate:</strong> ${{ listing.rent_per_hour }}</p>
 
-  {% if form.errors %}
+  <!-- Optionally show listing slots here so user sees overall availability -->
+  {% if listing.slots.all %}
+    <h4>Listing Availability:</h4>
+    <ul>
+      {% for slot in listing.slots.all %}
+        <li>
+          From: {{ slot.start_date|date:"M d, Y" }} {{ slot.start_time|time:"g:i A" }}
+          to
+          {{ slot.end_date|date:"M d, Y" }} {{ slot.end_time|time:"g:i A" }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if booking_form.errors or slot_formset.non_form_errors %}
     <div class="alert alert-danger">
       <ul>
-        {% for field, errors in form.errors.items %}
+        {% for field, errors in booking_form.errors.items %}
           <li>{{ errors|join:", " }}</li>
+        {% endfor %}
+        {% for error in slot_formset.non_form_errors %}
+          <li>{{ error }}</li>
         {% endfor %}
       </ul>
     </div>
@@ -22,7 +37,18 @@
 
   <form method="POST" class="mt-4">
     {% csrf_token %}
-    {{ form.as_p }}
+    <!-- If BookingForm had fields, they'd be rendered here -->
+    {{ booking_form.as_p }}
+
+    <h4>Booking Intervals</h4>
+    {{ slot_formset.management_form }}
+    {% for slot_form in slot_formset %}
+      <div class="border p-3 mb-3">
+        <h5>Interval {{ forloop.counter }}</h5>
+        {{ slot_form.as_p }}
+      </div>
+    {% endfor %}
+
     <button type="submit" class="btn btn-primary">Book Now</button>
   </form>
 

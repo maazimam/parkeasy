@@ -1,4 +1,6 @@
-{% extends 'base.html' %} {% load static %} {% block extra_head %}
+{% extends 'base.html' %}
+{% load static %}
+{% block extra_head %}
 <!-- Leaflet CSS -->
 <link
   rel="stylesheet"
@@ -22,19 +24,19 @@
     display: block !important; /* Show when active */
   }
 </style>
-{% endblock %} {% block title %}All Listings{% endblock %} {% block content %}
+{% endblock %}
+
+{% block title %}All Listings{% endblock %}
+
+{% block content %}
 <div class="container mt-5">
   <h2 class="text-center">Available Parking Spots</h2>
 
   <!-- View Toggle Buttons -->
   <div class="view-toggle text-center mb-4">
     <div class="btn-group" role="group">
-      <button class="btn btn-primary active" id="list-view-btn">
-        List View
-      </button>
-      <button class="btn btn-outline-primary" id="map-view-btn">
-        Map View
-      </button>
+      <button class="btn btn-primary active" id="list-view-btn">List View</button>
+      <button class="btn btn-outline-primary" id="map-view-btn">Map View</button>
     </div>
   </div>
 
@@ -114,17 +116,12 @@
       <!-- Buttons -->
       <div class="col-md-2 d-flex align-items-end">
         <button type="submit" class="btn btn-primary me-2">Filter</button>
-        <a href="{% url 'view_listings' %}" class="btn btn-secondary"
-          >Clear Filters</a
-        >
+        <a href="{% url 'view_listings' %}" class="btn btn-secondary">Clear Filters</a>
       </div>
     </div>
   </form>
 
-  
-
-
-  <!-- List View print -->
+  <!-- List View -->
   <div
     id="list-view"
     class="view-container listings-container p-3 border rounded active-view"
@@ -133,29 +130,38 @@
     <div class="card mb-3" data-location="{{ listing.location }}">
       <div class="card-body">
         <h5 class="card-title">{{ listing.title }}</h5>
+
         <p class="card-text">
           <strong>Location:</strong> {{ listing.location_name }}
         </p>
         <p class="card-text">
           <strong>Price:</strong> ${{ listing.rent_per_hour }}/hour
         </p>
-        <p class="card-text">
-          <strong>Available:</strong>
-          {{ listing.available_from|date:"M d, Y" }} to
-          {{ listing.available_until|date:"M d, Y" }}
-        </p>
-        <p class="card-text">
-          <strong>Hours:</strong>
-          {{ listing.available_time_from|time:"g:i A" }} to 
-          {{ listing.available_time_until|time:"g:i A" }}
-        </p>
+
+        <!-- Display all availability slots -->
+        {% if listing.slots.all %}
+          <p><strong>Availability Slots:</strong></p>
+          <ul>
+            {% for slot in listing.slots.all %}
+              <li>
+                {{ slot.start_date|date:"M d, Y" }}
+                {{ slot.start_time|time:"g:i A" }}
+                &mdash;
+                {{ slot.end_date|date:"M d, Y" }}
+                {{ slot.end_time|time:"g:i A" }}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p><strong>Availability:</strong> No slots added.</p>
+        {% endif %}
+
         <p class="card-text">{{ listing.description }}</p>
         <p class="card-text">
-          <small class="text-muted"
-            >Listed by: {{ listing.user.username }}</small
-          >
+          <small class="text-muted">Listed by: {{ listing.user.username }}</small>
         </p>
-        {% if user != listing.user %}  
+
+        {% if user != listing.user %}
           <a href="{% url 'book_listing' listing.id %}" class="btn btn-success">Book Now</a>
         {% else %}
           <span class="badge bg-secondary">Your listing</span>
@@ -172,16 +178,16 @@
 
   <!-- Map View -->
   <div id="map-view" class="view-container border rounded">
-    <!-- The map will be initialized here -->
+    <!-- The map will be initialized here via view_listings.js -->
   </div>
 
   <div class="text-center mt-3">
-    <a href="{% url 'create_listing' %}" class="btn btn-primary"
-      >Create a new listing</a
-    >
+    <a href="{% url 'create_listing' %}" class="btn btn-primary">Create a new listing</a>
   </div>
 </div>
-{% endblock %} {% block scripts %}
+{% endblock %}
+
+{% block scripts %}
 <!-- Leaflet JS -->
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -190,4 +196,3 @@
 ></script>
 <script src="{% static 'listings/js/view_listings.js' %}"></script>
 {% endblock %}
-

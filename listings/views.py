@@ -5,132 +5,95 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import ListingForm
+from .forms import ListingForm, ListingSlotFormSet
 from .models import Listing
+
 
 
 @login_required
 def create_listing(request):
     if request.method == "POST":
-        form = ListingForm(request.POST)
-        if form.is_valid():
-            listing = form.save(commit=False)
-            listing.user = request.user
-            listing.save()
+        listing_form = ListingForm(request.POST)
+        slot_formset = ListingSlotFormSet(request.POST)
+        if listing_form.is_valid() and slot_formset.is_valid():
+            new_listing = listing_form.save(commit=False)
+            new_listing.user = request.user
+            new_listing.save()
+            slot_formset.instance = new_listing
+            slot_formset.save()
             messages.success(request, "Listing created successfully!")
             return redirect("view_listings")
         else:
-            print(form.errors)
             messages.error(request, "Please correct the errors below.")
     else:
-        form = ListingForm()
+        listing_form = ListingForm()
+        slot_formset = ListingSlotFormSet()
 
     return render(
         request,
         "listings/create_listing.html",
-        {
-            "form": form,
-        },
+        {"form": listing_form, "slot_formset": slot_formset},
     )
+
+@login_required
+def edit_listing(request, listing_id):
+    listing = get_object_or_404(Listing, id=listing_id, user=request.user)
+    if request.method == "POST":
+        listing_form = ListingForm(request.POST, instance=listing)
+        slot_formset = ListingSlotFormSet(request.POST, instance=listing)
+        if listing_form.is_valid() and slot_formset.is_valid():
+            listing_form.save()
+            slot_formset.save()
+            return redirect("manage_listings")
+    else:
+        listing_form = ListingForm(instance=listing)
+        slot_formset = ListingSlotFormSet(instance=listing)
+
+    return render(
+        request,
+        "listings/edit_listing.html",
+        {"form": listing_form, "slot_formset": slot_formset, "listing": listing},
+    )
+
 
 
 def view_listings(request):
-    # Get current date and time
-    now = datetime.now()
-    today = now.date()
-    current_time = now.time()
-
-    # Start with listings where available_until is in the future
-    all_listings = Listing.objects.filter(available_until__gt=today)
-
-    # For listings ending today, ensure the time hasn't passed
-    today_listings = Listing.objects.filter(
-        available_until=today, available_time_until__gt=current_time
-    )
-
-    # Combine the two querysets
-    all_listings = all_listings | today_listings
+    all_listings = Listing.objects.all()
 
     # Extract GET parameters
     max_price = request.GET.get("max_price")
-    start_date = request.GET.get("start_date")
+    start_date = request.GET.get("start_date")  # e.g. "2025-03-12"
     end_date = request.GET.get("end_date")
-    start_time = request.GET.get("start_time")
+    start_time = request.GET.get("start_time")  # e.g. "10:00"
     end_time = request.GET.get("end_time")
 
-    # Apply filters if parameters are provided
+    # Filter by max price if given
     if max_price:
         try:
-            max_price = float(max_price)
-            all_listings = all_listings.filter(rent_per_hour__lte=max_price)
+            max_price_val = float(max_price)
+            all_listings = all_listings.filter(rent_per_hour__lte=max_price_val)
         except ValueError:
             pass
 
-    if start_date:
+    # If we have a full set of date/time params, do the advanced filter
+    if start_date and end_date and start_time and end_time:
         try:
-            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
-            all_listings = all_listings.filter(
-                available_from__lte=start_date_obj,
-                available_until__gte=start_date_obj,
-            )
+            user_start_str = f"{start_date} {start_time}"  # "2025-03-12 10:00"
+            user_end_str   = f"{end_date} {end_time}"
+            user_start_dt = datetime.strptime(user_start_str, "%Y-%m-%d %H:%M")
+            user_end_dt   = datetime.strptime(user_end_str, "%Y-%m-%d %H:%M")
+
+            # Filter out listings that don't fully cover this entire range
+            filtered = []
+            for listing in all_listings:
+                if listing.is_available_for_range(user_start_dt, user_end_dt):
+                    filtered.append(listing)
+            all_listings = filtered
         except ValueError:
             pass
-
-    if end_date:
-        try:
-            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
-            all_listings = all_listings.filter(
-                available_from__lte=end_date_obj,
-                available_until__gte=end_date_obj,
-            )
-        except ValueError:
-            pass
-
-    if start_date and end_date:
-        if start_date > end_date:
-            all_listings = all_listings.none()
-
-    if start_time:
-        try:
-            start_time_obj = datetime.strptime(start_time, "%H:%M").time()
-            all_listings = all_listings.filter(
-                available_time_from__lte=start_time_obj,
-                available_time_until__gte=start_time_obj,
-            )
-        except ValueError:
-            pass
-
-    if end_time:
-        try:
-            end_time_obj = datetime.strptime(end_time, "%H:%M").time()
-            all_listings = all_listings.filter(
-                available_time_from__lte=end_time_obj,
-                available_time_until__gte=end_time_obj,
-            )
-        except ValueError:
-            pass
-
-    if start_time and end_time:
-        try:
-            start_time_obj = datetime.strptime(start_time, "%H:%M").time()
-            end_time_obj = datetime.strptime(end_time, "%H:%M").time()
-            if start_time_obj > end_time_obj:
-                all_listings = all_listings.none()
-        except ValueError:
-            pass
-        # add location name where it is location field without lat and lng
-    for listing in all_listings:
-        listing.location_name = listing.location.split("[")[0].strip()
-
-    # Build half-hour choices for the dropdowns
-    half_hour_choices = []
-    for hour in range(24):
-        for minute in (0, 30):
-            half_hour_choices.append(f"{hour:02d}:{minute:02d}")
 
     context = {
         "listings": all_listings,
-        "half_hour_choices": half_hour_choices,
     }
     return render(request, "listings/view_listings.html", context)
 
@@ -144,20 +107,6 @@ def manage_listings(request):
     return render(
         request, "listings/manage_listings.html", {"listings": owner_listings}
     )
-
-
-@login_required
-def edit_listing(request, listing_id):
-    listing = get_object_or_404(Listing, id=listing_id, user=request.user)
-    if request.method == "POST":
-        form = ListingForm(request.POST, instance=listing)
-        if form.is_valid():
-            form.save()
-            return redirect("manage_listings")
-    else:
-        form = ListingForm(instance=listing)
-
-    return render(request, "listings/edit_listing.html", {"form": form})
 
 
 @login_required
