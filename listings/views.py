@@ -15,6 +15,7 @@ HALF_HOUR_CHOICES = [
     for minute in (0, 30)
 ]
 
+
 @login_required
 def create_listing(request):
     if request.method == "POST":
@@ -23,7 +24,7 @@ def create_listing(request):
         if listing_form.is_valid() and slot_formset.is_valid():
             try:
                 validate_non_overlapping_slots(slot_formset)
-            except:
+            except ValueError:
                 messages.error(request, "Overlapping slots detected. Please correct.")
                 return render(
                     request,
@@ -50,7 +51,6 @@ def create_listing(request):
     )
 
 
-
 @login_required
 def edit_listing(request, listing_id):
     listing = get_object_or_404(Listing, id=listing_id, user=request.user)
@@ -72,13 +72,11 @@ def edit_listing(request, listing_id):
     )
 
 
-
-
 def view_listings(request):
     all_listings = Listing.objects.all()
 
     # Extract common filter parameters
-    max_price   = request.GET.get("max_price")
+    max_price = request.GET.get("max_price")
     filter_type = request.GET.get("filter_type", "single")  # "single" or "multiple"
 
     if max_price:
@@ -91,15 +89,15 @@ def view_listings(request):
     if filter_type == "single":
         # Single continuous interval filter
         start_date = request.GET.get("start_date")  # e.g., "2025-03-12"
-        end_date   = request.GET.get("end_date")
-        start_time = request.GET.get("start_time")    # e.g., "10:00"
-        end_time   = request.GET.get("end_time")      # e.g., "14:00"
+        end_date = request.GET.get("end_date")
+        start_time = request.GET.get("start_time")  # e.g., "10:00"
+        end_time = request.GET.get("end_time")  # e.g., "14:00"
         if start_date and end_date and start_time and end_time:
             try:
                 user_start_str = f"{start_date} {start_time}"  # "2025-03-12 10:00"
-                user_end_str   = f"{end_date} {end_time}"
-                user_start_dt  = datetime.strptime(user_start_str, "%Y-%m-%d %H:%M")
-                user_end_dt    = datetime.strptime(user_end_str, "%Y-%m-%d %H:%M")
+                user_end_str = f"{end_date} {end_time}"
+                user_start_dt = datetime.strptime(user_start_str, "%Y-%m-%d %H:%M")
+                user_end_dt = datetime.strptime(user_end_str, "%Y-%m-%d %H:%M")
                 filtered = []
                 for listing in all_listings:
                     if listing.is_available_for_range(user_start_dt, user_end_dt):
@@ -134,7 +132,7 @@ def view_listings(request):
             for listing in all_listings:
                 # The listing must be available for every requested interval.
                 available_for_all = True
-                for (s_dt, e_dt) in intervals:
+                for s_dt, e_dt in intervals:
                     if not listing.is_available_for_range(s_dt, e_dt):
                         available_for_all = False
                         break
@@ -162,9 +160,6 @@ def view_listings(request):
         "interval_count": request.GET.get("interval_count", "0"),
     }
     return render(request, "listings/view_listings.html", context)
-
-
-
 
 
 def manage_listings(request):

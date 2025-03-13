@@ -1,15 +1,13 @@
 # listings/tests.py
-from datetime import datetime
 from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from ..models import Listing, ListingSlot, Review
+from ..models import Listing, ListingSlot
 
 # We use unittest.mock to patch the booking_set where needed.
-from unittest.mock import patch, MagicMock
 
 
 class ListingViewsTests(TestCase):
@@ -48,12 +46,14 @@ class ListingViewsTests(TestCase):
         }
         # For one slot form
         if count >= 1:
-            data.update({
-                f"{prefix}-0-start_date": "2025-03-12",
-                f"{prefix}-0-start_time": "10:00",
-                f"{prefix}-0-end_date": "2025-03-12",
-                f"{prefix}-0-end_time": "12:00",
-            })
+            data.update(
+                {
+                    f"{prefix}-0-start_date": "2025-03-12",
+                    f"{prefix}-0-start_time": "10:00",
+                    f"{prefix}-0-end_date": "2025-03-12",
+                    f"{prefix}-0-end_time": "12:00",
+                }
+            )
         return data
 
     def test_create_listing_get(self):

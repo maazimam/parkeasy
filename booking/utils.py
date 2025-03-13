@@ -1,6 +1,7 @@
 from listings.models import ListingSlot
 import datetime as dt
 
+
 def subtract_interval(slot_start, slot_end, booking_start, booking_end):
     """
     Given an availability interval [slot_start, slot_end) and a booking interval
@@ -10,7 +11,7 @@ def subtract_interval(slot_start, slot_end, booking_start, booking_end):
     # If no overlap, return the original interval.
     if booking_end <= slot_start or booking_start >= slot_end:
         return [(slot_start, slot_end)]
-    
+
     intervals = []
     # Left remainder (if booking starts after slot_start)
     if booking_start > slot_start:
@@ -19,6 +20,7 @@ def subtract_interval(slot_start, slot_end, booking_start, booking_end):
     if booking_end < slot_end:
         intervals.append((max(booking_end, slot_start), slot_end))
     return intervals
+
 
 def merge_intervals(intervals):
     """
@@ -40,8 +42,6 @@ def merge_intervals(intervals):
     return merged
 
 
-
-
 def block_out_booking(listing, booking):
     """
     For an approved booking, subtract each booking interval from the listing’s available
@@ -53,19 +53,21 @@ def block_out_booking(listing, booking):
         start_dt = dt.datetime.combine(slot.start_date, slot.start_time)
         end_dt = dt.datetime.combine(slot.end_date, slot.end_time)
         current_intervals.append((start_dt, end_dt))
-    
+
     # 2. For each BookingSlot in this booking, subtract its interval.
     for booking_slot in booking.slots.all():
         b_start = dt.datetime.combine(booking_slot.start_date, booking_slot.start_time)
         b_end = dt.datetime.combine(booking_slot.end_date, booking_slot.end_time)
         new_intervals = []
         for interval in current_intervals:
-            new_intervals.extend(subtract_interval(interval[0], interval[1], b_start, b_end))
+            new_intervals.extend(
+                subtract_interval(interval[0], interval[1], b_start, b_end)
+            )
         current_intervals = new_intervals
-    
+
     # 3. Merge intervals (in case adjacent intervals now exist).
     new_availability = merge_intervals(current_intervals)
-    
+
     # 4. Update the database:
     # Delete existing ListingSlot records for this listing.
     listing.slots.all().delete()
@@ -91,18 +93,18 @@ def restore_booking_availability(listing, booking):
         start_dt = dt.datetime.combine(slot.start_date, slot.start_time)
         end_dt = dt.datetime.combine(slot.end_date, slot.end_time)
         current_intervals.append((start_dt, end_dt))
-    
+
     # 2. Get the intervals from the booking that are to be restored.
     restore_intervals = []
     for booking_slot in booking.slots.all():
         b_start = dt.datetime.combine(booking_slot.start_date, booking_slot.start_time)
         b_end = dt.datetime.combine(booking_slot.end_date, booking_slot.end_time)
         restore_intervals.append((b_start, b_end))
-    
+
     # 3. Combine current intervals with the restored intervals.
     combined = current_intervals + restore_intervals
     merged_intervals = merge_intervals(combined)
-    
+
     # 4. Update the ListingSlot records.
     listing.slots.all().delete()
     for start_dt, end_dt in merged_intervals:

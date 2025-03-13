@@ -10,13 +10,14 @@ from listings.models import Listing
 from listings.forms import ReviewForm
 from django.contrib import messages
 
+
 @login_required
 def available_times(request):
     listing_id = request.GET.get("listing_id")
     date_str = request.GET.get("date")
     ref_date_str = request.GET.get("ref_date")  # reference date from first interval
-    max_time_str = request.GET.get("max_time")    # optional for start_time update
-    min_time_str = request.GET.get("min_time")    # optional for end_time update
+    max_time_str = request.GET.get("max_time")  # optional for start_time update
+    min_time_str = request.GET.get("min_time")  # optional for end_time update
     if not listing_id or not date_str:
         return JsonResponse({"times": []})
     try:
@@ -24,7 +25,7 @@ def available_times(request):
     except ValueError:
         return JsonResponse({"times": []})
     listing = get_object_or_404(Listing, pk=listing_id)
-    
+
     # If a reference date is provided, get the listing slot covering it.
     ref_slot = None
     if ref_date_str:
@@ -33,15 +34,19 @@ def available_times(request):
         except ValueError:
             ref_date = None
         if ref_date:
-            ref_slots = listing.slots.filter(start_date__lte=ref_date, end_date__gte=ref_date)
+            ref_slots = listing.slots.filter(
+                start_date__lte=ref_date, end_date__gte=ref_date
+            )
             if ref_slots.exists():
                 ref_slot = ref_slots.first()
-    
+
     # Get listing slots covering the requested booking_date.
-    slots = listing.slots.filter(start_date__lte=booking_date, end_date__gte=booking_date)
+    slots = listing.slots.filter(
+        start_date__lte=booking_date, end_date__gte=booking_date
+    )
     if ref_slot:
         slots = slots.filter(pk=ref_slot.pk)
-    
+
     valid_times = set()
     for slot in slots:
         # Determine time range.
@@ -56,7 +61,9 @@ def available_times(request):
             if booking_date == slot.end_date:
                 end_dt = dt.datetime.combine(booking_date, slot.end_time)
             else:
-                end_dt = dt.datetime.combine(booking_date, dt.time(0, 0)) + dt.timedelta(days=1)
+                end_dt = dt.datetime.combine(
+                    booking_date, dt.time(0, 0)
+                ) + dt.timedelta(days=1)
         while current_dt < end_dt:
             valid_times.add(current_dt.strftime("%H:%M"))
             current_dt += dt.timedelta(minutes=30)
@@ -65,8 +72,18 @@ def available_times(request):
         times = [t for t in times if t <= max_time_str]
     if min_time_str:
         times = [t for t in times if t >= min_time_str]
-    print("Returning times for listing", listing_id, "on", booking_date, "ref_date=", ref_date_str, ":", times)
+    print(
+        "Returning times for listing",
+        listing_id,
+        "on",
+        booking_date,
+        "ref_date=",
+        ref_date_str,
+        ":",
+        times,
+    )
     return JsonResponse({"times": times})
+
 
 @login_required
 def book_listing(request, listing_id):
@@ -109,11 +126,15 @@ def book_listing(request, listing_id):
         for form in slot_formset.forms:
             form.listing = listing
 
-    return render(request, "booking/book_listing.html", {
-        "listing": listing,
-        "booking_form": booking_form,
-        "slot_formset": slot_formset,
-    })
+    return render(
+        request,
+        "booking/book_listing.html",
+        {
+            "listing": listing,
+            "booking_form": booking_form,
+            "slot_formset": slot_formset,
+        },
+    )
 
 
 @login_required
@@ -122,6 +143,7 @@ def cancel_booking(request, booking_id):
     # (Optionally, if booking was approved, you could call restore_booking_availability here.)
     booking.delete()
     return redirect("my_bookings")
+
 
 @login_required
 def manage_booking(request, booking_id, action):
@@ -138,16 +160,22 @@ def manage_booking(request, booking_id, action):
         # (Call restore_booking_availability(booking.listing, booking) here if needed.)
     return redirect("manage_listings")
 
+
 @login_required
 def review_booking(request, booking_id):
     booking = get_object_or_404(Booking, pk=booking_id, user=request.user)
     # Determine earliest slot start to decide if booking has started.
     earliest_slot = min(
-        (dt.datetime.combine(slot.start_date, slot.start_time) for slot in booking.slots.all()),
-        default=None
+        (
+            dt.datetime.combine(slot.start_date, slot.start_time)
+            for slot in booking.slots.all()
+        ),
+        default=None,
     )
     if earliest_slot:
-        booking_datetime = timezone.make_aware(earliest_slot, timezone.get_current_timezone())
+        booking_datetime = timezone.make_aware(
+            earliest_slot, timezone.get_current_timezone()
+        )
         if timezone.now() < booking_datetime:
             return redirect("my_bookings")
     else:
@@ -167,7 +195,10 @@ def review_booking(request, booking_id):
             return redirect("my_bookings")
     else:
         form = ReviewForm()
-    return render(request, "booking/review_booking.html", {"form": form, "booking": booking})
+    return render(
+        request, "booking/review_booking.html", {"form": form, "booking": booking}
+    )
+
 
 @login_required
 def my_bookings(request):
@@ -178,10 +209,12 @@ def my_bookings(request):
         for slot in booking.slots.all():
             slot_dt = dt.datetime.combine(slot.start_date, slot.start_time)
             has_started = now_naive >= slot_dt
-            slots_info.append({
-                "booking_datetime": slot_dt,
-                "has_started": has_started,
-                "slot": slot,
-            })
+            slots_info.append(
+                {
+                    "booking_datetime": slot_dt,
+                    "has_started": has_started,
+                    "slot": slot,
+                }
+            )
         booking.slots_info = slots_info
     return render(request, "booking/my_bookings.html", {"bookings": user_bookings})

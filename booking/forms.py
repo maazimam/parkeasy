@@ -10,10 +10,12 @@ HALF_HOUR_CHOICES = [
     for minute in (0, 30)
 ]
 
+
 class BookingForm(forms.ModelForm):
     class Meta:
         model = Booking
         fields = []  # No direct fields; adjust as needed.
+
 
 class BookingSlotForm(forms.ModelForm):
     start_time = forms.ChoiceField(choices=HALF_HOUR_CHOICES)
@@ -38,7 +40,9 @@ class BookingSlotForm(forms.ModelForm):
                 booking_date = dt.datetime.strptime(booking_date_str, "%Y-%m-%d").date()
             except ValueError:
                 return
-            available_slots = self.listing.slots.filter(start_date__lte=booking_date, end_date__gte=booking_date)
+            available_slots = self.listing.slots.filter(
+                start_date__lte=booking_date, end_date__gte=booking_date
+            )
             valid_times = set()
             for slot in available_slots:
                 current_dt = dt.datetime.combine(booking_date, slot.start_time)
@@ -61,9 +65,17 @@ class BookingSlotForm(forms.ModelForm):
         if start_date and end_date:
             if start_date > end_date:
                 raise forms.ValidationError("Start date cannot be after end date.")
-            if start_date == end_date and start_time and end_time and start_time >= end_time:
-                raise forms.ValidationError("End time must be later than start time on the same day.")
+            if (
+                start_date == end_date
+                and start_time
+                and end_time
+                and start_time >= end_time
+            ):
+                raise forms.ValidationError(
+                    "End time must be later than start time on the same day."
+                )
         return cleaned_data
+
 
 class BaseBookingSlotFormSet(BaseInlineFormSet):
     def clean(self):
@@ -78,8 +90,12 @@ class BaseBookingSlotFormSet(BaseInlineFormSet):
             end_time = form.cleaned_data.get("end_time")
             if start_date and start_time and end_date and end_time:
                 try:
-                    start_dt = dt.datetime.combine(start_date, dt.datetime.strptime(start_time, "%H:%M").time())
-                    end_dt = dt.datetime.combine(end_date, dt.datetime.strptime(end_time, "%H:%M").time())
+                    start_dt = dt.datetime.combine(
+                        start_date, dt.datetime.strptime(start_time, "%H:%M").time()
+                    )
+                    end_dt = dt.datetime.combine(
+                        end_date, dt.datetime.strptime(end_time, "%H:%M").time()
+                    )
                 except Exception:
                     raise forms.ValidationError("Invalid time format.")
                 for existing_start, existing_end in intervals:
@@ -87,11 +103,12 @@ class BaseBookingSlotFormSet(BaseInlineFormSet):
                         raise forms.ValidationError("Booking intervals cannot overlap.")
                 intervals.append((start_dt, end_dt))
 
+
 BookingSlotFormSet = inlineformset_factory(
-    Booking, 
-    BookingSlot, 
-    form=BookingSlotForm, 
-    formset=BaseBookingSlotFormSet, 
-    extra=1, 
-    can_delete=True
+    Booking,
+    BookingSlot,
+    form=BookingSlotForm,
+    formset=BaseBookingSlotFormSet,
+    extra=1,
+    can_delete=True,
 )
