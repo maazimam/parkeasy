@@ -146,7 +146,13 @@
     class="view-container listings-container p-3 border rounded active-view"
   >
     {% for listing in listings %}
-    <div class="card shadow-sm mb-3 border-0 h-100" data-location="{{ listing.location }}" data-location-name="{{ listing.location_name }}" data-price="{{ listing.rent_per_hour }}">
+    <div class="card shadow-sm mb-3 border-0 h-100" 
+         data-location="{{ listing.location }}"
+         data-location-name="{{ listing.location_name }}"
+         data-price="{{ listing.rent_per_hour }}"
+         data-title="{{ listing.title }}"
+         data-rating="{{ listing.avg_rating|default:0 }}"
+    >
       <div class="card-body p-3">
         <div class="row g-3">
           <!-- Listing Title and Main Info -->

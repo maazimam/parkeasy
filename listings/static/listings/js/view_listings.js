@@ -39,29 +39,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Add markers for all listings
       const listings = document.querySelectorAll(".card");
-      console.log("listings", listings);
       const bounds = [];
 
       listings.forEach((listing) => {
+        // Get all data from data attributes
         const location = parseLocation(listing.dataset.location);
         const locationName = listing.dataset.locationName;
-        console.log("locationName", locationName);
+        const title = listing.dataset.title;
+        const price = listing.dataset.price;
+        const rating = parseFloat(listing.dataset.rating) || 0;
+
+        // Create marker
         const marker = L.marker([location.lat, location.lng]).addTo(map);
         bounds.push([location.lat, location.lng]);
-        console.log("location", location);
 
-        // Create popup content
-        const title = listing.querySelector(".card-title").textContent;
-        const price = listing.dataset.price;
-        console.log(listing);
-        // get rating number from span with class rating-number
-        const ratingElement = listing.querySelector(".rating-number");
-        const rating = ratingElement ? ratingElement.textContent : 0;
-        console.log("rating", rating);
-        const ratingNumber = parseFloat(rating);
-        console.log("ratingNumber", ratingNumber);
-
-        // Function to generate star HTML
+        // Generate stars HTML
         function generateStars(rating) {
           let starsHtml = '<div class="rating-stars">';
 
@@ -89,22 +81,23 @@ document.addEventListener("DOMContentLoaded", function () {
           return starsHtml;
         }
 
-        const ratingHtml = ratingNumber
+        // Create rating HTML
+        const ratingHtml = rating
           ? `<br><strong>Rating:</strong> ${generateStars(
-              ratingNumber
-            )} (${ratingNumber.toFixed(1)})`
+              rating
+            )} (${rating.toFixed(1)})`
           : `<br><span class="text-muted">No reviews yet ${generateStars(
               0
             )}</span>`;
-        console.log("ratingHtml", ratingHtml);
 
+        // Create popup content
         const popupContent = `
           <strong>${title}</strong><br>
           ${locationName}<br>
           $${price}/hour
           ${ratingHtml}
         `;
-        console.log("popupContent", popupContent);
+
         marker.bindPopup(popupContent);
       });
 
