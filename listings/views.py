@@ -92,6 +92,17 @@ def view_listings(request):
         except ValueError:
             pass
 
+
+    # Add average rating to each listing
+    for listing in all_listings:
+        print("listing", listing)
+
+        listing.location_name = listing.location.split("[")[0].strip()
+        print("listing average rating", listing.average_rating())
+        listing.avg_rating = listing.average_rating()
+        listing.lol = 5
+
+
     context = {
         "listings": all_listings,
     }

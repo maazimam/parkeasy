@@ -1,5 +1,4 @@
-{% extends 'base.html' %}
-{% load static %}
+{% extends 'base.html' %} {% load static %} {% load listing_extras %} 
 {% block extra_head %}
 <!-- Leaflet CSS -->
 <link
@@ -10,6 +9,10 @@
 />
 <!-- Custom CSS -->
 <link rel="stylesheet" href="{% static 'listings/css/map.css' %}" />
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+/>
 <style>
   .view-toggle {
     margin-bottom: 20px;
@@ -22,6 +25,20 @@
   }
   .active-view {
     display: block !important; /* Show when active */
+  }
+  .rating-stars {
+    display: inline-block;
+    margin: 0 5px;
+  }
+  .rating-stars i {
+    color: #ffd700; /* Gold color for stars */
+    font-size: 14px;
+    margin-right: 2px;
+  }
+  .rating-number {
+    color: #666;
+    font-size: 0.9em;
+    margin-left: 5px;
   }
 </style>
 {% endblock %}
@@ -157,6 +174,34 @@
         {% endif %}
 
         <p class="card-text">{{ listing.description }}</p>
+        {% if listing.avg_rating %}
+        <p class="card-text">
+          <strong>Average Rating:</strong>
+          <span class="rating-stars">
+            {% with rating_val=listing.avg_rating|floatformat:1|add:"0" %}
+              {% for i in "12345" %}
+                {% if forloop.counter <= rating_val %}
+                  <i class="fas fa-star text-warning"></i>
+                {% elif forloop.counter|add:"-0.5" <= rating_val %}
+                  <i class="fas fa-star-half-alt text-warning"></i>
+                {% else %}
+                  <i class="far fa-star text-warning"></i>
+                {% endif %}
+              {% endfor %}
+            {% endwith %}
+          </span>
+          <span class="rating-number">{{ listing.avg_rating|floatformat:1 }}</span>
+        </p>
+        {% else %}
+        <p class="card-text text-muted">
+          <span class="rating-stars">
+            {% for _ in "12345" %}
+              <i class="far fa-star text-warning"></i>
+            {% endfor %}
+          </span>
+          <span class="text-muted">No ratings yet</span>
+        </p>
+        {% endif %}
         <p class="card-text">
           <small class="text-muted">Listed by: {{ listing.user.username }}</small>
         </p>

@@ -45,19 +45,56 @@ document.addEventListener("DOMContentLoaded", function () {
         const location = parseLocation(listing.dataset.location);
         const marker = L.marker([location.lat, location.lng]).addTo(map);
         bounds.push([location.lat, location.lng]);
-        console.log(location);
+        console.log("location", location);
 
         // Create popup content
         const title = listing.querySelector(".card-title").textContent;
         const price = listing.querySelector(
           ".card-text:nth-child(2)"
         ).textContent;
+        console.log(listing);
+        // get rating number from span with class rating-number
+        const ratingElement = listing.querySelector(".rating-number");
+        const rating = ratingElement ? ratingElement.textContent : 0;
+        console.log("rating", rating);
+        const ratingNumber = parseFloat(rating);
+        console.log("ratingNumber", ratingNumber);
+
+        // Function to generate star HTML
+        function generateStars(rating) {
+          if (!rating) return "";
+
+          let starsHtml = '<div class="rating-stars">';
+          // Full stars
+          for (let i = 0; i < Math.floor(rating); i++) {
+            starsHtml += '<i class="fas fa-star text-warning"></i>';
+          }
+          // Half star
+          if (rating % 1 >= 0.5) {
+            starsHtml += '<i class="fas fa-star-half-alt text-warning"></i>';
+          }
+          // Empty stars
+          for (let i = Math.ceil(rating); i < 5; i++) {
+            starsHtml += '<i class="far fa-star text-warning"></i>';
+          }
+          starsHtml += "</div>";
+          return starsHtml;
+        }
+
+        const ratingHtml = ratingNumber
+          ? `<br><strong>Rating:</strong> ${generateStars(
+              ratingNumber
+            )} (${ratingNumber.toFixed(1)})`
+          : '<br><span class="text-muted">No reviews yet</span>';
+        console.log("ratingHtml", ratingHtml);
 
         const popupContent = `
           <strong>${title}</strong><br>
           ${location.location_name}<br>
-          ${price}<br>
+          $${price}/hour
+          ${ratingHtml}
         `;
+        console.log("popupContent", popupContent);
         marker.bindPopup(popupContent);
       });
 
