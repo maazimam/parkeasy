@@ -179,20 +179,25 @@ def delete_listing(request, listing_id):
 
     # Check for pending or approved bookings
     active_bookings = listing.booking_set.filter(status__in=["PENDING", "APPROVED"])
-
     if active_bookings.exists():
-        # Instead of using messages, return directly to manage_listings with an error
+        # Re-run the manage_listings logic to attach pending_bookings & approved_bookings
+        owner_listings = Listing.objects.filter(user=request.user)
+        for lst in owner_listings:
+            lst.pending_bookings = lst.booking_set.filter(status="PENDING")
+            lst.approved_bookings = lst.booking_set.filter(status="APPROVED")
+
         return render(
             request,
             "listings/manage_listings.html",
             {
-                "listings": Listing.objects.filter(user=request.user),
-                "delete_error": """Cannot delete listing with pending or approved bookings.
-                Please handle those bookings first.""",
-                "error_listing_id": listing_id,  # To highlight which listing has the error
+                "listings": owner_listings,
+                "delete_error": "Cannot delete listing with pending or approved bookings. \
+                Please handle those bookings first.",
+                "error_listing_id": listing_id,
             },
         )
 
+    # If no active bookings, proceed with normal delete
     if request.method == "POST":
         listing.delete()
         return redirect("manage_listings")

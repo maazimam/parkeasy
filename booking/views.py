@@ -9,6 +9,7 @@ from .forms import BookingForm, BookingSlotFormSet
 from listings.models import Listing
 from listings.forms import ReviewForm
 from django.contrib import messages
+from .utils import block_out_booking, restore_booking_availability
 
 
 @login_required
@@ -140,7 +141,8 @@ def book_listing(request, listing_id):
 @login_required
 def cancel_booking(request, booking_id):
     booking = get_object_or_404(Booking, pk=booking_id, user=request.user)
-    # (Optionally, if booking was approved, you could call restore_booking_availability here.)
+    if booking.status == "APPROVED":
+        restore_booking_availability(booking.listing, booking)
     booking.delete()
     return redirect("my_bookings")
 
@@ -153,8 +155,11 @@ def manage_booking(request, booking_id, action):
     if action == "approve":
         booking.status = "APPROVED"
         booking.save()
+        block_out_booking(booking.listing, booking)
         # (Call block_out_booking(booking.listing, booking) here if you want to block times.)
     elif action == "decline":
+        if booking.status == "APPROVED":
+            restore_booking_availability(booking.listing, booking)
         booking.status = "DECLINED"
         booking.save()
         # (Call restore_booking_availability(booking.listing, booking) here if needed.)
