@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function initMap() {
     if (!map) {
-      map = L.map("map-view").setView([43.6532, -79.3832], 13);
+      map = L.map("map-view").setView([40.69441, -73.98653], 13); // Default to NYU tandon
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap contributors",
@@ -62,21 +62,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Function to generate star HTML
         function generateStars(rating) {
-          if (!rating) return "";
-
           let starsHtml = '<div class="rating-stars">';
-          // Full stars
-          for (let i = 0; i < Math.floor(rating); i++) {
-            starsHtml += '<i class="fas fa-star text-warning"></i>';
+
+          if (!rating) {
+            // Show 5 empty stars if no rating
+            for (let i = 0; i < 5; i++) {
+              starsHtml += '<i class="far fa-star text-warning"></i>';
+            }
+          } else {
+            // Full stars
+            for (let i = 0; i < Math.floor(rating); i++) {
+              starsHtml += '<i class="fas fa-star text-warning"></i>';
+            }
+            // Half star
+            if (rating % 1 >= 0.5) {
+              starsHtml += '<i class="fas fa-star-half-alt text-warning"></i>';
+            }
+            // Empty stars
+            for (let i = Math.ceil(rating); i < 5; i++) {
+              starsHtml += '<i class="far fa-star text-warning"></i>';
+            }
           }
-          // Half star
-          if (rating % 1 >= 0.5) {
-            starsHtml += '<i class="fas fa-star-half-alt text-warning"></i>';
-          }
-          // Empty stars
-          for (let i = Math.ceil(rating); i < 5; i++) {
-            starsHtml += '<i class="far fa-star text-warning"></i>';
-          }
+
           starsHtml += "</div>";
           return starsHtml;
         }
@@ -85,7 +92,9 @@ document.addEventListener("DOMContentLoaded", function () {
           ? `<br><strong>Rating:</strong> ${generateStars(
               ratingNumber
             )} (${ratingNumber.toFixed(1)})`
-          : '<br><span class="text-muted">No reviews yet</span>';
+          : `<br><span class="text-muted">No reviews yet ${generateStars(
+              0
+            )}</span>`;
         console.log("ratingHtml", ratingHtml);
 
         const popupContent = `
