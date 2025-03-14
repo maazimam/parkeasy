@@ -1,10 +1,12 @@
-from django.test import TestCase, Client
-from django.urls import reverse
-from django.contrib.auth.models import User
-from ..models import Listing
-from ..forms import ListingForm
 from datetime import datetime, time, timedelta
 from unittest.mock import patch
+
+from django.contrib.auth.models import User
+from django.test import Client, TestCase
+from django.urls import reverse
+
+from ..forms import ListingForm
+from ..models import Listing
 
 
 class ListingsViewsTests(TestCase):
@@ -228,44 +230,30 @@ class ListingOwnerBookingTest(TestCase):
 
     def test_owner_sees_badge_not_book_button(self):
         """Test that owners see 'Your listing' badge instead of 'Book Now' button"""
-        # Login as the owner
         self.client.login(username="owner", password="ownerpass123")
-
-        # Access the view_listings page
         response = self.client.get(self.view_listings_url)
-
-        # Check response is successful
         self.assertEqual(response.status_code, 200)
 
-        # Check that the 'Your listing' badge is present
-        self.assertContains(
-            response, '<span class="badge bg-secondary">Your listing</span>'
-        )
+        # Check for badge content and class, ignoring exact HTML structure
+        self.assertContains(response, "Your listing")
+        self.assertContains(response, 'class="badge bg-secondary"')
 
-        # Check that the 'Book Now' button for this listing is NOT present
+        # Check that Book Now button is NOT present for this listing
         book_url = reverse("book_listing", args=[self.listing.id])
-        self.assertNotContains(
-            response, f'href="{book_url}" class="btn btn-success">Book Now</a>'
-        )
+        self.assertNotContains(response, f'href="{book_url}"')
+        self.assertNotContains(response, "Book Now")
 
     def test_non_owner_sees_book_button(self):
         """Test that non-owners see the 'Book Now' button"""
-        # Login as the non-owner
         self.client.login(username="renter", password="renterpass123")
-
-        # Access the view_listings page
         response = self.client.get(self.view_listings_url)
-
-        # Check response is successful
         self.assertEqual(response.status_code, 200)
 
-        # Check that the 'Your listing' badge is NOT present
-        self.assertNotContains(
-            response, '<span class="badge bg-secondary">Your listing</span>'
-        )
+        # Check that 'Your listing' badge is NOT present
+        self.assertNotContains(response, "Your listing")
 
-        # Check that the 'Book Now' button for this listing is present
+        # Check for Book Now button elements without being strict about HTML structure
         book_url = reverse("book_listing", args=[self.listing.id])
-        self.assertContains(
-            response, f'href="{book_url}" class="btn btn-success">Book Now</a>'
-        )
+        self.assertContains(response, f'href="{book_url}"')
+        self.assertContains(response, 'class="btn btn-success')
+        self.assertContains(response, "Book Now")

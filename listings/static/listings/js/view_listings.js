@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function initMap() {
     if (!map) {
       map = L.map("map-view").setView([40.69441, -73.98653], 13); // Default to NYU tandon
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      L.tileLayer("https://tile.openstreetmap.bzh/ca/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap contributors",
       }).addTo(map);
@@ -42,25 +42,18 @@ document.addEventListener("DOMContentLoaded", function () {
       const bounds = [];
 
       listings.forEach((listing) => {
+        // Get all data from data attributes
         const location = parseLocation(listing.dataset.location);
+        const locationName = listing.dataset.locationName;
+        const title = listing.dataset.title;
+        const price = listing.dataset.price;
+        const rating = parseFloat(listing.dataset.rating) || 0;
+
+        // Create marker
         const marker = L.marker([location.lat, location.lng]).addTo(map);
         bounds.push([location.lat, location.lng]);
-        console.log("location", location);
 
-        // Create popup content
-        const title = listing.querySelector(".card-title").textContent;
-        const price = listing.querySelector(
-          ".card-text:nth-child(2)"
-        ).textContent;
-        console.log(listing);
-        // get rating number from span with class rating-number
-        const ratingElement = listing.querySelector(".rating-number");
-        const rating = ratingElement ? ratingElement.textContent : 0;
-        console.log("rating", rating);
-        const ratingNumber = parseFloat(rating);
-        console.log("ratingNumber", ratingNumber);
-
-        // Function to generate star HTML
+        // Generate stars HTML
         function generateStars(rating) {
           let starsHtml = '<div class="rating-stars">';
 
@@ -88,22 +81,23 @@ document.addEventListener("DOMContentLoaded", function () {
           return starsHtml;
         }
 
-        const ratingHtml = ratingNumber
+        // Create rating HTML
+        const ratingHtml = rating
           ? `<br><strong>Rating:</strong> ${generateStars(
-              ratingNumber
-            )} (${ratingNumber.toFixed(1)})`
+              rating
+            )} (${rating.toFixed(1)})`
           : `<br><span class="text-muted">No reviews yet ${generateStars(
               0
             )}</span>`;
-        console.log("ratingHtml", ratingHtml);
 
+        // Create popup content
         const popupContent = `
           <strong>${title}</strong><br>
-          ${location.location_name}<br>
+          ${locationName}<br>
           $${price}/hour
           ${ratingHtml}
         `;
-        console.log("popupContent", popupContent);
+
         marker.bindPopup(popupContent);
       });
 
