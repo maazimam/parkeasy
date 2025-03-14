@@ -12,9 +12,14 @@ HALF_HOUR_CHOICES = [
 
 
 class BookingForm(forms.ModelForm):
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={"class": "form-control"}),
+        help_text="Enter your email for booking confirmation",
+    )
+
     class Meta:
         model = Booking
-        fields = []  # No direct fields; adjust as needed.
+        fields = ["email"]
 
 
 class BookingSlotForm(forms.ModelForm):
