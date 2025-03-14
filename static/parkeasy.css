@@ -1,0 +1,104 @@
+/* parkeasy.css */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+:root {
+  --color-primary: #F172A1;  /* Pink */
+  --color-secondary: #B39BC8;/* Purple */
+  --color-accent: #E64398;   /* Magenta */
+  --color-info: #A1C3D1;     /* Teal */
+  --color-light: #F0EBF4;    /* Off-white / near pastel */
+}
+
+/* Base styles */
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: var(--color-light); /* subtle background */
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+/* Headings, paragraphs, etc. */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  color: var(--color-accent);
+  margin-bottom: 0.75rem;
+}
+
+p {
+  margin-bottom: 1rem;
+}
+
+/* Buttons
+   Overriding Bootstrap classes can help ensure consistency across the site. */
+.btn-primary {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: #fff !important;
+}
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: #d55e8b !important; /* slightly darker pink */
+  border-color: #d55e8b !important;
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary) !important;
+  border-color: var(--color-secondary) !important;
+  color: #fff !important;
+}
+.btn-secondary:hover,
+.btn-secondary:focus {
+  background-color: #9b84b0 !important; /* slightly darker purple */
+  border-color: #9b84b0 !important;
+}
+
+.btn-info {
+  background-color: var(--color-info) !important;
+  border-color: var(--color-info) !important;
+  color: #fff !important;
+}
+.btn-info:hover,
+.btn-info:focus {
+  background-color: #89acb9 !important; /* slightly darker teal */
+  border-color: #89acb9 !important;
+}
+
+.btn-danger {
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: #fff !important;
+}
+.btn-danger:hover,
+.btn-danger:focus {
+  background-color: #cc327f !important;
+  border-color: #cc327f !important;
+}
+
+/* Outline secondary (for Register button, if using .btn-outline-secondary) */
+.btn-outline-secondary {
+  color: var(--color-secondary) !important;
+  border-color: var(--color-secondary) !important;
+  background-color: transparent !important;
+}
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+  color: #fff !important;
+  background-color: var(--color-secondary) !important;
+  border-color: var(--color-secondary) !important;
+}
+
+/* Utility classes */
+.hero {
+  background: linear-gradient(120deg, var(--color-primary), var(--color-secondary));
+  color: #fff;
+  padding: 4rem 1rem;
+  border-radius: 0.5rem;
+}
+.hero h1 {
+  color: #fff;
+}
+.hero p {
+  color: #fff;
+}
