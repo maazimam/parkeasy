@@ -75,6 +75,27 @@ p {
   background-color: transparent !important;
 }
 
+/* Extra small button */
+.btn-xs {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  border-radius: 0.2rem;
+}
+
+/* Outline accent button */
+.btn-outline-accent {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background-color: transparent;
+}
+
+.btn-outline-accent:hover {
+  color: #fff;
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
 /* Utility classes */
 .hero {
   background: linear-gradient(120deg, var(--color-primary), var(--color-secondary));
