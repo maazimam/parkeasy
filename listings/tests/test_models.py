@@ -161,19 +161,19 @@ class ListingModelTest(TestCase):
         """Test earliest_start_datetime for a listing with a single slot."""
         # Clear any existing slots
         ListingSlot.objects.filter(listing=self.listing).delete()
-        
+
         today = dt.date.today()
         slot_time = dt.time(9, 30)
-        
+
         # Create a slot
         ListingSlot.objects.create(
             listing=self.listing,
             start_date=today,
             start_time=slot_time,
             end_date=today,
-            end_time=dt.time(17, 0)
+            end_time=dt.time(17, 0),
         )
-        
+
         expected_datetime = dt.datetime.combine(today, slot_time)
         self.assertEqual(self.listing.earliest_start_datetime, expected_datetime)
 
@@ -181,19 +181,19 @@ class ListingModelTest(TestCase):
         """Test latest_end_datetime for a listing with a single slot."""
         # Clear any existing slots
         ListingSlot.objects.filter(listing=self.listing).delete()
-        
+
         today = dt.date.today()
         slot_time = dt.time(17, 30)
-        
+
         # Create a slot
         ListingSlot.objects.create(
             listing=self.listing,
             start_date=today,
             start_time=dt.time(9, 0),
             end_date=today,
-            end_time=slot_time
+            end_time=slot_time,
         )
-        
+
         expected_datetime = dt.datetime.combine(today, slot_time)
         self.assertEqual(self.listing.latest_end_datetime, expected_datetime)
 
@@ -201,27 +201,26 @@ class ListingModelTest(TestCase):
         """Test earliest_start_datetime with slots on different dates."""
         # Clear any existing slots
         ListingSlot.objects.filter(listing=self.listing).delete()
-        
+
         today = dt.date.today()
-        tomorrow = today + dt.timedelta(days=1)
         yesterday = today - dt.timedelta(days=1)
-        
+
         # Create slots on different dates
         ListingSlot.objects.create(
             listing=self.listing,
             start_date=today,
             start_time=dt.time(9, 0),
             end_date=today,
-            end_time=dt.time(17, 0)
+            end_time=dt.time(17, 0),
         )
         ListingSlot.objects.create(
             listing=self.listing,
             start_date=yesterday,
             start_time=dt.time(8, 0),
             end_date=yesterday,
-            end_time=dt.time(16, 0)
+            end_time=dt.time(16, 0),
         )
-        
+
         expected_datetime = dt.datetime.combine(yesterday, dt.time(8, 0))
         self.assertEqual(self.listing.earliest_start_datetime, expected_datetime)
 
@@ -229,26 +228,26 @@ class ListingModelTest(TestCase):
         """Test latest_end_datetime with slots on different dates."""
         # Clear any existing slots
         ListingSlot.objects.filter(listing=self.listing).delete()
-        
+
         today = dt.date.today()
         tomorrow = today + dt.timedelta(days=1)
-        
+
         # Create slots on different dates
         ListingSlot.objects.create(
             listing=self.listing,
             start_date=today,
             start_time=dt.time(9, 0),
             end_date=today,
-            end_time=dt.time(17, 0)
+            end_time=dt.time(17, 0),
         )
         ListingSlot.objects.create(
             listing=self.listing,
             start_date=tomorrow,
             start_time=dt.time(10, 0),
             end_date=tomorrow,
-            end_time=dt.time(18, 0)
+            end_time=dt.time(18, 0),
         )
-        
+
         expected_datetime = dt.datetime.combine(tomorrow, dt.time(18, 0))
         self.assertEqual(self.listing.latest_end_datetime, expected_datetime)
 

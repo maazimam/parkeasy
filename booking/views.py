@@ -99,7 +99,8 @@ def book_listing(request, listing_id):
         booking_form = BookingForm(request.POST)
         slot_formset = BookingSlotFormSet(
             request.POST,
-            form_kwargs={"listing": listing},)
+            form_kwargs={"listing": listing},
+        )
         # For each form, set the listing.
         for form in slot_formset.forms:
             form.listing = listing
@@ -127,9 +128,7 @@ def book_listing(request, listing_id):
         booking_form = BookingForm()
         slot_formset = BookingSlotFormSet()
         # Pass the listing via form_kwargs
-        slot_formset = BookingSlotFormSet(
-            form_kwargs={'listing': listing}
-        )
+        slot_formset = BookingSlotFormSet(form_kwargs={"listing": listing})
 
     return render(
         request,
