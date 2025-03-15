@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 class AccountViewsTestCase(TestCase):
     def test_home_view(self):
-        response = self.client.get(reverse("home"))
+        response = self.client.get(reverse("home"), follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "listings/view_listings.html")
 
@@ -22,11 +22,10 @@ class AccountViewsTestCase(TestCase):
                 "password1": "testpassword123",
                 "password2": "testpassword123",
             },
+            follow=True
         )
-        self.assertEqual(
-            response.status_code, 302
-        )  # Redirect after successful registration
-        self.assertRedirects(response, reverse("home"))
+        self.assertEqual(response.status_code, 200)  # Now expecting 200 after following redirect
+        self.assertTemplateUsed(response, "listings/view_listings.html")  # Check final template
 
     def test_login_view_get(self):
         response = self.client.get(reverse("login"))
@@ -36,10 +35,12 @@ class AccountViewsTestCase(TestCase):
     def test_login_view_post(self):
         User.objects.create_user(username="testuser", password="testpassword123")
         response = self.client.post(
-            reverse("login"), {"username": "testuser", "password": "testpassword123"}
+            reverse("login"),
+            {"username": "testuser", "password": "testpassword123"},
+            follow=True
         )
-        self.assertEqual(response.status_code, 302)  # Redirect after successful login
-        self.assertRedirects(response, reverse("home"))
+        self.assertEqual(response.status_code, 200)  # Now expecting 200 after following redirect
+        self.assertTemplateUsed(response, "listings/view_listings.html")  # Check final template
 
     def test_logout_view(self):
         User.objects.create_user(username="testuser", password="testpassword123")

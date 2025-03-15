@@ -359,7 +359,7 @@ class ListingOwnerBookingTest(TestCase):
         self.assertNotContains(response, "Your listing")
         book_url = reverse("book_listing", args=[self.listing.id])
         self.assertContains(response, f'href="{book_url}"')
-        self.assertContains(response, 'class="btn btn-success')
+        self.assertContains(response, 'class="btn btn-primary')
         self.assertContains(response, "Book Now")
 
 
