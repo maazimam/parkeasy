@@ -4,7 +4,7 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 
 
 def home(request):
-    return redirect('view_listings')
+    return redirect("view_listings")
 
 
 def register(request):
