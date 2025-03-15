@@ -5,7 +5,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import ListingForm, ListingSlotFormSet, validate_non_overlapping_slots
+from .forms import (ListingForm, ListingSlotFormSet,
+                    validate_non_overlapping_slots)
 from .models import Listing
 
 # Define half-hour choices for use in the search form
@@ -70,6 +71,44 @@ def edit_listing(request, listing_id):
         "listings/edit_listing.html",
         {"form": listing_form, "slot_formset": slot_formset, "listing": listing},
     )
+
+
+def simplify_location(location_string):
+    """
+    Simplifies a location string before sending to template.
+    Example: "Tandon School of Engineering, Johnson Street, Downtown Brooklyn, Brooklyn..."
+    becomes "Tandon School of Engineering, Brooklyn"
+    """
+    if not location_string:
+        return ""
+
+    parts = [part.strip() for part in location_string.split(",")]
+    if len(parts) < 2:
+        return location_string
+
+    building = parts[0]
+
+    # Find the city (Brooklyn, Manhattan, etc.)
+    city = next(
+        (
+            part
+            for part in parts
+            if part.strip()
+            in ["Brooklyn", "Manhattan", "Queens", "Bronx", "Staten Island"]
+        ),
+        "New York",
+    )
+
+    # For educational institutions, keep the full name
+    if any(
+        term in building.lower()
+        for term in ["school", "university", "college", "institute"]
+    ):
+        return f"{building}, {city}"
+
+    # For other locations, use first two parts
+    street = parts[1]
+    return f"{building}, {street}, {city}"
 
 
 def view_listings(request):
@@ -142,19 +181,25 @@ def view_listings(request):
 
     # Add extra display information to each listing.
     for listing in all_listings:
-        # Assuming your location is stored like "Address [lat, lng]"
-        listing.location_name = listing.location.split("[")[0].strip()
+        # Get and simplify location name
+        location_full = listing.location.split("[")[0].strip()
+        listing.location_name = simplify_location(location_full)
+
+        # Add average rating
         listing.avg_rating = listing.average_rating()
 
-    # add earliest available_from and latest available_to
-    for listing in all_listings:
-        listing.available_from = listing.slots.earliest("start_date", "start_time").start_date
-        listing.available_until = listing.slots.latest("end_date", "end_time").end_date
-
-    # add earliest available_time_until and latest available_time_from
-    for listing in all_listings:
-        listing.available_time_until = listing.slots.earliest("start_time").start_time
-        listing.available_time_from = listing.slots.latest("end_time").end_time
+        # Add earliest/latest dates and times
+        try:
+            listing.available_from = listing.slots.earliest("start_date", "start_time").start_date
+            listing.available_until = listing.slots.latest("end_date", "end_time").end_date
+            listing.available_time_until = listing.slots.earliest("start_time").start_time
+            listing.available_time_from = listing.slots.latest("end_time").end_time
+        except listing.slots.model.DoesNotExist:
+            # Set default values if no slots exist
+            listing.available_from = None
+            listing.available_until = None
+            listing.available_time_from = None
+            listing.available_time_until = None
 
     context = {
         "listings": all_listings,
