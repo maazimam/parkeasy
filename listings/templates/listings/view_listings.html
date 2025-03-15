@@ -9,10 +9,8 @@
 />
 <!-- Custom CSS -->
 <link rel="stylesheet" href="{% static 'listings/css/map.css' %}" />
-<link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
-/>
+<!-- Font Awesome link removed from here - now in base.html -->
+
 <style>
   .view-toggle {
     margin-bottom: 20px;
@@ -134,7 +132,7 @@
       <div class="col-md-2 d-flex align-items-end">
         <button type="submit" class="btn btn-primary me-2">Filter</button>
         <a href="{% url 'view_listings' %}" class="btn btn-secondary"
-          >Clear Filters</a
+          >Clear</a
         >
       </div>
     </div>
@@ -277,7 +275,7 @@
 
   <div class="text-center mt-3">
     <a href="{% url 'create_listing' %}" class="btn btn-primary"
-      >Create a new listing</a
+      ><i class="fas fa-plus me-1"></i>Create a new listing</a
     >
   </div>
 </div>
