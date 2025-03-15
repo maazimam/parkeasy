@@ -3,8 +3,8 @@
 
 {% block content %}
 <div class="container mt-5">
-  <h2>My Bookings</h2>
   {% if bookings %}
+  <h2>My Bookings</h2>
     <ul class="list-group">
       {% for booking in bookings %}
         <li class="list-group-item">
@@ -59,7 +59,11 @@
       {% endfor %}
     </ul>
   {% else %}
-    <p>No bookings yet.</p>
+    <div class="text-center mt-5">
+      <h2>You don't have any bookings yet.</h2>
+      <p class="mb-4">Find available parking spots and book your first spot now!</p>
+      <a href="{% url 'view_listings' %}" class="btn btn-primary">Book a Spot</a>
+    </div>
   {% endif %}
 </div>
 {% endblock %}

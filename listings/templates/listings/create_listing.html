@@ -1,6 +1,10 @@
-{% extends 'base.html' %} {% load widget_tweaks %} {% load static %} {% block extra_head %}
-<!-- Font Awesome CSS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block title %}Post A Parking Spot - ParkEasy{% endblock %}
+
+{% block extra_head %}
 <!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <style>
@@ -29,73 +33,211 @@
         display: none !important;
     }
 </style>
-{% endblock %} {% block content %}
-<h2 class="text-center">Post A Parking Spot</h2>
+<style>
+  .slot-form {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 1rem;
+    padding: 1.25rem;
+    transition: all 0.2s ease;
+  }
+  
+  .slot-form:hover {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  }
+  
+  .map-container {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+  
+  .section-header {
+    color: var(--color-primary);
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+  }
+</style>
+{% endblock %}
 
-{% if not request.user.profile.is_verified %}
-<div class="container mt-5 text-center">
-    <h2>You need to be verified before posting a parking spot.</h2>
-    <a href="{% url 'verify' %}" class="btn btn-warning">Get Verified to Post a Spot</a>
-</div>
-{% else %} {% if form.errors %}
-<div class="alert alert-danger">
-    <ul>
+{% block content %}
+<div class="container mt-5">
+  <div class="d-flex justify-content-center mb-4">
+    <h2><i class="fas fa-parking text-primary me-2"></i>Post A Parking Spot</h2>
+  </div>
+
+  {% if not request.user.profile.is_verified %}
+  <div class="card shadow-sm border-0 text-center p-5">
+    <div class="card-body py-4">
+      <i class="fas fa-user-shield fa-4x text-secondary mb-4 opacity-50"></i>
+      <h3>Verification Required</h3>
+      <p class="text-muted mb-4">You need to be verified before posting a parking spot.</p>
+      <a href="{% url 'verify' %}" class="btn btn-primary">
+        <i class="fas fa-check-circle me-2"></i>Get Verified to Post a Spot
+      </a>
+    </div>
+  </div>
+  {% else %}
+    {% if form.errors %}
+    <div class="alert alert-danger">
+      <i class="fas fa-exclamation-circle me-2"></i> Please correct the errors below:
+      <ul class="mb-0 mt-2">
         {% for field, errors in form.errors.items %}
-        <li>{{ errors|join:", " }}</li>
+          <li>{{ errors|join:", " }}</li>
         {% endfor %}
-    </ul>
-</div>
-{% endif %}
-
-<form method="POST" class="w-75 mx-auto" id="create-listing-form">
-    {% csrf_token %}
-
-    <h4>Spot Details</h4>
-    <div class="mb-3">
-        <label for="{{ form.title.id_for_label }}" class="form-label">Spot Title</label> {{ form.title|add_class:"form-control" }}
+      </ul>
     </div>
-
-    <div class="mb-3">
-        <label class="form-label">Location (Click on map to select)</label>
-        <div class="search-container mb-2">
-            <div class="input-group">
-                <input type="text" id="location-search" class="form-control" placeholder="Search location..." />
-                <button class="btn btn-primary" id="search-location">Search</button>
+    {% endif %}
+    
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <form method="POST" id="create-listing-form">
+          {% csrf_token %}
+          
+          <h4 class="section-header">
+            <i class="fas fa-info-circle me-2"></i>Spot Details
+          </h4>
+          
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="{{ form.title.id_for_label }}" class="form-label">
+                  <i class="fas fa-heading text-secondary me-1"></i> Spot Title
+                </label>
+                {{ form.title|add_class:"form-control"|attr:"placeholder:Short, descriptive title (e.g. Downtown Covered Spot)" }}
+              </div>
+              
+              <div class="mb-3">
+                <label for="{{ form.rent_per_hour.id_for_label }}" class="form-label">
+                  <i class="fas fa-tag text-secondary me-1"></i> Price per Hour ($)
+                </label>
+                {{ form.rent_per_hour|add_class:"form-control"|attr:"placeholder:10.00" }}
+              </div>
             </div>
-        </div>
-        <div class="map-container" style="height: 400px; width: 100%;">
-            <div id="map" style="height: 100%; width: 100%;"></div>
-        </div>
-        {{ form.location|add_class:"form-control mt-2" }}
+            
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="{{ form.description.id_for_label }}" class="form-label">
+                  <i class="fas fa-align-left text-secondary me-1"></i> Description
+                </label>
+                {{ form.description|add_class:"form-control"|attr:"placeholder:Describe your spot (size, access instructions, features)"|attr:"rows:5" }}
+              </div>
+            </div>
+          </div>
+          
+          <h4 class="section-header">
+            <i class="fas fa-map-marker-alt me-2"></i>Location
+          </h4>
+          
+          <div class="mb-4">
+            <label class="form-label d-flex justify-content-between">
+              <span>Set location on map</span>
+              <small class="text-muted"><i class="fas fa-info-circle me-1"></i> Click on map to select point</small>
+            </label>
+            
+            <div class="search-container mb-3">
+              <div class="input-group">
+                <span class="input-group-text">
+                  <i class="fas fa-search"></i>
+                </span>
+                <input type="text" id="location-search" class="form-control" placeholder="Search for address or landmark"/>
+                <button class="btn btn-primary" id="search-location">
+                  <i class="fas fa-search me-1"></i> Search
+                </button>
+              </div>
+            </div>
+            
+            <div class="map-container mb-3" style="height: 400px; width: 100%;">
+              <div id="map" style="height: 100%; width: 100%;"></div>
+            </div>
+            
+            <label for="{{ form.location.id_for_label }}" class="form-label">
+              <i class="fas fa-map-pin text-secondary me-1"></i> Selected Location
+            </label>
+            {{ form.location|add_class:"form-control"|attr:"readonly:readonly" }}
+          </div>
+          
+          <h4 class="section-header">
+            <i class="fas fa-calendar-alt me-2"></i>Availability Slots
+          </h4>
+          
+          <div class="mb-3">
+            <p class="text-muted small">
+              <i class="fas fa-info-circle me-1"></i>
+              Define when your parking spot is available for booking. Add multiple slots if availability varies.
+            </p>
+          </div>
+          
+          {{ slot_formset.management_form }}
+          <div id="slot-forms-container">
+            {% for slot_form in slot_formset %}
+              <div class="slot-form">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="mb-0">
+                    <i class="fas fa-clock text-secondary me-2"></i>
+                    Time Slot {{ forloop.counter }}
+                  </h5>
+                </div>
+                
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">Start Date</label>
+                        {{ slot_form.start_date|add_class:"form-control" }}
+                      </div>
+                      
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">End Date</label>
+                        {{ slot_form.end_date|add_class:"form-control" }}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">Start Time</label>
+                        {{ slot_form.start_time|add_class:"form-select" }}
+                      </div>
+                      
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">End Time</label>
+                        {{ slot_form.end_time|add_class:"form-select" }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {{ slot_form.id }}
+              </div>
+            {% endfor %}
+          </div>
+          
+          <div class="mb-4">
+            <button type="button" class="btn btn-accent" id="add-slot-btn">
+              <i class="fas fa-plus-circle me-1"></i> Add Another Time Slot
+            </button>
+          </div>
+          
+          <div class="d-flex justify-content-between mt-4">
+            <a href="{% url 'view_listings' %}" class="btn btn-secondary">
+              <i class="fas fa-times me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="fas fa-check me-1"></i> Post Parking Spot
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
+  {% endif %}
+</div>
+{% endblock %}
 
-    <div class="mb-3">
-        <label for="{{ form.rent_per_hour.id_for_label }}" class="form-label">Price per Hour ($)</label> {{ form.rent_per_hour|add_class:"form-control" }}
-    </div>
-
-    <div class="mb-3">
-        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label> {{ form.description|add_class:"form-control" }}
-    </div>
-
-    <hr>
-    <h4>Availability Slots</h4>
-    {{ slot_formset.management_form }}
-    <div id="slot-forms-container">
-        {% for slot_form in slot_formset %}
-        <div class="slot-form border p-3 mb-3" data-index="{{ forloop.counter0 }}">
-            <h5>Time Slot {{ forloop.counter }}</h5>
-            {% if not forloop.first %}
-            <button type="button" class="delete-slot" title="Delete this slot">
-                <i class="fas fa-times"></i>
-            </button> {% endif %} {{ slot_form.as_p }}
-        </div>
-        {% endfor %}
-    </div>
-    <button type="button" class="btn btn-secondary mb-3" id="add-slot-btn">Add Another Slot</button>
-
-    <button type="submit" class="btn btn-primary w-100">Post Spot</button>
-</form>
-{% endif %} {% endblock %} {% block scripts %}
+{% block scripts %}
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="{% static 'listings/js/create_listings.js' %}"></script>
