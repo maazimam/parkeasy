@@ -22,7 +22,7 @@ body {
 /* Headings, paragraphs, etc. */
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
-  color: var(--color-accent);
+  color: #222; /* Changed from var(--color-accent) to dark gray/black */
   margin-bottom: 0.75rem;
 }
 
@@ -30,17 +30,11 @@ p {
   margin-bottom: 1rem;
 }
 
-/* Buttons
-   Overriding Bootstrap classes can help ensure consistency across the site. */
+/* Buttons - Removed hover styles */
 .btn-primary {
   background-color: var(--color-primary) !important;
   border-color: var(--color-primary) !important;
   color: #fff !important;
-}
-.btn-primary:hover,
-.btn-primary:focus {
-  background-color: #d55e8b !important; /* slightly darker pink */
-  border-color: #d55e8b !important;
 }
 
 .btn-secondary {
@@ -48,21 +42,11 @@ p {
   border-color: var(--color-secondary) !important;
   color: #fff !important;
 }
-.btn-secondary:hover,
-.btn-secondary:focus {
-  background-color: #9b84b0 !important; /* slightly darker purple */
-  border-color: #9b84b0 !important;
-}
 
 .btn-info {
   background-color: var(--color-info) !important;
   border-color: var(--color-info) !important;
   color: #fff !important;
-}
-.btn-info:hover,
-.btn-info:focus {
-  background-color: #89acb9 !important; /* slightly darker teal */
-  border-color: #89acb9 !important;
 }
 
 .btn-danger {
@@ -70,23 +54,12 @@ p {
   border-color: var(--color-accent) !important;
   color: #fff !important;
 }
-.btn-danger:hover,
-.btn-danger:focus {
-  background-color: #cc327f !important;
-  border-color: #cc327f !important;
-}
 
-/* Outline secondary (for Register button, if using .btn-outline-secondary) */
+/* Outline secondary (for Register button) */
 .btn-outline-secondary {
   color: var(--color-secondary) !important;
   border-color: var(--color-secondary) !important;
   background-color: transparent !important;
-}
-.btn-outline-secondary:hover,
-.btn-outline-secondary:focus {
-  color: #fff !important;
-  background-color: var(--color-secondary) !important;
-  border-color: var(--color-secondary) !important;
 }
 
 /* Utility classes */
@@ -101,4 +74,55 @@ p {
 }
 .hero p {
   color: #fff;
+}
+
+/* Toggle button styling - Removed hover */
+.btn-group .btn-outline-primary,
+#map-view-btn.btn-outline-primary,
+button.btn-outline-primary {
+  color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  background-color: transparent !important;
+}
+
+.btn-group .btn-primary.active,
+#list-view-btn.btn-primary.active,
+button.btn-primary.active {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important; 
+  color: #fff !important;
+}
+
+/* Override Bootstrap's focus styles */
+.btn:focus, .btn.focus {
+  box-shadow: 0 0 0 2px rgba(241, 114, 161, 0.15) !important; /* Very subtle pink shadow */
+}
+
+/* Force colors for star ratings */
+.text-warning, .fas.text-warning, .far.text-warning, .fa-star-half-alt.text-warning {
+  color: var(--color-accent) !important;
+}
+
+.badge.bg-warning {
+  background-color: var(--color-accent) !important;
+  color: #fff !important;
+}
+
+/* Add this after your other color classes */
+
+/* Text color classes */
+.text-info {
+  color: var(--color-info) !important;
+}
+
+.text-primary {
+  color: var(--color-primary) !important;
+}
+
+.text-secondary {
+  color: var(--color-secondary) !important;
+}
+
+.text-accent {
+  color: var(--color-accent) !important;
 }

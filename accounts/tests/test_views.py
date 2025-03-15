@@ -7,7 +7,7 @@ class AccountViewsTestCase(TestCase):
     def test_home_view(self):
         response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "home.html")
+        self.assertTemplateUsed(response, "listings/view_listings.html")
 
     def test_register_view_get(self):
         response = self.client.get(reverse("register"))

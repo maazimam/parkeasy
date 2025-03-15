@@ -16,7 +16,7 @@
 {% if not request.user.profile.is_verified %}
 <div class="container mt-5 text-center">
   <h2>You need to be verified before posting a parking spot.</h2>
-  <a href="{% url 'verify' %}" class="btn btn-warning"
+  <a href="{% url 'verify' %}" class="btn btn-primary"
     >Get Verified to Post a Spot</a
   >
 </div>
