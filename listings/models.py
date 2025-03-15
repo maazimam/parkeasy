@@ -1,6 +1,7 @@
 import datetime as dt
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models import Max, Min
 
 
 class Listing(models.Model):
@@ -52,6 +53,35 @@ class Listing(models.Model):
             elif iv_start > coverage_start:
                 return False
         return False
+    
+    #These two properties allow us to access the start and end date and time of a listing
+    @property
+    def earliest_start_datetime(self):
+        """Returns the earliest start date and time from all slots."""
+        # First find the earliest date
+        earliest_date = self.slots.aggregate(earliest_date=Min('start_date'))['earliest_date']
+        if not earliest_date:
+            return None
+            
+        # Then among slots with that date, find the earliest time
+        earliest_time = self.slots.filter(start_date=earliest_date).aggregate(
+            earliest_time=Min('start_time'))['earliest_time']
+            
+        return dt.datetime.combine(earliest_date, earliest_time)
+
+    @property
+    def latest_end_datetime(self):
+        """Returns the latest end date and time from all slots."""
+        # First find the latest date
+        latest_date = self.slots.aggregate(latest_date=Max('end_date'))['latest_date']
+        if not latest_date:
+            return None
+            
+        # Then among slots with that date, find the latest time
+        latest_time = self.slots.filter(end_date=latest_date).aggregate(
+            latest_time=Max('end_time'))['latest_time']
+            
+        return dt.datetime.combine(latest_date, latest_time)
 
 
 class ListingSlot(models.Model):
