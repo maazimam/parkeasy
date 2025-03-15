@@ -7,13 +7,18 @@ from booking.models import Booking, BookingSlot
 from faker import Faker
 from django.utils import timezone
 
+
 class Command(BaseCommand):
-    help = "Create fake data: 10 users, 100 listings (with multi-day listing slots), 200 bookings (with booking slots), and 100 reviews"
+    help = "Create fake data: 10 users, 100 listings, 200 bookings, and 100 reviews"
 
     def handle(self, *args, **kwargs):
         # Check if fake data already exists by verifying the existence of "user1"
         if User.objects.filter(username="user1").exists():
-            self.stdout.write(self.style.WARNING("Fake data already exists (user1 found). No changes made."))
+            self.stdout.write(
+                self.style.WARNING(
+                    "Fake data already exists (user1 found). No changes made."
+                )
+            )
             return 0
 
         fake = Faker()
@@ -25,8 +30,7 @@ class Command(BaseCommand):
             username = f"user{i}"
             email = f"{username}@example.com"
             user, created = User.objects.get_or_create(
-                username=username,
-                defaults={"email": email}
+                username=username, defaults={"email": email}
             )
             user.set_password("testdata")
             user.save()
@@ -48,7 +52,7 @@ class Command(BaseCommand):
                 title=title,
                 location=location,
                 rent_per_hour=rent_per_hour,
-                description=description
+                description=description,
             )
             listings.append(listing)
             self.stdout.write(self.style.SUCCESS(f"Listing created: {title}"))
@@ -63,19 +67,21 @@ class Command(BaseCommand):
                 # Determine duration: 0 for same-day, or 1-3 days for a multi-day slot.
                 duration_days = random.randint(0, 3)
                 end_date_obj = start_date_obj + timedelta(days=duration_days)
-                
+
                 if duration_days == 0:
                     # Same-day slot: choose a start time between 6:00 and 16:00 (in minutes)
                     start_minutes = random.choice(range(360, 960, 30))
                     # End time must be at least 30 minutes after start, up to 22:00 (1320 minutes)
-                    possible_end_minutes = [m for m in range(start_minutes + 30, 1320, 30)]
+                    possible_end_minutes = [
+                        m for m in range(start_minutes + 30, 1320, 30)
+                    ]
                     if not possible_end_minutes:
                         continue
                     end_minutes = random.choice(possible_end_minutes)
                 else:
                     # Multi-day slot: use a morning start and an evening end.
                     start_minutes = random.choice(range(360, 721, 30))  # 6:00 to 12:00
-                    end_minutes = random.choice(range(960, 1320, 30))     # 16:00 to 22:00
+                    end_minutes = random.choice(range(960, 1320, 30))  # 16:00 to 22:00
 
                 st_time = time(hour=start_minutes // 60, minute=start_minutes % 60)
                 et_time = time(hour=end_minutes // 60, minute=end_minutes % 60)
@@ -85,11 +91,14 @@ class Command(BaseCommand):
                     start_date=start_date_obj,
                     start_time=st_time,
                     end_date=end_date_obj,
-                    end_time=et_time
+                    end_time=et_time,
                 )
-                self.stdout.write(self.style.SUCCESS(
-                    f"ListingSlot for {listing.title}: {start_date_obj} {st_time} - {end_date_obj} {et_time}"
-                ))
+                listing_slot.listing = listing
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"ListingSlot for {listing.title}: {start_date_obj} {st_time} - {end_date_obj} {et_time}"
+                    )
+                )
 
         # Create 200 bookings linking users and listings
         self.stdout.write("Creating bookings...")
@@ -106,12 +115,14 @@ class Command(BaseCommand):
                 listing=listing,
                 email=email,
                 total_price=total_price,
-                status=status
+                status=status,
             )
             bookings.append(booking)
-            self.stdout.write(self.style.SUCCESS(
-                f"Booking #{booking.pk} for listing '{listing.title}' created."
-            ))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Booking #{booking.pk} for listing '{listing.title}' created."
+                )
+            )
 
         # Create BookingSlots for each booking (1 slot per booking)
         self.stdout.write("Creating booking slots...")
@@ -122,14 +133,22 @@ class Command(BaseCommand):
                 continue
             chosen_slot = random.choice(listing_slots)
             # Compute listing slot start and end datetimes
-            listing_start_dt = datetime.combine(chosen_slot.start_date, chosen_slot.start_time)
-            listing_end_dt = datetime.combine(chosen_slot.end_date,   chosen_slot.end_time)
-            total_minutes = int((listing_end_dt - listing_start_dt).total_seconds() // 60)
+            listing_start_dt = datetime.combine(
+                chosen_slot.start_date, chosen_slot.start_time
+            )
+            listing_end_dt = datetime.combine(
+                chosen_slot.end_date, chosen_slot.end_time
+            )
+            total_minutes = int(
+                (listing_end_dt - listing_start_dt).total_seconds() // 60
+            )
             if total_minutes < 30:
                 continue
 
             # Choose a random start offset in 30-minute increments
-            max_offset_slots = total_minutes // 30 - 1  # ensure at least one slot is available
+            max_offset_slots = (
+                total_minutes // 30 - 1
+            )  # ensure at least one slot is available
             if max_offset_slots < 0:
                 max_offset_slots = 0
             start_offset = random.randint(0, max_offset_slots) * 30
@@ -137,7 +156,9 @@ class Command(BaseCommand):
 
             # Choose a duration (in half-hour increments) that fits within the listing slot
             remaining_minutes = total_minutes - start_offset
-            possible_durations = [30 * i for i in range(1, (remaining_minutes // 30) + 1)]
+            possible_durations = [
+                30 * i for i in range(1, (remaining_minutes // 30) + 1)
+            ]
             if not possible_durations:
                 continue
             duration = random.choice(possible_durations)
@@ -154,11 +175,15 @@ class Command(BaseCommand):
                 start_date=bs_start_date,
                 start_time=bs_start_time,
                 end_date=bs_end_date,
-                end_time=bs_end_time
+                end_time=bs_end_time,
             )
-            self.stdout.write(self.style.SUCCESS(
-                f"BookingSlot for Booking #{booking.pk}: {bs_start_date} {bs_start_time} - {bs_end_date} {bs_end_time}"
-            ))
+            booking_slot.booking = booking
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"BookingSlot for Booking \
+                        #{booking.pk}: {bs_start_date} {bs_start_time} - {bs_end_date} {bs_end_time}"
+                )
+            )
 
         # Create 100 reviews for random bookings; each review's created_at is before March 2025.
         self.stdout.write("Creating reviews...")
@@ -173,16 +198,18 @@ class Command(BaseCommand):
                 listing=booking.listing,
                 user=booking.user,
                 rating=rating,
-                comment=comment
+                comment=comment,
             )
             # Generate a random datetime between start_date_dt and end_date_dt
             delta = end_date_dt - start_date_dt
             random_seconds = random.randint(0, int(delta.total_seconds()))
             random_date = start_date_dt + timedelta(seconds=random_seconds)
-            aware_random_date = timezone.make_aware(random_date, timezone.get_default_timezone())
+            aware_random_date = timezone.make_aware(
+                random_date, timezone.get_default_timezone()
+            )
             Review.objects.filter(pk=review.pk).update(created_at=aware_random_date)
-            self.stdout.write(self.style.SUCCESS(
-                f"Review for Booking #{booking.pk} created."
-            ))
+            self.stdout.write(
+                self.style.SUCCESS(f"Review for Booking #{booking.pk} created.")
+            )
 
         self.stdout.write(self.style.SUCCESS("Fake data creation complete."))
