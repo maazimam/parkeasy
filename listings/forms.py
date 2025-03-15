@@ -1,5 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
+from datetime import datetime
 from .models import Listing, ListingSlot, Review
 
 HALF_HOUR_CHOICES = [
@@ -40,35 +41,43 @@ class ListingSlotForm(forms.ModelForm):
             raise forms.ValidationError("Start date cannot be after end date.")
 
         if (
-            start_date == end_date
+            start_date
+            and end_date
             and start_time
             and end_time
-            and start_time >= end_time
+            and start_date == end_date
         ):
-            raise forms.ValidationError(
-                "End time must be later than start time on the same day."
-            )
-
+            # Convert string times to time objects for proper comparison.
+            st = datetime.strptime(start_time, "%H:%M").time()
+            et = datetime.strptime(end_time, "%H:%M").time()
+            if st >= et:
+                raise forms.ValidationError(
+                    "End time must be later than start time on the same day."
+                )
         return cleaned_data
 
 
 def validate_non_overlapping_slots(formset):
     """
     Prevent overlapping availability slots within the same listing.
-    This simple check compares the string representations;
-    for more robust checks, consider converting to datetime objects.
+    This version converts the string times to datetime objects to
+    accurately compare intervals.
     """
     intervals = []
     for form in formset:
+        # Skip forms marked for deletion.
         if form.cleaned_data.get("DELETE"):
-            continue  # Skip forms marked for deletion.
+            continue
         start_date = form.cleaned_data.get("start_date")
         start_time = form.cleaned_data.get("start_time")
         end_date = form.cleaned_data.get("end_date")
         end_time = form.cleaned_data.get("end_time")
         if start_date and start_time and end_date and end_time:
-            start_dt = f"{start_date} {start_time}"
-            end_dt = f"{end_date} {end_time}"
+            # Convert start_time and end_time to time objects.
+            st = datetime.strptime(start_time, "%H:%M").time()
+            et = datetime.strptime(end_time, "%H:%M").time()
+            start_dt = datetime.combine(start_date, st)
+            end_dt = datetime.combine(end_date, et)
             for existing_start, existing_end in intervals:
                 # If not completely before or after, they overlap.
                 if not (end_dt <= existing_start or start_dt >= existing_end):

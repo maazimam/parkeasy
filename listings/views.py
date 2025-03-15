@@ -5,8 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import (ListingForm, ListingSlotFormSet,
-                    validate_non_overlapping_slots)
+from .forms import ListingForm, ListingSlotFormSet, validate_non_overlapping_slots
 from .models import Listing
 
 # Define half-hour choices for use in the search form
@@ -21,11 +20,11 @@ HALF_HOUR_CHOICES = [
 def create_listing(request):
     if request.method == "POST":
         listing_form = ListingForm(request.POST)
-        slot_formset = ListingSlotFormSet(request.POST)
+        slot_formset = ListingSlotFormSet(request.POST, prefix="form")
         if listing_form.is_valid() and slot_formset.is_valid():
             try:
                 validate_non_overlapping_slots(slot_formset)
-            except ValueError:
+            except Exception:  # catches ValidationError from our custom validator
                 messages.error(request, "Overlapping slots detected. Please correct.")
                 return render(
                     request,
@@ -43,8 +42,7 @@ def create_listing(request):
             messages.error(request, "Please correct the errors below.")
     else:
         listing_form = ListingForm()
-        slot_formset = ListingSlotFormSet()
-
+        slot_formset = ListingSlotFormSet(prefix="form")
     return render(
         request,
         "listings/create_listing.html",
@@ -57,15 +55,14 @@ def edit_listing(request, listing_id):
     listing = get_object_or_404(Listing, id=listing_id, user=request.user)
     if request.method == "POST":
         listing_form = ListingForm(request.POST, instance=listing)
-        slot_formset = ListingSlotFormSet(request.POST, instance=listing)
+        slot_formset = ListingSlotFormSet(request.POST, instance=listing, prefix="form")
         if listing_form.is_valid() and slot_formset.is_valid():
             listing_form.save()
             slot_formset.save()
             return redirect("manage_listings")
     else:
         listing_form = ListingForm(instance=listing)
-        slot_formset = ListingSlotFormSet(instance=listing)
-
+        slot_formset = ListingSlotFormSet(instance=listing, prefix="form")
     return render(
         request,
         "listings/edit_listing.html",
@@ -190,9 +187,15 @@ def view_listings(request):
 
         # Add earliest/latest dates and times
         try:
-            listing.available_from = listing.slots.earliest("start_date", "start_time").start_date
-            listing.available_until = listing.slots.latest("end_date", "end_time").end_date
-            listing.available_time_until = listing.slots.earliest("start_time").start_time
+            listing.available_from = listing.slots.earliest(
+                "start_date", "start_time"
+            ).start_date
+            listing.available_until = listing.slots.latest(
+                "end_date", "end_time"
+            ).end_date
+            listing.available_time_until = listing.slots.earliest(
+                "start_time"
+            ).start_time
             listing.available_time_from = listing.slots.latest("end_time").end_time
         except listing.slots.model.DoesNotExist:
             # Set default values if no slots exist
