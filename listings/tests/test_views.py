@@ -1,259 +1,383 @@
-from datetime import datetime, time, timedelta
-from unittest.mock import patch
+from datetime import datetime, date, time, timedelta
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.urls import reverse
 
 from ..forms import ListingForm
-from ..models import Listing
+from ..models import Listing, ListingSlot
+from ..views import simplify_location
 
 
-class ListingsViewsTests(TestCase):
+class ListingViewsTests(TestCase):
     def setUp(self):
-        self.client = Client()
-        self.user = User.objects.create_user(username="testuser", password="12345")
-        self.user.profile.is_verified = True  # Ensure the user is verified
-        self.user.profile.save()
-        self.client.login(username="testuser", password="12345")
-        tomorrow = datetime.now().date() + timedelta(days=1)
+        # Create a test user and log in.
+        self.user = User.objects.create_user(username="testuser", password="testpass")
+        self.client.login(username="testuser", password="testpass")
+
+        # Create a sample listing for tests that require an existing listing.
         self.listing = Listing.objects.create(
             user=self.user,
             title="Test Listing",
-            location="Test Location [123, 456]",
-            rent_per_hour=10.0,
-            available_from=tomorrow,
-            available_until=tomorrow,
-            available_time_from=time(9, 0),  # 9:00 AM
-            available_time_until=time(17, 0),  # 5:00 PM
-            description="Test Description",
+            location="Test Location [12.34, 56.78]",
+            rent_per_hour=Decimal("10.00"),
+            description="A test listing.",
+        )
+        # Create a listing slot for the sample listing.
+        ListingSlot.objects.create(
+            listing=self.listing,
+            start_date="2025-03-12",
+            start_time="10:00",
+            end_date="2025-03-12",
+            end_time="12:00",
         )
 
-    def test_create_listing_view_get(self):
-        response = self.client.get(reverse("create_listing"))
+    def _build_slot_formset_data(self, prefix="form", count=1, slot_data=None):
+        """
+        Helper method to build valid formset data for ListingSlotFormSet.
+        Optionally override default slot data.
+        """
+        data = {
+            f"{prefix}-TOTAL_FORMS": str(count),
+            f"{prefix}-INITIAL_FORMS": "0",
+            f"{prefix}-MIN_NUM_FORMS": "0",
+            f"{prefix}-MAX_NUM_FORMS": "1000",
+        }
+        # For one slot form, use default values (can be overridden)
+        if count >= 1:
+            default_data = {
+                f"{prefix}-0-start_date": "2025-03-12",
+                f"{prefix}-0-start_time": "10:00",
+                f"{prefix}-0-end_date": "2025-03-12",
+                f"{prefix}-0-end_time": "12:00",
+            }
+            if slot_data:
+                default_data.update(slot_data)
+            data.update(default_data)
+        return data
+
+    def test_create_listing_get(self):
+        url = reverse("create_listing")
+        response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "listings/create_listing.html")
         self.assertIsInstance(response.context["form"], ListingForm)
+        self.assertIn("slot_formset", response.context)
 
     def test_create_listing_view_post(self):
-        tomorrow = datetime.now().date() + timedelta(days=1)
-        response = self.client.post(
-            reverse("create_listing"),
-            {
-                "title": "New Listing",
-                "description": "New Description",
-                "rent_per_hour": 15.0,
-                "available_from": tomorrow,
-                "available_until": tomorrow,
-                "available_time_from": "09:00",  # 9:00 AM
-                "available_time_until": "17:00",  # 5:00 PM
-                "location": "New Location [123, 456]",
-            },
+        tomorrow = (datetime.now() + timedelta(days=1)).date()
+        listing_data = {
+            "title": "New Listing",
+            "description": "New Description",
+            "rent_per_hour": "15.00",
+            "location": "New Location [123, 456]",
+        }
+        # Build slot formset data using tomorrow's date and desired times.
+        slot_data = {
+            "form-0-start_date": tomorrow.strftime("%Y-%m-%d"),
+            "form-0-start_time": "09:00",
+            "form-0-end_date": tomorrow.strftime("%Y-%m-%d"),
+            "form-0-end_time": "17:00",
+        }
+        formset_data = self._build_slot_formset_data(
+            prefix="form", count=1, slot_data=slot_data
         )
+        # Note: Do not include non-existent fields such as available_from/available_until.
+        post_data = {**listing_data, **formset_data}
+
+        response = self.client.post(reverse("create_listing"), post_data)
         if response.status_code != 302:
-            print(
-                response.context["form"].errors
-            )  # Print form errors if the status code is not 302
+            print("Listing form errors:", response.context["form"].errors)
+            print("Slot formset errors:", response.context.get("slot_formset").errors)
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse("view_listings"))
         self.assertTrue(Listing.objects.filter(title="New Listing").exists())
-
-    def test_view_listings_view(self):
-        response = self.client.get(reverse("view_listings"))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "listings/view_listings.html")
-
-    def test_manage_listings_view(self):
-        self.client.login(username="testuser", password="12345")
-        response = self.client.get(reverse("manage_listings"))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "listings/manage_listings.html")
+        # Verify that the new listing has a slot with the correct start date and time.
+        new_listing = Listing.objects.get(title="New Listing")
+        slot = new_listing.slots.first()
+        self.assertEqual(
+            slot.start_date.strftime("%Y-%m-%d"), tomorrow.strftime("%Y-%m-%d")
+        )
+        self.assertEqual(slot.start_time.strftime("%H:%M"), "09:00")
 
     def test_edit_listing_view_get(self):
-        self.client.login(username="testuser", password="12345")
-        response = self.client.get(reverse("edit_listing", args=[self.listing.id]))
+        url = reverse("edit_listing", args=[self.listing.id])
+        response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "listings/edit_listing.html")
+        self.assertIsInstance(response.context["form"], ListingForm)
+        self.assertIn("slot_formset", response.context)
 
     def test_edit_listing_view_post(self):
-        self.client.login(username="testuser", password="12345")
-        tomorrow = datetime.now().date() + timedelta(days=1)
+        tomorrow = (datetime.now() + timedelta(days=1)).date()
+        listing_data = {
+            "title": "Updated Listing",
+            "description": "Updated Description",
+            "rent_per_hour": "20.00",
+            "location": "Updated Location [123, 456]",
+        }
+        # For editing, include the ID of the existing slot.
+        slot = self.listing.slots.first()
+        slot_data = {
+            "form-0-id": str(slot.id),
+            "form-0-start_date": tomorrow.strftime("%Y-%m-%d"),
+            "form-0-start_time": "09:00",
+            "form-0-end_date": tomorrow.strftime("%Y-%m-%d"),
+            "form-0-end_time": "17:00",
+        }
+        formset_data = {
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-MIN_NUM_FORMS": "0",
+            "form-MAX_NUM_FORMS": "1000",
+        }
+        formset_data.update(slot_data)
+        post_data = {**listing_data, **formset_data}
         response = self.client.post(
-            reverse("edit_listing", args=[self.listing.id]),
-            {
-                "title": "Updated Listing",
-                "description": "Updated Description",
-                "rent_per_hour": 20.0,
-                "available_from": tomorrow,
-                "available_until": tomorrow,
-                "available_time_from": "09:00",  # 9:00 AM
-                "available_time_until": "17:00",  # 5:00 PM
-                "location": "Updated Location [123, 456]",
-            },
+            reverse("edit_listing", args=[self.listing.id]), post_data
         )
         if response.status_code != 302:
-            print(
-                response.context["form"].errors
-            )  # Print form errors if the status code is not 302
-        self.assertEqual(response.status_code, 302)
+            print("Listing form errors:", response.context["form"].errors)
+            print("Slot formset errors:", response.context.get("slot_formset").errors)
         self.assertRedirects(response, reverse("manage_listings"))
         self.listing.refresh_from_db()
         self.assertEqual(self.listing.title, "Updated Listing")
+        updated_slot = self.listing.slots.first()
+        self.assertEqual(
+            updated_slot.start_date.strftime("%Y-%m-%d"), tomorrow.strftime("%Y-%m-%d")
+        )
+        self.assertEqual(updated_slot.start_time.strftime("%H:%M"), "09:00")
 
     def test_delete_listing_view_get(self):
-        self.client.login(username="testuser", password="12345")
-        response = self.client.get(reverse("delete_listing", args=[self.listing.id]))
+        url = reverse("delete_listing", args=[self.listing.id])
+        response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "listings/confirm_delete.html")
 
     def test_delete_listing_view_post(self):
-        self.client.login(username="testuser", password="12345")
-        response = self.client.post(reverse("delete_listing", args=[self.listing.id]))
+        url = reverse("delete_listing", args=[self.listing.id])
+        response = self.client.post(url)
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse("manage_listings"))
+        self.assertFalse(Listing.objects.filter(id=self.listing.id).exists())
 
     def test_listing_reviews_view(self):
-        response = self.client.get(reverse("listing_reviews", args=[self.listing.id]))
+        url = reverse("listing_reviews", args=[self.listing.id])
+        response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "listings/listing_reviews.html")
+        self.assertIn("reviews", response.context)
 
 
 class ListingsFilterTest(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username="testuser", password="12345")
+        self.user = User.objects.create_user(username="testuser", password="testpass")
+        # Set a fixed test date for filtering.
+        self.test_date = date(2025, 3, 15)
 
-        # Set a fixed "now" time for testing
-        self.test_now = datetime(2025, 3, 15, 14, 30)  # March 15, 2025, 2:30 PM
-        self.test_date = self.test_now.date()
-        self.test_time = self.test_now.time()
+    def test_listing_time_filtering_single_interval(self):
+        # Create listings with associated slots.
 
-    @patch("listings.views.datetime")
-    def test_listing_time_filtering(self, mock_datetime):
-        # Mock datetime.now() to return our fixed test time
-        mock_datetime.now.return_value = self.test_now
-
-        # Create test listings with various date/time combinations
-
-        # 1. Future date - should be included
-        _ = Listing.objects.create(
+        # 1. Future Listing – slot from test_date 09:00 to (test_date+5 days) 17:00.
+        future_listing = Listing.objects.create(
             user=self.user,
             title="Future Listing",
             location="Future Location",
             rent_per_hour=10.0,
             description="This should be included",
-            available_from=self.test_date,
-            available_until=self.test_date + timedelta(days=5),  # 5 days in future
-            available_time_from=time(9, 0),
-            available_time_until=time(17, 0),
+        )
+        ListingSlot.objects.create(
+            listing=future_listing,
+            start_date=self.test_date,
+            start_time=time(9, 0),
+            end_date=self.test_date + timedelta(days=5),
+            end_time=time(17, 0),
         )
 
-        # 2. Today with future time - should be included
-        _ = Listing.objects.create(
+        # 2. Today with future time – slot from test_date 14:00 to 18:00.
+        today_future = Listing.objects.create(
             user=self.user,
             title="Today Future Time",
             location="Today Location",
             rent_per_hour=10.0,
             description="This should be included",
-            available_from=self.test_date - timedelta(days=5),
-            available_until=self.test_date,  # Today
-            available_time_from=time(9, 0),
-            available_time_until=time(17, 0),  # 5:00 PM (after our test time)
+        )
+        ListingSlot.objects.create(
+            listing=today_future,
+            start_date=self.test_date,
+            start_time=time(14, 0),
+            end_date=self.test_date,
+            end_time=time(18, 0),
         )
 
-        # 3. Today with past time - should be excluded
-        _ = Listing.objects.create(
+        # 3. Today with past time – slot from test_date 09:00 to 12:00.
+        today_past = Listing.objects.create(
             user=self.user,
             title="Today Past Time",
             location="Today Past Location",
             rent_per_hour=10.0,
             description="This should be excluded",
-            available_from=self.test_date - timedelta(days=5),
-            available_until=self.test_date,  # Today
-            available_time_from=time(9, 0),
-            available_time_until=time(12, 0),  # 12:00 PM (before our test time)
+        )
+        ListingSlot.objects.create(
+            listing=today_past,
+            start_date=self.test_date,
+            start_time=time(9, 0),
+            end_date=self.test_date,
+            end_time=time(12, 0),
         )
 
-        # 4. Past date - should be excluded
-        _ = Listing.objects.create(
+        # 4. Past Listing – slot from (test_date-10) to (test_date-1).
+        past_listing = Listing.objects.create(
             user=self.user,
             title="Past Listing",
             location="Past Location",
             rent_per_hour=10.0,
             description="This should be excluded",
-            available_from=self.test_date - timedelta(days=10),
-            available_until=self.test_date - timedelta(days=1),  # Yesterday
-            available_time_from=time(9, 0),
-            available_time_until=time(17, 0),
+        )
+        ListingSlot.objects.create(
+            listing=past_listing,
+            start_date=self.test_date - timedelta(days=10),
+            start_time=time(9, 0),
+            end_date=self.test_date - timedelta(days=1),
+            end_time=time(17, 0),
         )
 
-        # Access the view
-        response = self.client.get(reverse("view_listings"))
-
-        # Get listings from context
+        # Apply single continuous interval filter.
+        url = reverse("view_listings")
+        params = {
+            "start_date": self.test_date.strftime("%Y-%m-%d"),
+            "end_date": self.test_date.strftime("%Y-%m-%d"),
+            "start_time": "14:00",
+            "end_time": "15:00",
+        }
+        response = self.client.get(url, params)
         context_listings = response.context["listings"]
         listing_titles = [listing.title for listing in context_listings]
 
-        # Verify correct listings are included/excluded
         self.assertIn("Future Listing", listing_titles)
         self.assertIn("Today Future Time", listing_titles)
         self.assertNotIn("Today Past Time", listing_titles)
         self.assertNotIn("Past Listing", listing_titles)
-
-        # Also check by count - should be exactly 2 listings
         self.assertEqual(len(context_listings), 2)
+
+    def test_listing_time_filtering_multiple_intervals(self):
+        # Create a listing with two slots that together cover 10:00 to 16:00 on test_date.
+        multi_listing = Listing.objects.create(
+            user=self.user,
+            title="Multi Interval Listing",
+            location="Multi Location",
+            rent_per_hour=15.0,
+            description="This listing has multiple intervals",
+        )
+        ListingSlot.objects.create(
+            listing=multi_listing,
+            start_date=self.test_date,
+            start_time=time(10, 0),
+            end_date=self.test_date,
+            end_time=time(13, 0),
+        )
+        ListingSlot.objects.create(
+            listing=multi_listing,
+            start_date=self.test_date,
+            start_time=time(13, 0),
+            end_date=self.test_date,
+            end_time=time(16, 0),
+        )
+
+        url = reverse("view_listings")
+        params = {
+            "filter_type": "multiple",
+            "interval_count": "2",
+            "start_date_1": self.test_date.strftime("%Y-%m-%d"),
+            "end_date_1": self.test_date.strftime("%Y-%m-%d"),
+            "start_time_1": "10:00",
+            "end_time_1": "12:00",
+            "start_date_2": self.test_date.strftime("%Y-%m-%d"),
+            "end_date_2": self.test_date.strftime("%Y-%m-%d"),
+            "start_time_2": "14:00",
+            "end_time_2": "15:00",
+        }
+        response = self.client.get(url, params)
+        context_listings = response.context["listings"]
+        listing_titles = [listing.title for listing in context_listings]
+        # Listing should cover both intervals.
+        self.assertIn("Multi Interval Listing", listing_titles)
+
+        # Now change the second interval so it is not covered.
+        params["start_time_2"] = "15:30"
+        params["end_time_2"] = "16:30"
+        response = self.client.get(url, params)
+        context_listings = response.context["listings"]
+        listing_titles = [listing.title for listing in context_listings]
+        self.assertNotIn("Multi Interval Listing", listing_titles)
 
 
 class ListingOwnerBookingTest(TestCase):
     def setUp(self):
-        # Create two users: owner and non-owner
+        # Create two users: owner and non-owner.
         self.owner = User.objects.create_user(username="owner", password="ownerpass123")
         self.non_owner = User.objects.create_user(
             username="renter", password="renterpass123"
         )
 
-        # Create a listing owned by the owner
+        # Create a listing owned by the owner.
         self.listing = Listing.objects.create(
             user=self.owner,
             title="Test Parking Spot",
             location="Test Location [123.456, 789.012]",
             rent_per_hour=10.0,
             description="Test Description",
-            available_from=(datetime.now() - timedelta(days=1)).date(),
-            available_until=(datetime.now() + timedelta(days=30)).date(),
-            available_time_from=time(9, 0),
-            available_time_until=time(17, 0),
         )
-
-        # URL for viewing listings
+        # Create a slot for the listing.
+        ListingSlot.objects.create(
+            listing=self.listing,
+            start_date=(datetime.now() - timedelta(days=1)).date(),
+            start_time=time(9, 0),
+            end_date=(datetime.now() + timedelta(days=30)).date(),
+            end_time=time(17, 0),
+        )
         self.view_listings_url = reverse("view_listings")
 
     def test_owner_sees_badge_not_book_button(self):
-        """Test that owners see 'Your listing' badge instead of 'Book Now' button"""
+        """Owners should see a badge (not a 'Book Now' button)."""
         self.client.login(username="owner", password="ownerpass123")
         response = self.client.get(self.view_listings_url)
         self.assertEqual(response.status_code, 200)
-
-        # Check for badge content and class, ignoring exact HTML structure
         self.assertContains(response, "Your listing")
         self.assertContains(response, 'class="badge bg-secondary"')
-
-        # Check that Book Now button is NOT present for this listing
         book_url = reverse("book_listing", args=[self.listing.id])
         self.assertNotContains(response, f'href="{book_url}"')
         self.assertNotContains(response, "Book Now")
 
     def test_non_owner_sees_book_button(self):
-        """Test that non-owners see the 'Book Now' button"""
+        """Non-owners should see the 'Book Now' button."""
         self.client.login(username="renter", password="renterpass123")
         response = self.client.get(self.view_listings_url)
         self.assertEqual(response.status_code, 200)
-
-        # Check that 'Your listing' badge is NOT present
         self.assertNotContains(response, "Your listing")
-
-        # Check for Book Now button elements without being strict about HTML structure
         book_url = reverse("book_listing", args=[self.listing.id])
         self.assertContains(response, f'href="{book_url}"')
         self.assertContains(response, 'class="btn btn-success')
         self.assertContains(response, "Book Now")
+
+
+class SimplifyLocationTest(TestCase):
+    def test_simplify_location_with_institution(self):
+        # For educational institutions, the full building name is retained.
+        loc = (
+            "Tandon School of Engineering, Johnson Street, Downtown Brooklyn, Brooklyn"
+        )
+        simplified = simplify_location(loc)
+        self.assertEqual(simplified, "Tandon School of Engineering, Brooklyn")
+
+    def test_simplify_location_non_institution(self):
+        # For non-institution addresses, the first two parts plus the city are used.
+        loc = "Some Building, Some Street, Manhattan, Extra Info"
+        simplified = simplify_location(loc)
+        self.assertEqual(simplified, "Some Building, Some Street, Manhattan")
+
+    def test_simplify_location_empty(self):
+        simplified = simplify_location("")
+        self.assertEqual(simplified, "")

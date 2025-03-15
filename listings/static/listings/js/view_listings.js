@@ -142,3 +142,67 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize with list view
   showListView();
 });
+
+
+document.addEventListener("DOMContentLoaded", function() {
+  const singleRadio = document.getElementById("filter_single");
+  const multipleRadio = document.getElementById("filter_multiple");
+  const singleSection = document.getElementById("single-filter");
+  const multipleSection = document.getElementById("multiple-filter");
+
+  function toggleFilterSections() {
+    if (singleRadio.checked) {
+      singleSection.style.display = "";
+      multipleSection.style.display = "none";
+    } else {
+      singleSection.style.display = "none";
+      multipleSection.style.display = "";
+    }
+  }
+
+  singleRadio.addEventListener("change", toggleFilterSections);
+  multipleRadio.addEventListener("change", toggleFilterSections);
+  toggleFilterSections();
+
+  // Multiple intervals: add new interval row
+  const addIntervalBtn = document.getElementById("add-interval");
+  const intervalsContainer = document.getElementById("intervals-container");
+  let intervalCount = parseInt(document.getElementById("interval_count").value) || 1;
+
+  addIntervalBtn.addEventListener("click", function() {
+    intervalCount += 1;
+    document.getElementById("interval_count").value = intervalCount;
+    const intervalRow = document.createElement("div");
+    intervalRow.classList.add("row", "interval-row");
+    intervalRow.setAttribute("data-index", intervalCount);
+    intervalRow.innerHTML = `
+      <div class="col-md-3">
+        <label for="start_date_${intervalCount}" class="form-label">Interval ${intervalCount} Start Date</label>
+        <input type="date" class="form-control" id="start_date_${intervalCount}" name="start_date_${intervalCount}">
+      </div>
+      <div class="col-md-3">
+        <label for="end_date_${intervalCount}" class="form-label">Interval ${intervalCount} End Date</label>
+        <input type="date" class="form-control" id="end_date_${intervalCount}" name="end_date_${intervalCount}">
+      </div>
+      <div class="col-md-3">
+        <label for="start_time_${intervalCount}" class="form-label">Interval ${intervalCount} Start Time</label>
+        <select class="form-select" id="start_time_${intervalCount}" name="start_time_${intervalCount}">
+          <option value="">Select start time</option>
+          {% for value, label in half_hour_choices %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label for="end_time_${intervalCount}" class="form-label">Interval ${intervalCount} End Time</label>
+        <select class="form-select" id="end_time_${intervalCount}" name="end_time_${intervalCount}">
+          <option value="">Select end time</option>
+          {% for value, label in half_hour_choices %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    `;
+    intervalsContainer.appendChild(intervalRow);
+  });
+});

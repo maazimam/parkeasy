@@ -1,10 +1,9 @@
-{% extends 'base.html' %} 
-{% block title %}Manage Your Listings{% endblock %} 
+{% extends 'base.html' %}
+{% block title %}Manage Your Listings{% endblock %}
 {% block content %}
 <div class="container mt-5">
     <h2 class="text-center">Your Parking Listings</h2>
     
-    <!-- Add this right after the h2 heading -->
     {% if delete_error %}
     <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
         {{ delete_error }}
@@ -23,16 +22,30 @@
                 <p class="card-text">
                     <strong>Price:</strong> ${{ listing.rent_per_hour }}/hour
                 </p>
-                <p class="card-text">
-                    <strong>Available:</strong> {{ listing.available_from|date:"M d, Y" }} to {{ listing.available_until|date:"M d, Y" }}
-                </p>
-                <p class="card-text">
-                    <strong>Hours:</strong> {{ listing.available_time_from|time:"g:i A" }} to {{ listing.available_time_until|time:"g:i A" }}
-                </p>
+                
+                <!-- Show all listing slots instead of old single-interval fields -->
+                {% if listing.slots.all %}
+                  <p><strong>Availability Slots:</strong></p>
+                  <ul>
+                    {% for slot in listing.slots.all %}
+                      <li>
+                        {{ slot.start_date|date:"M d, Y" }}
+                        {{ slot.start_time|time:"g:i A" }}
+                        —
+                        {{ slot.end_date|date:"M d, Y" }}
+                        {{ slot.end_time|time:"g:i A" }}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p><strong>Availability:</strong> No slots added.</p>
+                {% endif %}
+                
                 <p class="card-text">{{ listing.description }}</p>
                 <p class="card-text">
                     <small class="text-muted">Listed by: You</small>
                 </p>
+                
                 <a href="{% url 'edit_listing' listing.id %}" class="btn btn-warning">Edit</a>
                 <a href="{% url 'delete_listing' listing.id %}" class="btn btn-danger">Delete</a>
 
@@ -43,8 +56,21 @@
                     {% for booking in listing.approved_bookings %}
                         <div class="border p-2 mb-2">
                             <p><strong>Booked By:</strong> {{ booking.user.username }}</p>
-                            <p><strong>Date:</strong> {{ booking.booking_date|date:"M d, Y" }}</p>
-                            <p><strong>Time:</strong> {{ booking.start_time|time:"g:i A" }} - {{ booking.end_time|time:"g:i A" }}</p>
+                            
+                            <!-- Loop over all intervals (slots) for this booking -->
+                            <p><strong>Time(s):</strong></p>
+                            <ul>
+                              {% for slot in booking.slots.all %}
+                                <li>
+                                  {{ slot.start_date|date:"M d, Y" }}
+                                  {{ slot.start_time|time:"g:i A" }}
+                                  &mdash;
+                                  {{ slot.end_date|date:"M d, Y" }}
+                                  {{ slot.end_time|time:"g:i A" }}
+                                </li>
+                              {% endfor %}
+                            </ul>
+
                             <p><strong>Total Price:</strong> ${{ booking.total_price }}</p>
                         </div>
                     {% endfor %}
@@ -55,13 +81,25 @@
                 <hr>
 
                 <h5>Pending Bookings</h5>
-
                 {% if listing.pending_bookings %}
                     {% for booking in listing.pending_bookings %}
                         <div class="border p-2 mb-2">
                             <p><strong>Requested By:</strong> {{ booking.user.username }}</p>
-                            <p><strong>Date:</strong> {{ booking.booking_date|date:"M d, Y" }}</p>
-                            <p><strong>Time:</strong> {{ booking.start_time|time:"g:i A" }} - {{ booking.end_time|time:"g:i A" }}</p>
+                            
+                            <!-- Loop over all intervals (slots) for this booking -->
+                            <p><strong>Time(s):</strong></p>
+                            <ul>
+                              {% for slot in booking.slots.all %}
+                                <li>
+                                  {{ slot.start_date|date:"M d, Y" }}
+                                  {{ slot.start_time|time:"g:i A" }}
+                                  &mdash;
+                                  {{ slot.end_date|date:"M d, Y" }}
+                                  {{ slot.end_time|time:"g:i A" }}
+                                </li>
+                              {% endfor %}
+                            </ul>
+
                             <p><strong>Total Price:</strong> ${{ booking.total_price }}</p>
                 
                             <a href="{% url 'manage_booking' booking.id 'approve' %}" class="btn btn-success btn-sm">Approve</a>

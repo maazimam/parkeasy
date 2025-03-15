@@ -1,33 +1,279 @@
-{% extends 'base.html' %}
-{% load static %}
-{% block title %}Book {{ listing.title }}{% endblock %}
-
-{% block content %}
+{% extends 'base.html' %} {% block title %}Book {{ listing.title }}{% endblock %} {% block content %}
 <div class="container mt-5">
-  <h2>Book: {{ listing.title }}</h2>
-  <p>Location: {{ listing.location }}</p>
-  <p>Hourly Rate: ${{ listing.rent_per_hour }}</p>
-  <p>Available From: {{ listing.available_from|date:"M d, Y" }} to {{ listing.available_until|date:"M d, Y" }}</p>
-  <p>Available Time: {{ listing.available_time_from|time:"g:i A" }} to {{ listing.available_time_until|time:"g:i A" }}</p>
-
-  {% if form.errors %}
-    <div class="alert alert-danger">
-      <ul>
-        {% for field, errors in form.errors.items %}
-          <li>{{ errors|join:", " }}</li>
-        {% endfor %}
-      </ul>
-    </div>
+    <h2>Book: {{ listing.title }}</h2>
+    <p>Location: {{ listing.location }}</p>
+    <p>Hourly Rate: ${{ listing.rent_per_hour }}</p>
+    {% if listing.slots.all %}
+    <p><strong>Availability Slots:</strong></p>
+    <ul>
+      {% for slot in listing.slots.all %}
+        <li>
+          {{ slot.start_date|date:"M d, Y" }} {{ slot.start_time|time:"g:i A" }}
+          &mdash;
+          {{ slot.end_date|date:"M d, Y" }} {{ slot.end_time|time:"g:i A" }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p><strong>Availability:</strong> No slots added.</p>
   {% endif %}
 
-  <form method="POST" class="mt-4">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-primary">Book Now</button>
-  </form>
+    {% if booking_form.errors or slot_formset.non_form_errors %}
+    <div class="alert alert-danger">
+        <ul>
+            {% for field, errors in booking_form.errors.items %}
+            <li>{{ errors|join:", " }}</li>
+            {% endfor %} {% for error in slot_formset.non_form_errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 
-  <div class="mt-3">
-    <a href="{% url 'view_listings' %}" class="btn btn-secondary">Back to Listings</a>
-  </div>
+    <form method="POST" class="mt-4">
+        {% csrf_token %} {{ booking_form.as_p }}
+        <h4>Booking Intervals</h4>
+        {{ slot_formset.management_form }}
+        <div id="booking-slot-forms">
+            {% for form in slot_formset %}
+            <div class="booking-slot-form border p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Interval {{ forloop.counter }}</h5>
+                    {% if forloop.counter > 1 %}
+                    <div class="delete-interval">
+                        {{ form.DELETE }}
+                        <label for="{{ form.DELETE.id_for_label }}" class="text-danger">Delete this interval</label>
+                    </div>
+                    {% endif %}
+                </div>
+                {{ form.id }}
+                <div class="form-group">
+                    <label for="{{ form.start_date.id_for_label }}">Start Date</label> {{ form.start_date }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.start_time.id_for_label }}">Start Time</label> {{ form.start_time }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.end_date.id_for_label }}">End Date</label> {{ form.end_date }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.end_time.id_for_label }}">End Time</label> {{ form.end_time }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <button type="button" id="add-booking-slot" class="btn btn-secondary mb-3">Add Interval</button>
+        <button type="submit" class="btn btn-primary">Book Now</button>
+    </form>
+
+    <div class="mt-3">
+        <a href="{% url 'view_listings' %}" class="btn btn-secondary">Back to Listings</a>
+    </div>
 </div>
+{% endblock %} {% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        console.log("Booking page JS loaded.");
+
+        // Helper: Get the reference date from the first booking-slot form.
+        function getReferenceDate() {
+            const firstForm = document.querySelector(".booking-slot-form");
+            if (!firstForm) return "";
+            const refField = firstForm.querySelector("input[name$='start_date']");
+            return (refField && refField.value) ? refField.value : "";
+        }
+
+        // Function to handle deletion of booking slot
+        function handleDelete(deleteCheckbox) {
+            const formDiv = deleteCheckbox.closest('.booking-slot-form');
+            if (formDiv) {
+                formDiv.remove();
+                // Update form indices and total forms count
+                updateFormIndices();
+            }
+        }
+
+        // Function to update form indices after deletion
+        function updateFormIndices() {
+            const totalFormsInput = document.querySelector('[name$="-TOTAL_FORMS"]');
+            const formDivs = document.querySelectorAll('.booking-slot-form');
+
+            formDivs.forEach((formDiv, index) => {
+                // Update interval number
+                const heading = formDiv.querySelector('h5');
+                if (heading) {
+                    heading.textContent = `Interval ${index + 1}`;
+                }
+
+                // Update form indices
+                formDiv.querySelectorAll('input, select, textarea, label').forEach(el => {
+                    if (el.name) {
+                        el.name = el.name.replace(/-\d+-/, `-${index}-`);
+                    }
+                    if (el.id) {
+                        el.id = el.id.replace(/_\d+_/, `_${index}_`);
+                    }
+                });
+            });
+
+            // Update total forms count
+            if (totalFormsInput) {
+                totalFormsInput.value = formDivs.length.toString();
+            }
+        }
+
+        // Attach delete event listeners to existing delete checkboxes
+        function attachDeleteListener(formDiv) {
+            const deleteCheckbox = formDiv.querySelector('input[name$="DELETE"]');
+            if (deleteCheckbox) {
+                deleteCheckbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        handleDelete(this);
+                    }
+                });
+            }
+        }
+
+        // Attach listeners to date fields in a form
+        function attachDateListeners(formDiv) {
+            formDiv.querySelectorAll("input[name$='start_date'], input[name$='end_date']").forEach(function(dateField) {
+                function handler() {
+                    console.log("Date field", dateField.name, "updated to:", dateField.value);
+                    updateTimeChoices(dateField);
+                }
+                dateField.addEventListener("input", handler);
+                dateField.addEventListener("change", handler);
+                dateField.addEventListener("blur", handler);
+                if (dateField.value) {
+                    updateTimeChoices(dateField);
+                }
+            });
+        }
+
+        // Update time dropdowns based on the changed date field.
+        function updateTimeChoices(dateField) {
+            const selectedDate = dateField.value;
+            if (!selectedDate) return;
+            const listingId = "{{ listing.id }}";
+            const refDate = getReferenceDate();
+            let extraParam = "";
+            if (dateField.name.endsWith("end_date")) {
+                const formDiv = dateField.closest(".booking-slot-form");
+                const startTimeSelect = formDiv.querySelector("select[name$='start_time']");
+                if (startTimeSelect && startTimeSelect.value) {
+                    extraParam = "&min_time=" + encodeURIComponent(startTimeSelect.value);
+                }
+            } else if (dateField.name.endsWith("start_date")) {
+                const formDiv = dateField.closest(".booking-slot-form");
+                const endDateField = formDiv.querySelector("input[name$='end_date']");
+                const endTimeSelect = formDiv.querySelector("select[name$='end_time']");
+                if (endDateField && endTimeSelect && endDateField.value === selectedDate && endTimeSelect.value) {
+                    extraParam = "&max_time=" + encodeURIComponent(endTimeSelect.value);
+                }
+            }
+            if (refDate) {
+                extraParam += "&ref_date=" + encodeURIComponent(refDate);
+            }
+            const url = "{% url 'available_times' %}?listing_id=" + listingId + "&date=" + selectedDate + extraParam;
+            console.log("Fetching available times from URL:", url);
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Available times for " + selectedDate + ":", data.times);
+                    const formDiv = dateField.closest(".booking-slot-form");
+                    if (!formDiv) return;
+                    if (dateField.name.endsWith("start_date")) {
+                        const startTimeSelect = formDiv.querySelector("select[name$='start_time']");
+                        if (startTimeSelect) {
+                            startTimeSelect.innerHTML = '<option value="">Select start time</option>';
+                            data.times.forEach(function(time) {
+                                const option = document.createElement("option");
+                                option.value = time;
+                                option.textContent = time;
+                                startTimeSelect.appendChild(option);
+                            });
+                        }
+                    } else if (dateField.name.endsWith("end_date")) {
+                        const endTimeSelect = formDiv.querySelector("select[name$='end_time']");
+                        if (endTimeSelect) {
+                            endTimeSelect.innerHTML = '<option value="">Select end time</option>';
+                            data.times.forEach(function(time) {
+                                const option = document.createElement("option");
+                                option.value = time;
+                                option.textContent = time;
+                                endTimeSelect.appendChild(option);
+                            });
+                        }
+                    }
+                })
+                .catch(error => console.error("Error fetching available times:", error));
+        }
+
+        // Attach listeners to all existing booking-slot forms
+        document.querySelectorAll(".booking-slot-form").forEach(function(formDiv) {
+            attachDateListeners(formDiv);
+            attachDeleteListener(formDiv);
+        });
+
+        // Code to add a new booking-slot form dynamically
+        const addSlotBtn = document.getElementById("add-booking-slot");
+        const slotFormsContainer = document.getElementById("booking-slot-forms");
+        const totalFormsInput = document.querySelector('[name$="-TOTAL_FORMS"]');
+        if (!addSlotBtn || !slotFormsContainer || !totalFormsInput) {
+            console.error("Required elements for adding new booking slot not found.");
+            return;
+        }
+
+        const formDivs = slotFormsContainer.getElementsByClassName("booking-slot-form");
+        if (formDivs.length === 0) {
+            console.error("No booking slot form found to clone.");
+            return;
+        }
+
+        const blankForm = formDivs[0].cloneNode(true);
+        blankForm.querySelectorAll("input, select, textarea").forEach(el => el.value = "");
+
+        addSlotBtn.addEventListener("click", function() {
+            let formCount = parseInt(totalFormsInput.value);
+            let newForm = blankForm.cloneNode(true);
+
+            // Update form indices
+            newForm.querySelectorAll("input, select, textarea, label").forEach(function(el) {
+                if (el.name) {
+                    el.name = el.name.replace(/-\d+-/, `-${formCount}-`);
+                }
+                if (el.id) {
+                    el.id = el.id.replace(/_\d+_/, `_${formCount}_`);
+                }
+            });
+
+            // Add delete option for new interval
+            const deleteDiv = document.createElement('div');
+            deleteDiv.className = 'delete-interval';
+            deleteDiv.innerHTML = `
+                <input type="checkbox" name="form-${formCount}-DELETE" id="id_form-${formCount}-DELETE">
+                <label for="id_form-${formCount}-DELETE" class="text-danger">Delete this interval</label>
+            `;
+
+            // Update interval heading and add delete option
+            const headerDiv = newForm.querySelector('.d-flex');
+            if (headerDiv) {
+                headerDiv.innerHTML = `
+                    <h5>Interval ${formCount + 1}</h5>
+                    <div class="delete-interval">
+                        <input type="checkbox" name="form-${formCount}-DELETE" id="id_form-${formCount}-DELETE">
+                        <label for="id_form-${formCount}-DELETE" class="text-danger">Delete this interval</label>
+                    </div>
+                `;
+            }
+
+            slotFormsContainer.appendChild(newForm);
+            totalFormsInput.value = (formCount + 1).toString();
+
+            // Attach listeners to new form
+            attachDateListeners(newForm);
+            attachDeleteListener(newForm);
+        });
+    });
+</script>
 {% endblock %}
