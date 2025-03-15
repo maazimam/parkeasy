@@ -16,15 +16,23 @@
         position: absolute;
         top: 10px;
         right: 10px;
-        color: #dc3545;
+        color: #dc3545;  /* Red color */
         cursor: pointer;
         border: none;
         background: none;
-        font-size: 1rem;
+        padding: 0;
+        font-size: 1.2rem;  /* Match the other X size */
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.15s ease;
     }
     
     .delete-slot:hover {
-        opacity: 0.7;
+        transform: scale(1.2);  /* Slight grow effect on hover */
+        opacity: 1;  /* Full opacity on hover */
     }
     /* Hide the DELETE checkbox that appears in Django formset */
     
@@ -393,7 +401,7 @@
             // Add delete button to new form
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-slot';
-            deleteBtn.title = 'Delete this slot';
+            deleteBtn.title = 'Remove this time slot';
             deleteBtn.type = 'button';
             deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
             deleteBtn.addEventListener('click', handleDelete);
