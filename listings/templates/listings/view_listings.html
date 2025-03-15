@@ -229,20 +229,6 @@
           <!-- Availability and Price Info -->
           <div class="col-md-4">
             <div class="d-flex flex-column h-100 justify-content-center">
-              <!-- Availability Dates with icon -->
-              {% if listing.available_from and listing.available_until %} 
-              <p class="card-text d-flex align-items-center mb-1">
-                <i class="far fa-calendar-alt text-secondary me-2"></i>
-                <span>{{ listing.available_from|date:"M d" }} - {{ listing.available_until|date:"M d, Y" }}</span>
-              </p>
-              {% endif %}
-              <!-- Hours with icon -->
-              {% if listing.available_time_from and listing.available_time_until %}
-              <p class="card-text d-flex align-items-center mb-1">
-                <i class="far fa-clock text-secondary me-2"></i>
-                <span>{{ listing.available_time_from|time:"g:i A" }} - {{ listing.available_time_until|time:"g:i A" }}</span>
-              </p>
-              {% endif %}
               <!-- Price with icon -->
               <p class="card-text d-flex align-items-center mb-1">
                 <i class="fas fa-tag text-secondary me-2"></i>
