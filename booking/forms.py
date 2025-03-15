@@ -54,8 +54,8 @@ class BookingSlotForm(forms.ModelForm):
             )
             valid_times = set()
             for slot in available_slots:
-                current_dt = dt.datetime.combine(booking_date, slot.start_time)
-                end_dt = dt.datetime.combine(booking_date, slot.end_time)
+                current_dt = dt.datetime.combine(start_date, slot.start_time)
+                end_dt = dt.datetime.combine(start_date, slot.end_time)
                 while current_dt < end_dt:
                     valid_times.add(current_dt.strftime("%H:%M"))
                     current_dt += dt.timedelta(minutes=30)
