@@ -1,24 +1,20 @@
-{% extends 'base.html' %} {% block title %}Book {{ listing.title }}{% endblock %} {% block content %}
+{% extends 'base.html' %} {% load booking_extras %} {% block title %}Book {{ listing.title }}{% endblock %} {% block content %}
 <div class="container mt-5">
     <h2>Book: {{ listing.title }}</h2>
-    <p>Location: {{ listing.location }}</p>
+    <p>Location: {{ listing.location|format_location }}</p>
     <p>Hourly Rate: ${{ listing.rent_per_hour }}</p>
     {% if listing.slots.all %}
     <p><strong>Availability Slots:</strong></p>
     <ul>
-      {% for slot in listing.slots.all %}
+        {% for slot in listing.slots.all %}
         <li>
-          {{ slot.start_date|date:"M d, Y" }} {{ slot.start_time|time:"g:i A" }}
-          &mdash;
-          {{ slot.end_date|date:"M d, Y" }} {{ slot.end_time|time:"g:i A" }}
+            {{ slot.start_date|date:"M d, Y" }} {{ slot.start_time|time:"g:i A" }} &mdash; {{ slot.end_date|date:"M d, Y" }} {{ slot.end_time|time:"g:i A" }}
         </li>
-      {% endfor %}
+        {% endfor %}
     </ul>
-  {% else %}
+    {% else %}
     <p><strong>Availability:</strong> No slots added.</p>
-  {% endif %}
-
-    {% if booking_form.errors or slot_formset.non_form_errors %}
+    {% endif %} {% if booking_form.errors or slot_formset.non_form_errors %}
     <div class="alert alert-danger">
         <ul>
             {% for field, errors in booking_form.errors.items %}
