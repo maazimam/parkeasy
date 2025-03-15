@@ -38,15 +38,19 @@ class BookingSlotForm(forms.ModelForm):
         # Pop 'listing' if provided; then store it for later use.
         self.listing = kwargs.pop("listing", None)
         super().__init__(*args, **kwargs)
-        # If a booking date exists, filter the time choices based on the listing's slots.
-        booking_date_str = self.data.get("start_date") or self.initial.get("start_date")
-        if booking_date_str and self.listing:
+        # If a start date exists, filter the time choices based on the listing's slots.
+        start_date_str = self.data.get("start_date") or self.initial.get("start_date")
+        if start_date_str and self.listing:
             try:
-                booking_date = dt.datetime.strptime(booking_date_str, "%Y-%m-%d").date()
+                start_date = dt.datetime.strptime(start_date_str, "%Y-%m-%d").date()
             except ValueError:
-                return
+                start_date = None
+        else:
+            start_date = None
+
+        if start_date and self.listing:
             available_slots = self.listing.slots.filter(
-                start_date__lte=booking_date, end_date__gte=booking_date
+                start_date__lte=start_date, end_date__gte=start_date
             )
             valid_times = set()
             for slot in available_slots:
