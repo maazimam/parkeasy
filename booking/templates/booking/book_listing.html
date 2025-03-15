@@ -3,6 +3,20 @@
     <h2>Book: {{ listing.title }}</h2>
     <p>Location: {{ listing.location }}</p>
     <p>Hourly Rate: ${{ listing.rent_per_hour }}</p>
+    {% if listing.slots.all %}
+    <p><strong>Availability Slots:</strong></p>
+    <ul>
+      {% for slot in listing.slots.all %}
+        <li>
+          {{ slot.start_date|date:"M d, Y" }} {{ slot.start_time|time:"g:i A" }}
+          &mdash;
+          {{ slot.end_date|date:"M d, Y" }} {{ slot.end_time|time:"g:i A" }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p><strong>Availability:</strong> No slots added.</p>
+  {% endif %}
 
     {% if booking_form.errors or slot_formset.non_form_errors %}
     <div class="alert alert-danger">

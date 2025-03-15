@@ -146,6 +146,16 @@ def view_listings(request):
         listing.location_name = listing.location.split("[")[0].strip()
         listing.avg_rating = listing.average_rating()
 
+    # add earliest available_from and latest available_to
+    for listing in all_listings:
+        listing.available_from = listing.slots.earliest("start_date", "start_time").start_date
+        listing.available_until = listing.slots.latest("end_date", "end_time").end_date
+
+    # add earliest available_time_until and latest available_time_from
+    for listing in all_listings:
+        listing.available_time_until = listing.slots.earliest("start_time").start_time
+        listing.available_time_from = listing.slots.latest("end_time").end_time
+
     context = {
         "listings": all_listings,
         "half_hour_choices": HALF_HOUR_CHOICES,

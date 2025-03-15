@@ -176,20 +176,6 @@
           <h5 class="card-title">{{ listing.title }}</h5>
           <p class="card-text"><strong>Location:</strong> {{ listing.location_name }}</p>
           <p class="card-text"><strong>Price:</strong> ${{ listing.rent_per_hour }}/hour</p>
-          {% if listing.slots.all %}
-            <p><strong>Availability Slots:</strong></p>
-            <ul>
-              {% for slot in listing.slots.all %}
-                <li>
-                  {{ slot.start_date|date:"M d, Y" }} {{ slot.start_time|time:"g:i A" }}
-                  &mdash;
-                  {{ slot.end_date|date:"M d, Y" }} {{ slot.end_time|time:"g:i A" }}
-                </li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p><strong>Availability:</strong> No slots added.</p>
-          {% endif %}
           <p class="card-text">{{ listing.description }}</p>
           {% if listing.avg_rating %}
             <p class="card-text">
