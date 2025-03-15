@@ -3,11 +3,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
 
 :root {
-  --color-primary: #F172A1;  /* Pink */
-  --color-secondary: #B39BC8;/* Purple */
-  --color-accent: #E64398;   /* Magenta */
-  --color-info: #A1C3D1;     /* Teal */
-  --color-light: #F0EBF4;    /* Off-white / near pastel */
+  /* Updated color palette */
+  --color-primary:   #2B7A78; /* Main teal */
+  --color-secondary: #17252A; /* Dark teal/black */
+  --color-accent:    #3AAFA9; /* Lighter teal accent */
+  --color-info:      #FEFFFF; 
+  --color-light:    #DEF2F1; 
 }
 
 /* Base styles */
@@ -22,7 +23,7 @@ body {
 /* Headings, paragraphs, etc. */
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
-  color: #222; /* Changed from var(--color-accent) to dark gray/black */
+  color: #222; /* Dark gray/black for readability */
   margin-bottom: 0.75rem;
 }
 
@@ -46,7 +47,7 @@ p {
 .btn-info {
   background-color: var(--color-info) !important;
   border-color: var(--color-info) !important;
-  color: #fff !important;
+  color: #333 !important; /* Dark text against pale background */
 }
 
 .btn-danger {
@@ -95,7 +96,8 @@ button.btn-primary.active {
 
 /* Override Bootstrap's focus styles */
 .btn:focus, .btn.focus {
-  box-shadow: 0 0 0 2px rgba(241, 114, 161, 0.15) !important; /* Very subtle pink shadow */
+  /* Subtle shadow with primary color */
+  box-shadow: 0 0 0 2px rgba(43, 122, 120, 0.15) !important;
 }
 
 /* Force colors for star ratings */
@@ -107,8 +109,6 @@ button.btn-primary.active {
   background-color: var(--color-accent) !important;
   color: #fff !important;
 }
-
-/* Add this after your other color classes */
 
 /* Text color classes */
 .text-info {

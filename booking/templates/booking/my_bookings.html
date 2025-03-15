@@ -9,10 +9,30 @@
       {% for booking in bookings %}
         <li class="list-group-item">
           <strong>{{ booking.listing.title }}</strong>
-          <br> On: {{ booking.booking_date|date:"M d, Y" }}
-          <br> From: {{ booking.start_time|time:"g:i A" }} to {{ booking.end_time|time:"g:i A" }}
-          <br> Total Price: ${{ booking.total_price }}
           <br>
+
+          <!-- Show all booking slots for this booking -->
+          {% if booking.slots.all %}
+            <strong>Intervals:</strong>
+            <ul>
+              {% for slot in booking.slots.all %}
+                <li>
+                  {{ slot.start_date|date:"M d, Y" }}
+                  from
+                  {{ slot.start_time|time:"g:i A" }}
+                  to
+                  {{ slot.end_date|date:"M d, Y" }}
+                  {{ slot.end_time|time:"g:i A" }}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <em>No slots defined for this booking.</em>
+          {% endif %}
+
+          <strong>Total Price:</strong> ${{ booking.total_price }}
+          <br>
+
           <strong>Status: </strong>
           {% if booking.status == "PENDING" %}
             <span class="badge bg-warning text-dark">Pending</span>
@@ -22,6 +42,8 @@
             <span class="badge bg-danger">Declined</span>
           {% endif %}
           <br>
+
+          <!-- Example of existing logic for reviews/cancellation -->
           {% if booking.is_reviewed %}
             <span class="badge bg-success">Reviewed</span>
           {% else %}
