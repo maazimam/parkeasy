@@ -311,7 +311,7 @@
                 // Update heading text
                 const heading = div.querySelector('h5');
                 if (heading) {
-                    heading.textContent = `Time Slot ${idx + 1}`;
+                    heading.innerHTML = `<i class="fas fa-clock text-secondary me-2"></i>Time Slot ${idx + 1}`;
                 }
 
                 // Update input names and IDs
@@ -395,7 +395,7 @@
             // Update form heading
             const newHeading = newForm.querySelector("h5");
             if (newHeading) {
-                newHeading.textContent = `Time Slot ${formCount + 1}`;
+                newHeading.innerHTML = `<i class="fas fa-clock text-secondary me-2"></i>Time Slot ${formCount + 1}`;
             }
 
             // Add delete button to new form
