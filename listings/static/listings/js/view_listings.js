@@ -1,175 +1,177 @@
 console.log("view_listings.js loaded");
-document.addEventListener('DOMContentLoaded', function() {
-
+document.addEventListener("DOMContentLoaded", function () {
   // Filter type toggle handlers
-const filterSingle = document.getElementById('filter_single');
-const filterMultiple = document.getElementById('filter_multiple');
-const filterRecurring = document.getElementById('filter_recurring');
+  const filterSingle = document.getElementById("filter_single");
+  const filterMultiple = document.getElementById("filter_multiple");
+  const filterRecurring = document.getElementById("filter_recurring");
 
-const singleFilter = document.getElementById('single-filter');
-const multipleFilter = document.getElementById('multiple-filter');
-const recurringFilter = document.getElementById('recurring-filter');
+  const singleFilter = document.getElementById("single-filter");
+  const multipleFilter = document.getElementById("multiple-filter");
+  const recurringFilter = document.getElementById("recurring-filter");
 
-// INITIALIZATION: Make sure only the selected filter is visible on page load
-if (filterSingle && filterSingle.checked) {
- singleFilter.style.display = 'block';
- multipleFilter.style.display = 'none';
- recurringFilter.style.display = 'none';
-} else if (filterMultiple && filterMultiple.checked) {
- singleFilter.style.display = 'none';
- multipleFilter.style.display = 'block';
- recurringFilter.style.display = 'none';
-} else if (filterRecurring && filterRecurring.checked) {
- singleFilter.style.display = 'none';
- multipleFilter.style.display = 'none';
- recurringFilter.style.display = 'block';
-}
+  // INITIALIZATION: Make sure only the selected filter is visible on page load
+  if (filterSingle && filterSingle.checked) {
+    singleFilter.style.display = "block";
+    multipleFilter.style.display = "none";
+    recurringFilter.style.display = "none";
+  } else if (filterMultiple && filterMultiple.checked) {
+    singleFilter.style.display = "none";
+    multipleFilter.style.display = "block";
+    recurringFilter.style.display = "none";
+  } else if (filterRecurring && filterRecurring.checked) {
+    singleFilter.style.display = "none";
+    multipleFilter.style.display = "none";
+    recurringFilter.style.display = "block";
+  }
 
-// Add event listeners for filter type changes
-if (filterSingle && filterMultiple && filterRecurring) {
- filterSingle.addEventListener('change', function() {
-   if (this.checked) {
-     singleFilter.style.display = 'block';
-     multipleFilter.style.display = 'none';
-     recurringFilter.style.display = 'none';
-   }
- });
- 
- filterMultiple.addEventListener('change', function() {
-   if (this.checked) {
-     singleFilter.style.display = 'none';
-     multipleFilter.style.display = 'block';
-     recurringFilter.style.display = 'none';
-   }
- });
- 
- filterRecurring.addEventListener('change', function() {
-   if (this.checked) {
-     singleFilter.style.display = 'none';
-     multipleFilter.style.display = 'none';
-     recurringFilter.style.display = 'block';
-   }
- });
-}
+  // Add event listeners for filter type changes
+  if (filterSingle && filterMultiple && filterRecurring) {
+    filterSingle.addEventListener("change", function () {
+      if (this.checked) {
+        singleFilter.style.display = "block";
+        multipleFilter.style.display = "none";
+        recurringFilter.style.display = "none";
+      }
+    });
 
-// Recurring pattern toggle
-const patternDaily = document.getElementById('pattern_daily');
-const patternWeekly = document.getElementById('pattern_weekly');
-const dailyFields = document.getElementById('daily-pattern-fields');
-const weeklyFields = document.getElementById('weekly-pattern-fields');
+    filterMultiple.addEventListener("change", function () {
+      if (this.checked) {
+        singleFilter.style.display = "none";
+        multipleFilter.style.display = "block";
+        recurringFilter.style.display = "none";
+      }
+    });
 
-// INITIALIZATION: Make sure the correct pattern fields are visible on page load
-if (patternDaily && patternWeekly) {
- if (patternDaily.checked) {
-   dailyFields.style.display = 'block';
-   weeklyFields.style.display = 'none';
- } else if (patternWeekly.checked) {
-   dailyFields.style.display = 'none';
-   weeklyFields.style.display = 'block';
- }
- 
- patternDaily.addEventListener('change', function() {
-   if (this.checked) {
-     dailyFields.style.display = 'block';
-     weeklyFields.style.display = 'none';
-   }
- });
- 
- patternWeekly.addEventListener('change', function() {
-   if (this.checked) {
-     dailyFields.style.display = 'none';
-     weeklyFields.style.display = 'block';
-   }
- });
-}
-   
-   // Get today's date in YYYY-MM-DD format
-   const today = new Date().toISOString().split('T')[0];
-   
-   // Apply minimum date to all date inputs
-   const dateInputs = document.querySelectorAll('input[type="date"]');
-   dateInputs.forEach(input => {
-     input.min = today;
-   });
-   
-   // Handle dynamically added intervals
-   const addIntervalBtn = document.getElementById('add-interval');
-   if (addIntervalBtn) {
-     addIntervalBtn.addEventListener('click', function() {
-       // Set timeout to allow DOM to update
-       setTimeout(() => {
-         const newDateInputs = document.querySelectorAll('input[type="date"]:not([min])');
-         newDateInputs.forEach(input => {
-           input.min = today;
-         });
-       }, 100);
-     });
-   }
+    filterRecurring.addEventListener("change", function () {
+      if (this.checked) {
+        singleFilter.style.display = "none";
+        multipleFilter.style.display = "none";
+        recurringFilter.style.display = "block";
+      }
+    });
+  }
 
-   // Load more button functionality
-   const loadMoreBtn = document.getElementById('load-more-btn');
-   if (loadMoreBtn) {
-     loadMoreBtn.addEventListener('click', function() {
-       const nextPage = this.getAttribute('data-next-page');
-       const listingsContainer = document.querySelector('.listings-container');
-       
-       // Show loading state
-       loadMoreBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i> Loading...';
-       loadMoreBtn.disabled = true;
-       
-       // Build URL with existing filters
-       let url = new URL(window.location.href);
-       url.searchParams.set('page', nextPage);
-       
-       // Add parameter to indicate this is an AJAX request
-       url.searchParams.set('ajax', '1');
-       
-       fetch(url)
-         .then(response => response.text())
-         .then(html => {
-           // Find and remove the existing load more button container
-           const existingButtonContainer = document.querySelector('.text-center.my-4');
-           if (existingButtonContainer) {
-             existingButtonContainer.remove();
-           }
-           
-           // Create a temporary element to parse the HTML
-           const parser = new DOMParser();
-           const doc = parser.parseFromString(html, 'text/html');
-           
-           // Get all listing cards from the response (but not the button)
-           const newListings = doc.querySelectorAll('.card');
-           
-           // Append each new listing to our container
-           newListings.forEach(listing => {
-             listingsContainer.appendChild(listing.cloneNode(true));
-           });
-           
-           // Find the load more button in the response
-           const loadMoreContainer = doc.querySelector('.text-center.my-4');
-           if (loadMoreContainer) {
-             // There are more pages, append the new button
-             listingsContainer.appendChild(loadMoreContainer.cloneNode(true));
-             
-             // Re-attach the event listener to the new button
-             const newLoadMoreBtn = document.getElementById('load-more-btn');
-             if (newLoadMoreBtn) {
-               // Make sure the button text is correct (no icons)
-               newLoadMoreBtn.innerHTML = 'Load More Listings';
-               newLoadMoreBtn.addEventListener('click', arguments.callee);
-             }
-           }
-         })
-         .catch(error => {
-           console.error('Error loading more listings:', error);
-           loadMoreBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Error Loading';
-           loadMoreBtn.disabled = false;
-         });
-     });
-   }
-}
-);
+  // Recurring pattern toggle
+  const patternDaily = document.getElementById("pattern_daily");
+  const patternWeekly = document.getElementById("pattern_weekly");
+  const dailyFields = document.getElementById("daily-pattern-fields");
+  const weeklyFields = document.getElementById("weekly-pattern-fields");
 
+  // INITIALIZATION: Make sure the correct pattern fields are visible on page load
+  if (patternDaily && patternWeekly) {
+    if (patternDaily.checked) {
+      dailyFields.style.display = "block";
+      weeklyFields.style.display = "none";
+    } else if (patternWeekly.checked) {
+      dailyFields.style.display = "none";
+      weeklyFields.style.display = "block";
+    }
+
+    patternDaily.addEventListener("change", function () {
+      if (this.checked) {
+        dailyFields.style.display = "block";
+        weeklyFields.style.display = "none";
+      }
+    });
+
+    patternWeekly.addEventListener("change", function () {
+      if (this.checked) {
+        dailyFields.style.display = "none";
+        weeklyFields.style.display = "block";
+      }
+    });
+  }
+
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().split("T")[0];
+
+  // Apply minimum date to all date inputs
+  const dateInputs = document.querySelectorAll('input[type="date"]');
+  dateInputs.forEach((input) => {
+    input.min = today;
+  });
+
+  // Handle dynamically added intervals
+  const addIntervalBtn = document.getElementById("add-interval");
+  if (addIntervalBtn) {
+    addIntervalBtn.addEventListener("click", function () {
+      // Set timeout to allow DOM to update
+      setTimeout(() => {
+        const newDateInputs = document.querySelectorAll(
+          'input[type="date"]:not([min])'
+        );
+        newDateInputs.forEach((input) => {
+          input.min = today;
+        });
+      }, 100);
+    });
+  }
+
+  // Load more button functionality
+  const loadMoreBtn = document.getElementById("load-more-btn");
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", function () {
+      const nextPage = this.getAttribute("data-next-page");
+      const listingsContainer = document.querySelector(".listings-container");
+
+      // Show loading state
+      loadMoreBtn.innerHTML =
+        '<i class="fas fa-circle-notch fa-spin me-2"></i> Loading...';
+      loadMoreBtn.disabled = true;
+
+      // Build URL with existing filters
+      let url = new URL(window.location.href);
+      url.searchParams.set("page", nextPage);
+
+      // Add parameter to indicate this is an AJAX request
+      url.searchParams.set("ajax", "1");
+
+      fetch(url)
+        .then((response) => response.text())
+        .then((html) => {
+          // Find and remove the existing load more button container
+          const existingButtonContainer =
+            document.querySelector(".text-center.my-4");
+          if (existingButtonContainer) {
+            existingButtonContainer.remove();
+          }
+
+          // Create a temporary element to parse the HTML
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+
+          // Get all listing cards from the response (but not the button)
+          const newListings = doc.querySelectorAll(".card");
+
+          // Append each new listing to our container
+          newListings.forEach((listing) => {
+            listingsContainer.appendChild(listing.cloneNode(true));
+          });
+
+          // Find the load more button in the response
+          const loadMoreContainer = doc.querySelector(".text-center.my-4");
+          if (loadMoreContainer) {
+            // There are more pages, append the new button
+            listingsContainer.appendChild(loadMoreContainer.cloneNode(true));
+
+            // Re-attach the event listener to the new button
+            const newLoadMoreBtn = document.getElementById("load-more-btn");
+            if (newLoadMoreBtn) {
+              // Make sure the button text is correct (no icons)
+              newLoadMoreBtn.innerHTML = "Load More Listings";
+              newLoadMoreBtn.addEventListener("click", arguments.callee);
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("Error loading more listings:", error);
+          loadMoreBtn.innerHTML =
+            '<i class="fas fa-exclamation-triangle me-2"></i> Error Loading';
+          loadMoreBtn.disabled = false;
+        });
+    });
+  }
+});
 
 document.addEventListener("DOMContentLoaded", function () {
   // View toggle functionality
@@ -208,16 +210,21 @@ document.addEventListener("DOMContentLoaded", function () {
         attribution: "© OpenStreetMap contributors",
       }).addTo(map);
 
-      // Generate dummy traffic data for NYC area
-      const trafficData = generateDummyTrafficData();
-
-      // Create and add the heatmap layer
-      const heat = L.heatLayer(trafficData, {
-        radius: 25,
-        blur: 15,
-        maxZoom: 10,
-        gradient: { 0.4: "blue", 0.6: "lime", 0.8: "yellow", 1: "red" },
-      }).addTo(map);
+      // Fetch traffic data from analytics app
+      fetch("/analytics/traffic-data/")
+        .then((response) => response.json())
+        .then((data) => {
+          // Create and add the heatmap layer
+          const heat = L.heatLayer(data.data, {
+            radius: 25,
+            blur: 15,
+            maxZoom: 10,
+            gradient: { 0.4: "blue", 0.6: "lime", 0.8: "yellow", 1: "red" },
+          }).addTo(map);
+        })
+        .catch((error) => {
+          console.error("Error fetching traffic data:", error);
+        });
 
       // Add markers for all listings
       const listings = document.querySelectorAll(".card");
@@ -388,38 +395,3 @@ document.addEventListener("DOMContentLoaded", function () {
     intervalsContainer.appendChild(intervalRow);
   });
 });
-
-// Add this function to generate dummy traffic data
-function generateDummyTrafficData() {
-  const trafficHotspots = [
-    // Manhattan
-    { center: [40.7589, -73.9851], intensity: 1 }, // Times Square
-    { center: [40.7527, -73.9772], intensity: 0.8 }, // Grand Central
-    { center: [40.7505, -73.9934], intensity: 0.9 }, // Penn Station
-    { center: [40.7527, -74.0027], intensity: 0.7 }, // Chelsea
-
-    // Brooklyn
-    { center: [40.6922, -73.9875], intensity: 0.6 }, // Downtown Brooklyn
-    { center: [40.6782, -73.9442], intensity: 0.5 }, // Crown Heights
-    { center: [40.7064, -73.9239], intensity: 0.7 }, // Williamsburg
-
-    // Queens
-    { center: [40.7505, -73.9021], intensity: 0.6 }, // Long Island City
-    { center: [40.7429, -73.8489], intensity: 0.5 }, // Jackson Heights
-  ];
-
-  const trafficPoints = [];
-
-  // Generate points around each hotspot
-  trafficHotspots.forEach((hotspot) => {
-    const numPoints = Math.floor(hotspot.intensity * 100); // More points for higher intensity
-    for (let i = 0; i < numPoints; i++) {
-      // Add random offset to create spread (-0.01 to 0.01 degrees)
-      const lat = hotspot.center[0] + (Math.random() - 0.5) * 0.02;
-      const lng = hotspot.center[1] + (Math.random() - 0.5) * 0.02;
-      trafficPoints.push([lat, lng, hotspot.intensity]);
-    }
-  });
-
-  return trafficPoints;
-}
