@@ -1,5 +1,5 @@
 # listings/views.py
-from datetime import datetime
+from datetime import datetime, timedelta, time
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -123,6 +123,10 @@ def view_listings(request):
         except ValueError:
             pass
 
+    # Error messages list for displaying in template
+    error_messages = []
+    warning_messages = []
+
     # Apply availability filters
     if filter_type == "single":
         # Single continuous interval filter
@@ -177,6 +181,141 @@ def view_listings(request):
                 if available_for_all:
                     filtered.append(listing)
             all_listings = filtered
+
+    elif filter_type == "recurring":
+        # Extract recurring filter parameters
+        r_start_date = request.GET.get("recurring_start_date")
+        r_start_time = request.GET.get("recurring_start_time")
+        r_end_time = request.GET.get("recurring_end_time")
+        pattern = request.GET.get("recurring_pattern", "daily")
+        overnight = request.GET.get("recurring_overnight") == "on"
+
+        # Flag to track if we should apply filter
+        continue_with_filter = True
+
+        # Check that all required fields are provided
+        if r_start_date and r_start_time and r_end_time:
+            try:
+                intervals = []
+                start_date = datetime.strptime(r_start_date, "%Y-%m-%d").date()
+
+                # Validate start time < end time unless overnight is checked
+                s_time = datetime.strptime(r_start_time, "%H:%M").time()
+                e_time = datetime.strptime(r_end_time, "%H:%M").time()
+                if s_time >= e_time and not overnight:
+                    error_messages.append(
+                        "Start time must be before end time unless overnight booking is selected"
+                    )
+                    continue_with_filter = False
+
+                if pattern == "daily":
+                    # Daily pattern requires an end date
+                    r_end_date = request.GET.get("recurring_end_date")
+                    if not r_end_date:
+                        error_messages.append(
+                            "End date is required for daily recurring pattern"
+                        )
+                        continue_with_filter = False
+                    else:
+                        end_date = datetime.strptime(r_end_date, "%Y-%m-%d").date()
+
+                        # Validate end date is after start date
+                        if end_date < start_date:
+                            error_messages.append(
+                                "End date must be on or after start date"
+                            )
+                            continue_with_filter = False
+                        else:
+                            days_count = (end_date - start_date).days + 1
+
+                            # Just a warning, but no enforced cap
+                            if days_count > 90:
+                                warning_messages.append(
+                                    "Daily recurring pattern spans over 90 days, results may be limited"
+                                )
+
+                            if continue_with_filter:
+                                for day_offset in range(days_count):
+                                    current_date = start_date + timedelta(
+                                        days=day_offset
+                                    )
+                                    s_dt = datetime.combine(current_date, s_time)
+
+                                    # If overnight, end time is on the next day
+                                    end_date = current_date + timedelta(
+                                        days=1 if overnight else 0
+                                    )
+                                    e_dt = datetime.combine(end_date, e_time)
+
+                                    intervals.append((s_dt, e_dt))
+
+                elif pattern == "weekly":
+                    # Weekly pattern requires number of weeks
+                    try:
+                        weeks_str = request.GET.get("recurring_weeks")
+                        if not weeks_str:
+                            error_messages.append(
+                                "Number of weeks is required for weekly recurring pattern"
+                            )
+                            continue_with_filter = False
+                        else:
+                            weeks = int(weeks_str)
+                            if weeks <= 0:
+                                error_messages.append(
+                                    "Number of weeks must be positive"
+                                )
+                                continue_with_filter = False
+                            elif weeks > 52:
+                                warning_messages.append(
+                                    "Weekly recurring pattern spans over 52 weeks, results may be limited"
+                                )
+
+                            if continue_with_filter:
+                                for week_offset in range(weeks):
+                                    current_date = start_date + timedelta(
+                                        weeks=week_offset
+                                    )
+                                    s_dt = datetime.combine(current_date, s_time)
+
+                                    # If overnight, end time is on the next day
+                                    end_date = current_date + timedelta(
+                                        days=1 if overnight else 0
+                                    )
+                                    e_dt = datetime.combine(end_date, e_time)
+
+                                    intervals.append((s_dt, e_dt))
+                    except ValueError:
+                        error_messages.append("Invalid number of weeks")
+                        continue_with_filter = False
+
+                # Filter listings that are available for all the recurring intervals
+                if continue_with_filter and intervals:
+                    filtered = []
+                    for listing in all_listings:
+                        available_for_all = True
+                        for s_dt, e_dt in intervals:
+                            # For overnight bookings, we need to check both days
+                            if overnight and s_time >= e_time:
+                                # Check if listing has slots for both the evening and morning parts
+                                evening_available = listing.is_available_for_range(
+                                    s_dt, datetime.combine(s_dt.date(), time(23, 59))
+                                )
+                                morning_available = listing.is_available_for_range(
+                                    datetime.combine(e_dt.date(), time(0, 0)), e_dt
+                                )
+                                if not (evening_available and morning_available):
+                                    available_for_all = False
+                                    break
+                            # Normal case - use existing method
+                            elif not listing.is_available_for_range(s_dt, e_dt):
+                                available_for_all = False
+                                break
+                        if available_for_all:
+                            filtered.append(listing)
+                    all_listings = filtered
+
+            except ValueError:
+                error_messages.append("Invalid date or time format")
 
     # Add extra display information to each listing BEFORE pagination
     if isinstance(all_listings, list):
@@ -236,8 +375,18 @@ def view_listings(request):
         "end_time": request.GET.get("end_time", ""),
         # For multiple intervals, also pass the interval_count and the individual interval fields as needed.
         "interval_count": request.GET.get("interval_count", "0"),
+        # Add recurring filter parameters
+        "recurring_pattern": request.GET.get("recurring_pattern", "daily"),
+        "recurring_start_date": request.GET.get("recurring_start_date", ""),
+        "recurring_end_date": request.GET.get("recurring_end_date", ""),
+        "recurring_start_time": request.GET.get("recurring_start_time", ""),
+        "recurring_end_time": request.GET.get("recurring_end_time", ""),
+        "recurring_weeks": request.GET.get("recurring_weeks", "4"),
+        "recurring_overnight": "on" if request.GET.get("recurring_overnight") else "",
         "has_next": page_obj.has_next(),
         "next_page": int(page_number) + 1 if page_obj.has_next() else None,
+        "error_messages": error_messages,
+        "warning_messages": warning_messages,
     }
 
     # Handle AJAX requests for "Load More"
