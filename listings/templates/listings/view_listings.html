@@ -324,4 +324,30 @@
   crossorigin=""
 ></script>
 <script src="{% static 'listings/js/view_listings.js' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Apply minimum date to all date inputs
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    dateInputs.forEach(input => {
+      input.min = today;
+    });
+    
+    // Handle dynamically added intervals
+    const addIntervalBtn = document.getElementById('add-interval');
+    if (addIntervalBtn) {
+      addIntervalBtn.addEventListener('click', function() {
+        // Set timeout to allow DOM to update
+        setTimeout(() => {
+          const newDateInputs = document.querySelectorAll('input[type="date"]:not([min])');
+          newDateInputs.forEach(input => {
+            input.min = today;
+          });
+        }, 100);
+      });
+    }
+  });
+</script>
 {% endblock %}

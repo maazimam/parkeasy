@@ -30,14 +30,45 @@ class BookingSlotForm(forms.ModelForm):
         model = BookingSlot
         fields = ["start_date", "start_time", "end_date", "end_time"]
         widgets = {
-            "start_date": forms.DateInput(attrs={"type": "date"}),
-            "end_date": forms.DateInput(attrs={"type": "date"}),
+            "start_date": forms.DateInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+            "end_date": forms.DateInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
         }
 
     def __init__(self, *args, **kwargs):
         # Pop 'listing' if provided; then store it for later use.
         self.listing = kwargs.pop("listing", None)
         super().__init__(*args, **kwargs)
+
+        # Set min date to today for start_date and end_date fields.
+        if self.listing and hasattr(self.listing, "earliest_start_datetime"):
+            earliest_date = self.listing.earliest_start_datetime
+            if earliest_date:
+                min_date_str = earliest_date.date().strftime("%Y-%m-%d")
+                min_date_str = (
+                    min_date_str
+                    if min_date_str >= dt.date.today().strftime("%Y-%m-%d")
+                    else dt.date.today().strftime("%Y-%m-%d")
+                )
+                self.fields["start_date"].widget.attrs["min"] = min_date_str
+                self.fields["end_date"].widget.attrs["min"] = min_date_str
+
+        # Set max date based on listing's latest end date
+        if self.listing and hasattr(self.listing, "latest_end_datetime"):
+            latest_date = self.listing.latest_end_datetime
+
+            if latest_date:
+                max_date_str = latest_date.date().strftime("%Y-%m-%d")
+                self.fields["start_date"].widget.attrs["max"] = max_date_str
+                self.fields["end_date"].widget.attrs["max"] = max_date_str
+
         # If a start date exists, filter the time choices based on the listing's slots.
         start_date_str = self.data.get("start_date") or self.initial.get("start_date")
         if start_date_str and self.listing:

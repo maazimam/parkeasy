@@ -26,8 +26,18 @@ class ListingSlotForm(forms.ModelForm):
         model = ListingSlot
         fields = ["start_date", "start_time", "end_date", "end_time"]
         widgets = {
-            "start_date": forms.DateInput(attrs={"type": "date"}),
-            "end_date": forms.DateInput(attrs={"type": "date"}),
+            "start_date": forms.DateInput(
+                attrs={
+                    "type": "date",
+                    "min": datetime.today().date().strftime("%Y-%m-%d"),
+                }
+            ),
+            "end_date": forms.DateInput(
+                attrs={
+                    "type": "date",
+                    "min": datetime.today().date().strftime("%Y-%m-%d"),
+                }
+            ),
         }
 
     def clean(self):
