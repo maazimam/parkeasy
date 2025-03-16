@@ -9,10 +9,18 @@ from django.utils import timezone
 
 
 class Command(BaseCommand):
-    help = "Create fake data: 10 users, 100 listings (with multi-day listing slots), \
-        200 bookings (with booking slots), and 100 reviews"
+    help = "Create fake data: 10 users, 100 listings, 200 bookings, and 100 reviews"
 
     def handle(self, *args, **kwargs):
+        # Check if fake data already exists by verifying the existence of "user1"
+        if User.objects.filter(username="user1").exists():
+            self.stdout.write(
+                self.style.WARNING(
+                    "Fake data already exists (user1 found). No changes made."
+                )
+            )
+            return 0
+
         fake = Faker()
         users = []
 
