@@ -47,8 +47,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "accounts",
     "listings",
-    "widget_tweaks",
     "booking",
+    "widget_tweaks",
     "messaging",
     "storages",
 ]
@@ -146,10 +146,20 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = "static/"
-STATIC_ROOT = "static"
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Email Configuration
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "smi6079@nyu.edu"
+EMAIL_HOST_PASSWORD = "test"
+DEFAULT_FROM_EMAIL = "smi6079@nyu.edu"
