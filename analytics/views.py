@@ -1,6 +1,4 @@
 import random
-from datetime import datetime
-
 from django.http import JsonResponse
 
 
@@ -9,19 +7,17 @@ def get_traffic_data(request):
     # Define traffic hotspots
     traffic_hotspots = [
         # Manhattan
-        {"center": [40.7589, -73.9851], "intensity": 0.8},     # Times Square
-        {"center": [40.7527, -73.9772], "intensity": 0.6},     # Grand Central
-        {"center": [40.7505, -73.9934], "intensity": 0.7},     # Penn Station
-        {"center": [40.7527, -74.0027], "intensity": 0.5},     # Chelsea
-
+        {"center": [40.7589, -73.9851], "intensity": 0.8},  # Times Square
+        {"center": [40.7527, -73.9772], "intensity": 0.6},  # Grand Central
+        {"center": [40.7505, -73.9934], "intensity": 0.7},  # Penn Station
+        {"center": [40.7527, -74.0027], "intensity": 0.5},  # Chelsea
         # Brooklyn
-        {"center": [40.6922, -73.9875], "intensity": 0.5},     # Downtown Brooklyn
-        {"center": [40.6782, -73.9442], "intensity": 0.4},     # Crown Heights
-        {"center": [40.7064, -73.9239], "intensity": 0.5},     # Williamsburg
-
+        {"center": [40.6922, -73.9875], "intensity": 0.5},  # Downtown Brooklyn
+        {"center": [40.6782, -73.9442], "intensity": 0.4},  # Crown Heights
+        {"center": [40.7064, -73.9239], "intensity": 0.5},  # Williamsburg
         # Queens
-        {"center": [40.7505, -73.9021], "intensity": 0.4},     # Long Island City
-        {"center": [40.7429, -73.8489], "intensity": 0.3},     # Jackson Heights
+        {"center": [40.7505, -73.9021], "intensity": 0.4},  # Long Island City
+        {"center": [40.7429, -73.8489], "intensity": 0.3},  # Jackson Heights
     ]
 
     traffic_points = []

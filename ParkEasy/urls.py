@@ -26,5 +26,5 @@ urlpatterns = [
     path("listings/", include("listings.urls")),
     path("booking/", include("booking.urls")),
     path("messaging/", include("messaging.urls")),
-    path('analytics/', include('analytics.urls', namespace='analytics')),
+    path("analytics/", include("analytics.urls", namespace="analytics")),
 ]
