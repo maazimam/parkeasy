@@ -30,7 +30,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     "parkeasyintegration.us-east-1.elasticbeanstalk.com",
-    "parkeasymain.us-east-1.elasticbeanstalk.com",
+    "parkeasymain2-dev.us-east-1.elasticbeanstalk.com",
     "127.0.0.1",
     "localhost",
 ]
