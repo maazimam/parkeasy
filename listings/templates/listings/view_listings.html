@@ -48,7 +48,14 @@
 
 {% block content %}
 <div class="container mt-5">
-  <h2 class="text-center">Available Parking Spots</h2>
+  <div class="position-relative mb-4">
+    <h2 class="text-center">Available Parking Spots</h2>
+    <div class="position-absolute top-0 end-0">
+      <a href="{% url 'create_listing' %}" class="btn btn-accent">
+        <i class="fas fa-plus me-1"></i> Create a new listing
+      </a>
+    </div>
+  </div>
 
   <!-- View Toggle Buttons -->
   <div class="view-toggle text-center mb-4">
@@ -301,6 +308,13 @@
       <p>No parking spots available that match your filters.</p>
     </div>
     {% endfor %}
+    {% if has_next %}
+    <div class="text-center my-4">
+      <button id="load-more-btn" class="btn btn-accent" data-next-page="{{ next_page }}">
+        <i class="fas fa-spinner me-2"></i> Load More Listings
+      </button>
+    </div>
+    {% endif %}
   </div>
 
   <!-- Map View -->
@@ -346,6 +360,66 @@
             input.min = today;
           });
         }, 100);
+      });
+    }
+
+    // Load more button functionality
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    if (loadMoreBtn) {
+      loadMoreBtn.addEventListener('click', function() {
+        const nextPage = this.getAttribute('data-next-page');
+        const listingsContainer = document.querySelector('.listings-container');
+        
+        // Show loading state
+        loadMoreBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i> Loading...';
+        loadMoreBtn.disabled = true;
+        
+        // Build URL with existing filters
+        let url = new URL(window.location.href);
+        url.searchParams.set('page', nextPage);
+        
+        // Add parameter to indicate this is an AJAX request
+        url.searchParams.set('ajax', '1');
+        
+        fetch(url)
+          .then(response => response.text())
+          .then(html => {
+            // Find and remove the existing load more button container
+            const existingButtonContainer = document.querySelector('.text-center.my-4');
+            if (existingButtonContainer) {
+              existingButtonContainer.remove();
+            }
+            
+            // Create a temporary element to parse the HTML
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Get all listing cards from the response (but not the button)
+            const newListings = doc.querySelectorAll('.card');
+            
+            // Append each new listing to our container
+            newListings.forEach(listing => {
+              listingsContainer.appendChild(listing.cloneNode(true));
+            });
+            
+            // Find the load more button in the response
+            const loadMoreContainer = doc.querySelector('.text-center.my-4');
+            if (loadMoreContainer) {
+              // There are more pages, append the new button
+              listingsContainer.appendChild(loadMoreContainer.cloneNode(true));
+              
+              // Re-attach the event listener to the new button
+              const newLoadMoreBtn = document.getElementById('load-more-btn');
+              if (newLoadMoreBtn) {
+                newLoadMoreBtn.addEventListener('click', arguments.callee); // Re-attach the same function
+              }
+            }
+          })
+          .catch(error => {
+            console.error('Error loading more listings:', error);
+            loadMoreBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Error Loading';
+            loadMoreBtn.disabled = false;
+          });
       });
     }
   });

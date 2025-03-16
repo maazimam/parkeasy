@@ -4,6 +4,7 @@ from datetime import datetime
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
+from django.core.paginator import Paginator
 
 from .forms import ListingForm, ListingSlotFormSet, validate_non_overlapping_slots
 from .models import Listing
@@ -115,6 +116,7 @@ def view_listings(request):
     max_price = request.GET.get("max_price")
     filter_type = request.GET.get("filter_type", "single")  # "single" or "multiple"
 
+    # Filter by price if provided
     if max_price:
         try:
             max_price_val = float(max_price)
@@ -122,12 +124,13 @@ def view_listings(request):
         except ValueError:
             pass
 
+    # Apply availability filters
     if filter_type == "single":
         # Single continuous interval filter
         start_date = request.GET.get("start_date")  # e.g., "2025-03-12"
-        end_date = request.GET.get("end_date")
-        start_time = request.GET.get("start_time")  # e.g., "10:00"
-        end_time = request.GET.get("end_time")  # e.g., "14:00"
+        end_date = request.GET.get("end_date")  # e.g., "2025-03-12"
+        start_time = request.GET.get("start_time")
+        end_time = request.GET.get("end_time")
         if start_date and end_date and start_time and end_time:
             try:
                 user_start_str = f"{start_date} {start_time}"  # "2025-03-12 10:00"
@@ -176,7 +179,16 @@ def view_listings(request):
                     filtered.append(listing)
             all_listings = filtered
 
-    # Add extra display information to each listing.
+    # Add extra display information to each listing BEFORE pagination
+    if isinstance(all_listings, list):
+        # For already filtered lists, sort them by ID
+        all_listings.sort(key=lambda x: x.id)
+    else:
+        # For querysets, add ordering
+        all_listings = all_listings.order_by("id")
+
+    # Process each listing to add display information
+    processed_listings = []
     for listing in all_listings:
         # Get and simplify location name
         location_full = listing.location.split("[")[0].strip()
@@ -204,8 +216,16 @@ def view_listings(request):
             listing.available_time_from = None
             listing.available_time_until = None
 
+        processed_listings.append(listing)
+
+    # Now paginate the processed listings
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(processed_listings, 25)  # Show 25 listings per page
+    page_obj = paginator.get_page(page_number)
+
+    # Create context
     context = {
-        "listings": all_listings,
+        "listings": page_obj,
         "half_hour_choices": HALF_HOUR_CHOICES,
         "filter_type": filter_type,
         # Pass along single-interval filter fields
@@ -216,7 +236,15 @@ def view_listings(request):
         "end_time": request.GET.get("end_time", ""),
         # For multiple intervals, also pass the interval_count and the individual interval fields as needed.
         "interval_count": request.GET.get("interval_count", "0"),
+        "has_next": page_obj.has_next(),
+        "next_page": int(page_number) + 1 if page_obj.has_next() else None,
     }
+
+    # Handle AJAX requests for "Load More"
+    if request.GET.get("ajax") == "1":
+        return render(request, "listings/partials/listing_cards.html", context)
+
+    # Normal full page render
     return render(request, "listings/view_listings.html", context)
 
 
