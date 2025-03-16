@@ -1,6 +1,6 @@
-from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.shortcuts import redirect, render
 
 
 def home(request):
@@ -56,9 +56,9 @@ def verify(request):
                 },
             )
         else:
-            context[
-                "error_message"
-            ] = "Incorrect answer, verification failed. Please try again."
+            context["error_message"] = (
+                "Incorrect answer, verification failed. Please try again."
+            )
 
     # If GET or POST with errors, render the form as normal
     return render(request, "accounts/verify.html", context)
