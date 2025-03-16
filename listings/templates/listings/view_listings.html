@@ -361,7 +361,7 @@
           <!-- Rating and Actions -->
           <div class="col-md-3">
             <div class="d-flex flex-column h-100 justify-content-between">
-              <!-- Rating Block -->
+              <!-- Corrected Rating Block -->
               <div class="mb-2">
                 <p class="card-text mb-1 small fw-bold">Rating:</p>
                 {% if listing.avg_rating %}
@@ -380,6 +380,9 @@
                     {% endwith %}
                   </div>
                   <span class="badge bg-warning text-dark fw-bold">{{ listing.avg_rating|floatformat:1 }}</span>
+                  <span class="badge bg-light text-muted ms-2">
+                    {{ listing.rating_count }} {% if listing.rating_count == 1 %}rating{% else %}ratings{% endif %}
+                  </span>
                 </div>
                 {% else %}
                 <div class="d-flex align-items-center">
@@ -388,7 +391,8 @@
                       <i class="far fa-star text-warning"></i>
                     {% endfor %}
                   </div>
-                  <span class="badge bg-light text-muted">No ratings</span>
+                  <span class="badge bg-warning text-dark fw-bold">0.0</span>
+                  <span class="badge bg-light text-muted ms-2">No ratings yet</span>
                 </div>
                 {% endif %}
               </div>
@@ -425,7 +429,7 @@
     {% if has_next %}
     <div class="text-center my-4">
       <button id="load-more-btn" class="btn btn-accent" data-next-page="{{ next_page }}">
-        <i class="fas fa-spinner me-2"></i> Load More Listings
+        Load More Listings
       </button>
     </div>
     {% endif %}
@@ -436,11 +440,6 @@
     <!-- The map will be initialized here -->
   </div>
 
-  <div class="text-center mt-3">
-    <a href="{% url 'create_listing' %}" class="btn btn-accent"
-      ><i class="fas fa-plus me-1"></i>Create a new listing</a
-    >
-  </div>
 </div>
 {% endblock %}
 
@@ -608,7 +607,9 @@ if (patternDaily && patternWeekly) {
               // Re-attach the event listener to the new button
               const newLoadMoreBtn = document.getElementById('load-more-btn');
               if (newLoadMoreBtn) {
-                newLoadMoreBtn.addEventListener('click', arguments.callee); // Re-attach the same function
+                // Make sure the button text is correct (no icons)
+                newLoadMoreBtn.innerHTML = 'Load More Listings';
+                newLoadMoreBtn.addEventListener('click', arguments.callee);
               }
             }
           })

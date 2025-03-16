@@ -19,6 +19,9 @@ class Listing(models.Model):
             return sum(review.rating for review in reviews) / reviews.count()
         return None
 
+    def rating_count(self):
+        return self.reviews.count()
+
     def __str__(self):
         return f"{self.title} - {self.location}"
 
