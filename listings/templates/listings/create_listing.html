@@ -1,10 +1,4 @@
-{% extends 'base.html' %}
-{% load widget_tweaks %}
-{% load static %}
-
-{% block title %}Post A Parking Spot - ParkEasy{% endblock %}
-
-{% block extra_head %}
+{% extends 'base.html' %} {% load widget_tweaks %} {% load static %} {% block title %}Post A Parking Spot - ParkEasy{% endblock %} {% block extra_head %}
 <!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <style>
@@ -16,12 +10,14 @@
         position: absolute;
         top: 10px;
         right: 10px;
-        color: #dc3545;  /* Red color */
+        color: #dc3545;
+        /* Red color */
         cursor: pointer;
         border: none;
         background: none;
         padding: 0;
-        font-size: 1.2rem;  /* Match the other X size */
+        font-size: 1.2rem;
+        /* Match the other X size */
         width: 24px;
         height: 24px;
         display: flex;
@@ -31,8 +27,10 @@
     }
     
     .delete-slot:hover {
-        transform: scale(1.2);  /* Slight grow effect on hover */
-        opacity: 1;  /* Full opacity on hover */
+        transform: scale(1.2);
+        /* Slight grow effect on hover */
+        opacity: 1;
+        /* Full opacity on hover */
     }
     /* Hide the DELETE checkbox that appears in Django formset */
     
@@ -42,219 +40,429 @@
     }
 </style>
 <style>
-  .slot-form {
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    margin-bottom: 1rem;
-    padding: 1.25rem;
-    transition: all 0.2s ease;
-  }
-  
-  .slot-form:hover {
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-  }
-  
-  .map-container {
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-  }
-  
-  .section-header {
-    color: var(--color-primary);
-    border-bottom: 1px solid #eee;
-    padding-bottom: 0.75rem;
-    margin-bottom: 1.5rem;
-    font-weight: 600;
-  }
+    .slot-form {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1rem;
+        padding: 1.25rem;
+        transition: all 0.2s ease;
+    }
+    
+    .slot-form:hover {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+    
+    .map-container {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .section-header {
+        color: var(--color-primary);
+        border-bottom: 1px solid #eee;
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+    }
 </style>
-{% endblock %}
-
-{% block content %}
+<style>
+    /* Add these new styles */
+    
+    select.form-select option:disabled {
+        color: #dc3545;
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+    
+    select.form-select option:not(:disabled) {
+        color: #198754;
+        background-color: rgba(25, 135, 84, 0.1);
+    }
+    
+    .time-warning {
+        font-size: 0.875rem;
+        color: #664d03;
+        background-color: #fff3cd;
+        border: 1px solid #ffecb5;
+        border-radius: 0.25rem;
+        padding: 0.5rem;
+        margin-top: 0.5rem;
+        display: none;
+    }
+    
+    .time-warning.show {
+        display: block;
+    }
+</style>
+{% endblock %} {% block content %}
 <div class="container mt-5">
-  <div class="d-flex justify-content-center mb-4">
-    <h2><i class="fas fa-parking text-primary me-2"></i>Post A Parking Spot</h2>
-  </div>
-
-  {% if not request.user.profile.is_verified %}
-  <div class="card shadow-sm border-0 text-center p-5">
-    <div class="card-body py-4">
-      <i class="fas fa-user-shield fa-4x text-secondary mb-4 opacity-50"></i>
-      <h3>Verification Required</h3>
-      <p class="text-muted mb-4">You need to be verified before posting a parking spot.</p>
-      <a href="{% url 'verify' %}" class="btn btn-primary">
-        <i class="fas fa-check-circle me-2"></i>Get Verified to Post a Spot
-      </a>
+    <div class="d-flex justify-content-center mb-4">
+        <h2><i class="fas fa-parking text-primary me-2"></i>Post A Parking Spot</h2>
     </div>
-  </div>
-  {% else %}
-    {% if form.errors %}
+
+    {% if not request.user.profile.is_verified %}
+    <div class="card shadow-sm border-0 text-center p-5">
+        <div class="card-body py-4">
+            <i class="fas fa-user-shield fa-4x text-secondary mb-4 opacity-50"></i>
+            <h3>Verification Required</h3>
+            <p class="text-muted mb-4">You need to be verified before posting a parking spot.</p>
+            <a href="{% url 'verify' %}" class="btn btn-primary">
+                <i class="fas fa-check-circle me-2"></i>Get Verified to Post a Spot
+            </a>
+        </div>
+    </div>
+    {% else %} {% if form.errors %}
     <div class="alert alert-danger">
-      <i class="fas fa-exclamation-circle me-2"></i> Please correct the errors below:
-      <ul class="mb-0 mt-2">
-        {% for field, errors in form.errors.items %}
-          <li>{{ errors|join:", " }}</li>
-        {% endfor %}
-      </ul>
+        <i class="fas fa-exclamation-circle me-2"></i> Please correct the errors below:
+        <ul class="mb-0 mt-2">
+            {% for field, errors in form.errors.items %}
+            <li>{{ errors|join:", " }}</li>
+            {% endfor %}
+        </ul>
     </div>
     {% endif %}
-    
+
     <div class="card shadow-sm border-0">
-      <div class="card-body p-4">
-        <form method="POST" id="create-listing-form">
-          {% csrf_token %}
-          
-          <h4 class="section-header">
-            <i class="fas fa-info-circle me-2"></i>Spot Details
-          </h4>
-          
-          <div class="row mb-4">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="{{ form.title.id_for_label }}" class="form-label">
+        <div class="card-body p-4">
+            <form method="POST" id="create-listing-form">
+                {% csrf_token %}
+
+                <h4 class="section-header">
+                    <i class="fas fa-info-circle me-2"></i>Spot Details
+                </h4>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label">
                   <i class="fas fa-heading text-secondary me-1"></i> Spot Title
-                </label>
-                {{ form.title|add_class:"form-control"|attr:"placeholder:Short, descriptive title (e.g. Downtown Covered Spot)" }}
-              </div>
-              
-              <div class="mb-3">
-                <label for="{{ form.rent_per_hour.id_for_label }}" class="form-label">
+                </label> {{ form.title|add_class:"form-control"|attr:"placeholder:Short, descriptive title (e.g. Downtown Covered Spot)" }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.rent_per_hour.id_for_label }}" class="form-label">
                   <i class="fas fa-tag text-secondary me-1"></i> Price per Hour ($)
-                </label>
-                {{ form.rent_per_hour|add_class:"form-control"|attr:"placeholder:10.00" }}
-              </div>
-            </div>
-            
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="{{ form.description.id_for_label }}" class="form-label">
+                </label> {{ form.rent_per_hour|add_class:"form-control"|attr:"placeholder:10.00" }}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
                   <i class="fas fa-align-left text-secondary me-1"></i> Description
-                </label>
-                {{ form.description|add_class:"form-control"|attr:"placeholder:Describe your spot (size, access instructions, features)"|attr:"rows:5" }}
-              </div>
-            </div>
-          </div>
-          
-          <h4 class="section-header">
-            <i class="fas fa-map-marker-alt me-2"></i>Location
-          </h4>
-          
-          <div class="mb-4">
-            <label class="form-label d-flex justify-content-between">
+                </label> {{ form.description|add_class:"form-control"|attr:"placeholder:Describe your spot (size, access instructions, features)"|attr:"rows:5" }}
+                        </div>
+                    </div>
+                </div>
+
+                <h4 class="section-header">
+                    <i class="fas fa-map-marker-alt me-2"></i>Location
+                </h4>
+
+                <div class="mb-4">
+                    <label class="form-label d-flex justify-content-between">
               <span>Set location on map</span>
               <small class="text-muted"><i class="fas fa-info-circle me-1"></i> Click on map to select point</small>
             </label>
-            
-            <div class="search-container mb-3">
-              <div class="input-group">
-                <span class="input-group-text">
+
+                    <div class="search-container mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text">
                   <i class="fas fa-search"></i>
                 </span>
-                <input type="text" id="location-search" class="form-control" placeholder="Search for address or landmark"/>
-                <button class="btn btn-primary" id="search-location">
+                            <input type="text" id="location-search" class="form-control" placeholder="Search for address or landmark" />
+                            <button class="btn btn-primary" id="search-location">
                   <i class="fas fa-search me-1"></i> Search
                 </button>
-              </div>
-            </div>
-            
-            <div class="map-container mb-3" style="height: 400px; width: 100%;">
-              <div id="map" style="height: 100%; width: 100%;"></div>
-            </div>
-            
-            <label for="{{ form.location.id_for_label }}" class="form-label">
+                        </div>
+                    </div>
+
+                    <div class="map-container mb-3" style="height: 400px; width: 100%;">
+                        <div id="map" style="height: 100%; width: 100%;"></div>
+                    </div>
+
+                    <label for="{{ form.location.id_for_label }}" class="form-label">
               <i class="fas fa-map-pin text-secondary me-1"></i> Selected Location
-            </label>
-            {{ form.location|add_class:"form-control"|attr:"readonly:readonly" }}
-          </div>
-          
-          <h4 class="section-header">
-            <i class="fas fa-calendar-alt me-2"></i>Availability Slots
-          </h4>
-          
-          <div class="mb-3">
-            <p class="text-muted small">
-              <i class="fas fa-info-circle me-1"></i>
-              Define when your parking spot is available for booking. Add multiple slots if availability varies.
-            </p>
-          </div>
-          
-          {{ slot_formset.management_form }}
-          <div id="slot-forms-container">
-            {% for slot_form in slot_formset %}
-              <div class="slot-form">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h5 class="mb-0">
-                    <i class="fas fa-clock text-secondary me-2"></i>
-                    Time Slot {{ forloop.counter }}
-                  </h5>
+            </label> {{ form.location|add_class:"form-control"|attr:"readonly:readonly" }}
                 </div>
-                
-                <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <div class="row">
-                      <div class="col-md-6 mb-3">
-                        <label class="form-label">Start Date</label>
-                        {{ slot_form.start_date|add_class:"form-control" }}
-                      </div>
-                      
-                      <div class="col-md-6 mb-3">
-                        <label class="form-label">End Date</label>
-                        {{ slot_form.end_date|add_class:"form-control" }}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div class="col-md-6 mb-3">
-                    <div class="row">
-                      <div class="col-md-6 mb-3">
-                        <label class="form-label">Start Time</label>
-                        {{ slot_form.start_time|add_class:"form-select" }}
-                      </div>
-                      
-                      <div class="col-md-6 mb-3">
-                        <label class="form-label">End Time</label>
-                        {{ slot_form.end_time|add_class:"form-select" }}
-                      </div>
-                    </div>
-                  </div>
+
+                <h4 class="section-header">
+                    <i class="fas fa-calendar-alt me-2"></i>Availability Slots
+                </h4>
+
+                <div class="mb-3">
+                    <p class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i> Define when your parking spot is available for booking. Add multiple slots if availability varies.
+                    </p>
                 </div>
-                {{ slot_form.id }}
-              </div>
-            {% endfor %}
-          </div>
-          
-          <div class="mb-4">
-            <button type="button" class="btn btn-accent" id="add-slot-btn">
+
+                {{ slot_formset.management_form }}
+                <div id="slot-forms-container">
+                    {% for slot_form in slot_formset %}
+                    <div class="slot-form">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">
+                                <i class="fas fa-clock text-secondary me-2"></i> Time Slot {{ forloop.counter }}
+                            </h5>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Start Date</label> {{ slot_form.start_date|add_class:"form-control" }}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">End Date</label> {{ slot_form.end_date|add_class:"form-control" }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Start Time</label> {{ slot_form.start_time|add_class:"form-select" }}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">End Time</label> {{ slot_form.end_time|add_class:"form-select" }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ slot_form.id }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-4">
+                    <button type="button" class="btn btn-accent" id="add-slot-btn">
               <i class="fas fa-plus-circle me-1"></i> Add Another Time Slot
             </button>
-          </div>
-          
-          <div class="d-flex justify-content-between mt-4">
-            <a href="{% url 'view_listings' %}" class="btn btn-secondary">
-              <i class="fas fa-times me-1"></i> Cancel
-            </a>
-            <button type="submit" class="btn btn-primary px-4">
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'view_listings' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary px-4">
               <i class="fas fa-check me-1"></i> Post Parking Spot
             </button>
-          </div>
-        </form>
-      </div>
+                </div>
+            </form>
+        </div>
     </div>
-  {% endif %}
+    {% endif %}
 </div>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="{% static 'listings/js/create_listings.js' %}"></script>
 <script>
-    // (Optional) You can add frontend overlap checking here if desired.
-    // For now, we rely on backend validation and an alert on form submit.
-
     document.addEventListener("DOMContentLoaded", function() {
         console.log("Create Listing JS loaded.");
+
+        // Function to filter time options for today's date
+        function filterTimeOptionsForToday(timeSelect) {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+
+            // Get all options
+            const options = timeSelect.options;
+
+            // Loop through options and disable past times
+            for (let i = 0; i < options.length; i++) {
+                const timeValue = options[i].value;
+                if (!timeValue) continue; // Skip empty option
+
+                const [hours, minutes] = timeValue.split(':').map(Number);
+
+                if (hours < currentHour || (hours === currentHour && minutes <= currentMinute)) {
+                    options[i].disabled = true;
+                    options[i].title = "Cannot select past times";
+                } else {
+                    options[i].disabled = false;
+                    options[i].title = "Available time slot";
+                }
+            }
+
+            // Only show error if there's a selected time and it's disabled
+            if (timeSelect.value && timeSelect.selectedIndex > -1 && timeSelect.options[timeSelect.selectedIndex].disabled) {
+                // Show error message
+                const formGroup = timeSelect.closest('.mb-3');
+                let errorDiv = formGroup.querySelector('.invalid-feedback');
+                if (!errorDiv) {
+                    errorDiv = document.createElement('div');
+                    errorDiv.className = 'invalid-feedback d-block';
+                    formGroup.appendChild(errorDiv);
+                }
+                errorDiv.textContent = "Selected time is in the past. Please choose a future time.";
+                timeSelect.classList.add('is-invalid');
+
+                // Select next available time
+                for (let i = 0; i < options.length; i++) {
+                    if (!options[i].disabled) {
+                        timeSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            } else {
+                // Clear error if selection is valid or no selection
+                const formGroup = timeSelect.closest('.mb-3');
+                const errorDiv = formGroup.querySelector('.invalid-feedback');
+                if (errorDiv) {
+                    errorDiv.remove();
+                }
+                timeSelect.classList.remove('is-invalid');
+            }
+        }
+
+        // Function to handle date input changes
+        function handleDateChange(dateInput) {
+            const formDiv = dateInput.closest('.slot-form');
+            if (!formDiv) return;
+
+            const startTimeSelect = formDiv.querySelector('select[name$="start_time"]');
+            const endTimeSelect = formDiv.querySelector('select[name$="end_time"]');
+
+            const selectedDate = dateInput.value;
+            const today = new Date().toISOString().split('T')[0];
+
+            // If selected date is today, filter time options but don't show messages yet
+            if (selectedDate === today) {
+                if (startTimeSelect) {
+                    filterTimeOptionsForToday(startTimeSelect);
+                    // Clear any existing error messages
+                    const startErrorDiv = startTimeSelect.closest('.mb-3').querySelector('.invalid-feedback');
+                    if (startErrorDiv) startErrorDiv.remove();
+                    startTimeSelect.classList.remove('is-invalid');
+                }
+                if (endTimeSelect) {
+                    filterTimeOptionsForToday(endTimeSelect);
+                    // Clear any existing error messages
+                    const endErrorDiv = endTimeSelect.closest('.mb-3').querySelector('.invalid-feedback');
+                    if (endErrorDiv) endErrorDiv.remove();
+                    endTimeSelect.classList.remove('is-invalid');
+                }
+            } else {
+                // Enable all options for future dates
+                if (startTimeSelect) {
+                    Array.from(startTimeSelect.options).forEach(opt => {
+                        opt.disabled = false;
+                        opt.title = "";
+                    });
+                    startTimeSelect.classList.remove('is-invalid');
+                    const startErrorDiv = startTimeSelect.closest('.mb-3').querySelector('.invalid-feedback');
+                    if (startErrorDiv) startErrorDiv.remove();
+                }
+                if (endTimeSelect) {
+                    Array.from(endTimeSelect.options).forEach(opt => {
+                        opt.disabled = false;
+                        opt.title = "";
+                    });
+                    endTimeSelect.classList.remove('is-invalid');
+                    const endErrorDiv = endTimeSelect.closest('.mb-3').querySelector('.invalid-feedback');
+                    if (endErrorDiv) endErrorDiv.remove();
+                }
+            }
+        }
+
+        // Also handle time select changes directly
+        function handleTimeChange(timeSelect) {
+            const formDiv = timeSelect.closest('.slot-form');
+            if (!formDiv) return;
+
+            const dateInput = formDiv.querySelector('input[type="date"]');
+            if (dateInput && dateInput.value === new Date().toISOString().split('T')[0]) {
+                filterTimeOptionsForToday(timeSelect);
+
+                // If the selected time is disabled (past time), prevent the change
+                if (timeSelect.options[timeSelect.selectedIndex].disabled) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return false;
+                }
+            }
+        }
+
+        // Function to validate end time is after start time
+        function validateEndTime(formDiv) {
+            const startDate = formDiv.querySelector('input[name$="start_date"]').value;
+            const endDate = formDiv.querySelector('input[name$="end_date"]').value;
+            const startTime = formDiv.querySelector('select[name$="start_time"]').value;
+            const endTime = formDiv.querySelector('select[name$="end_time"]').value;
+            const endTimeSelect = formDiv.querySelector('select[name$="end_time"]');
+
+            if (startDate && endDate && startTime && endTime) {
+                const startDateTime = new Date(startDate + 'T' + startTime);
+                const endDateTime = new Date(endDate + 'T' + endTime);
+
+                const formGroup = endTimeSelect.closest('.mb-3');
+                let errorDiv = formGroup.querySelector('.invalid-feedback');
+
+                if (endDateTime <= startDateTime) {
+                    if (!errorDiv) {
+                        errorDiv = document.createElement('div');
+                        errorDiv.className = 'invalid-feedback d-block';
+                        formGroup.appendChild(errorDiv);
+                    }
+                    errorDiv.textContent = "End time must be after start time";
+                    endTimeSelect.classList.add('is-invalid');
+                    return false;
+                } else {
+                    if (errorDiv) {
+                        errorDiv.remove();
+                    }
+                    endTimeSelect.classList.remove('is-invalid');
+                    return true;
+                }
+            }
+            return true;
+        }
+
+        // Attach date change listeners to all date inputs
+        function attachDateListeners() {
+            document.querySelectorAll('input[type="date"]').forEach(dateInput => {
+                dateInput.addEventListener('change', () => {
+                    handleDateChange(dateInput);
+                    validateEndTime(dateInput.closest('.slot-form'));
+                });
+                // Also check current value on page load
+                handleDateChange(dateInput);
+            });
+
+            // Add listeners for time selects with event parameter
+            document.querySelectorAll('select[name$="start_time"], select[name$="end_time"]').forEach(timeSelect => {
+                timeSelect.addEventListener('change', (event) => {
+                    handleTimeChange(timeSelect);
+                    validateEndTime(timeSelect.closest('.slot-form'));
+
+                    // If the selected time is disabled, prevent the change
+                    if (timeSelect.options[timeSelect.selectedIndex].disabled) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        return false;
+                    }
+                });
+            });
+        }
+
+        // Initial attachment
+        attachDateListeners();
+
+        // Add listener for new forms being added
+        const addSlotBtn = document.getElementById("add-slot-btn");
+        if (addSlotBtn) {
+            const originalAddSlotHandler = addSlotBtn.onclick;
+            addSlotBtn.onclick = function(e) {
+                if (originalAddSlotHandler) originalAddSlotHandler.call(this, e);
+                // After new form is added, attach listeners to its inputs
+                setTimeout(() => attachDateListeners(), 0);
+            };
+        }
 
         // Simple frontend check for overlapping intervals before submission.
         function checkOverlappingSlots() {
@@ -288,9 +496,18 @@
             return true;
         }
 
-        // Attach submit handler to the form.
+        // Update the form submission handler
         document.getElementById("create-listing-form").addEventListener("submit", function(event) {
-            if (!checkOverlappingSlots()) {
+            let isValid = true;
+
+            // Check all slots for valid end times
+            document.querySelectorAll('.slot-form').forEach(formDiv => {
+                if (!validateEndTime(formDiv)) {
+                    isValid = false;
+                }
+            });
+
+            if (!isValid || !checkOverlappingSlots()) {
                 event.preventDefault();
             }
         });
@@ -357,59 +574,6 @@
         // Add event listeners to delete buttons
         document.querySelectorAll('.delete-slot').forEach(btn => {
             btn.addEventListener('click', handleDelete);
-        });
-
-        // Dynamic form addition logic.
-        const addSlotBtn = document.getElementById("add-slot-btn");
-        const slotFormsContainer = document.getElementById("slot-forms-container");
-        const totalFormsInput = document.querySelector('[name$="-TOTAL_FORMS"]');
-        if (!addSlotBtn || !slotFormsContainer || !totalFormsInput) {
-            console.error("Required elements for adding new slot not found.");
-            return;
-        }
-        const formDivs = slotFormsContainer.getElementsByClassName("slot-form");
-        if (formDivs.length === 0) {
-            console.error("No slot form found to clone.");
-            return;
-        }
-        const blankForm = formDivs[0].cloneNode(true);
-        blankForm.querySelectorAll("input, select, textarea").forEach(el => el.value = "");
-        const blankHeading = blankForm.querySelector("h5");
-        if (blankHeading) blankHeading.textContent = "Time Slot ???";
-
-        addSlotBtn.addEventListener("click", function() {
-            let formCount = parseInt(totalFormsInput.value);
-            let newForm = blankForm.cloneNode(true);
-            newForm.querySelectorAll("input, select, textarea, label").forEach(function(el) {
-                if (el.name) {
-                    el.name = el.name.replace(/-\d+-/, `-${formCount}-`);
-                }
-                if (el.id) {
-                    el.id = el.id.replace(/_\d+_/, `_${formCount}_`);
-                }
-            });
-
-            // Set data-index attribute
-            newForm.setAttribute('data-index', formCount.toString());
-
-            // Update form heading
-            const newHeading = newForm.querySelector("h5");
-            if (newHeading) {
-                newHeading.innerHTML = `<i class="fas fa-clock text-secondary me-2"></i>Time Slot ${formCount + 1}`;
-            }
-
-            // Add delete button to new form
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'delete-slot';
-            deleteBtn.title = 'Remove this time slot';
-            deleteBtn.type = 'button';
-            deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
-            deleteBtn.addEventListener('click', handleDelete);
-            newForm.appendChild(deleteBtn);
-
-            slotFormsContainer.appendChild(newForm);
-            formCount++;
-            totalFormsInput.value = formCount.toString();
         });
     });
 </script>
