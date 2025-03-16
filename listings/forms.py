@@ -47,23 +47,32 @@ class ListingSlotForm(forms.ModelForm):
         end_date = cleaned_data.get("end_date")
         end_time = cleaned_data.get("end_time")
 
-        if start_date and end_date and start_date > end_date:
-            raise forms.ValidationError("Start date cannot be after end date.")
+        # Check if dates are provided
+        if start_date and end_date:
+            # Check if start date is after end date
+            if start_date > end_date:
+                raise forms.ValidationError("Start date cannot be after end date.")
 
-        if (
-            start_date
-            and end_date
-            and start_time
-            and end_time
-            and start_date == end_date
-        ):
-            # Convert string times to time objects for proper comparison.
-            st = datetime.strptime(start_time, "%H:%M").time()
-            et = datetime.strptime(end_time, "%H:%M").time()
-            if st >= et:
-                raise forms.ValidationError(
-                    "End time must be later than start time on the same day."
-                )
+            # If dates are the same, check times
+            if start_date == end_date and start_time and end_time:
+                # Convert string times to time objects for proper comparison
+                st = datetime.strptime(start_time, "%H:%M").time()
+                et = datetime.strptime(end_time, "%H:%M").time()
+                if st >= et:
+                    raise forms.ValidationError(
+                        "End time must be later than start time on the same day."
+                    )
+
+            # If start date is today, validate times are not in the past
+            today = datetime.today().date()
+            if start_date == today and start_time:
+                current_time = datetime.now().time()
+                st = datetime.strptime(start_time, "%H:%M").time()
+                if st <= current_time:
+                    raise forms.ValidationError(
+                        "Start time cannot be in the past for today's date."
+                    )
+
         return cleaned_data
 
 
