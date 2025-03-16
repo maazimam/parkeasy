@@ -10,7 +10,6 @@ class MockForm:
 
 
 class TestValidateNonOverlappingSlots(TestCase):
-
     def test_non_overlapping_slots_pass_validation(self):
         """Test that non-overlapping slots pass validation."""
         formset = [
