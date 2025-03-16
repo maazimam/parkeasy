@@ -6,7 +6,6 @@ from decimal import Decimal
 
 
 class ListingModelTest(TestCase):
-
     def setUp(self):
         # Create test user
         self.user = User.objects.create_user(
@@ -253,7 +252,6 @@ class ListingModelTest(TestCase):
 
 
 class ListingSlotModelTest(TestCase):
-
     def setUp(self):
         self.user = User.objects.create_user(
             username="testuser", password="password123"
