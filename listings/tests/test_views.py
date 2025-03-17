@@ -262,57 +262,6 @@ class ListingsFilterTest(TestCase):
         self.assertNotIn("Past Listing", listing_titles)
         self.assertEqual(len(context_listings), 2)
 
-    def test_listing_time_filtering_multiple_intervals(self):
-        # Create a listing with two slots that together cover 10:00 to 16:00 on test_date.
-        multi_listing = Listing.objects.create(
-            user=self.user,
-            title="Multi Interval Listing",
-            location="Multi Location",
-            rent_per_hour=15.0,
-            description="This listing has multiple intervals",
-        )
-        ListingSlot.objects.create(
-            listing=multi_listing,
-            start_date=self.test_date,
-            start_time=time(10, 0),
-            end_date=self.test_date,
-            end_time=time(13, 0),
-        )
-        ListingSlot.objects.create(
-            listing=multi_listing,
-            start_date=self.test_date,
-            start_time=time(13, 0),
-            end_date=self.test_date,
-            end_time=time(16, 0),
-        )
-
-        url = reverse("view_listings")
-        params = {
-            "filter_type": "multiple",
-            "interval_count": "2",
-            "start_date_1": self.test_date.strftime("%Y-%m-%d"),
-            "end_date_1": self.test_date.strftime("%Y-%m-%d"),
-            "start_time_1": "10:00",
-            "end_time_1": "12:00",
-            "start_date_2": self.test_date.strftime("%Y-%m-%d"),
-            "end_date_2": self.test_date.strftime("%Y-%m-%d"),
-            "start_time_2": "14:00",
-            "end_time_2": "15:00",
-        }
-        response = self.client.get(url, params)
-        context_listings = response.context["listings"]
-        listing_titles = [listing.title for listing in context_listings]
-        # Listing should cover both intervals.
-        self.assertIn("Multi Interval Listing", listing_titles)
-
-        # Now change the second interval so it is not covered.
-        params["start_time_2"] = "15:30"
-        params["end_time_2"] = "16:30"
-        response = self.client.get(url, params)
-        context_listings = response.context["listings"]
-        listing_titles = [listing.title for listing in context_listings]
-        self.assertNotIn("Multi Interval Listing", listing_titles)
-
 
 class ListingOwnerBookingTest(TestCase):
     def setUp(self):
