@@ -176,21 +176,20 @@ class ListingsFilterTest(TestCase):
         self.user = User.objects.create_user(username="testuser", password="testpass")
         # Set a fixed test date for filtering
         self.test_date = date(2025, 3, 15)
-
+        
         # Mock the current datetime to be 13:00 on test_date
         # This ensures our "future time" tests work consistently
         self.current_datetime = datetime.combine(self.test_date, time(13, 0))
-
+        
         # Patch datetime.now() to return our fixed time
         from unittest.mock import patch
-
-        self.datetime_patcher = patch("listings.views.datetime")
+        self.datetime_patcher = patch('listings.views.datetime')
         self.mock_datetime = self.datetime_patcher.start()
         self.mock_datetime.now.return_value = self.current_datetime
         # Make sure strptime and combine still work
         self.mock_datetime.strptime = datetime.strptime
         self.mock_datetime.combine = datetime.combine
-
+    
     def tearDown(self):
         # Stop patching datetime
         self.datetime_patcher.stop()
