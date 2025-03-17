@@ -124,7 +124,7 @@ def view_listings(request):
 
     # Extract common filter parameters
     max_price = request.GET.get("max_price")
-    filter_type = request.GET.get("filter_type", "single")  # "single" or "multiple"
+    filter_type = request.GET.get("filter_type", "single")  # "single" or "recurring"
 
     # Filter by price if provided
     if max_price:
@@ -141,17 +141,18 @@ def view_listings(request):
     # Apply availability filters
     if filter_type == "single":
         # Single continuous interval filter
-        start_date = request.GET.get("start_date")  # e.g., "2025-03-12"
-        end_date = request.GET.get("end_date")  # e.g., "2025-03-12"
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
         start_time = request.GET.get("start_time")
         end_time = request.GET.get("end_time")
-        if start_date and end_date and start_time and end_time:
+
+        # Check if any filter is provided (not requiring all)
+        if any([start_date, end_date, start_time, end_time]):
             try:
                 user_start_str = f"{start_date} {start_time}"  # "2025-03-12 10:00"
                 user_end_str = f"{end_date} {end_time}"
                 user_start_dt = datetime.strptime(user_start_str, "%Y-%m-%d %H:%M")
                 user_end_dt = datetime.strptime(user_end_str, "%Y-%m-%d %H:%M")
-
                 filtered = []
                 for listing in all_listings:
                     if listing.is_available_for_range(user_start_dt, user_end_dt):
@@ -162,7 +163,7 @@ def view_listings(request):
                 pass
 
     elif filter_type == "multiple":
-        # Multiple intervals filter
+        # Multiple intervals filter.
         try:
             interval_count = int(request.GET.get("interval_count", "0"))
         except ValueError:
@@ -386,8 +387,6 @@ def view_listings(request):
         "end_date": request.GET.get("end_date", ""),
         "start_time": request.GET.get("start_time", ""),
         "end_time": request.GET.get("end_time", ""),
-        # For multiple intervals, also pass the interval_count and the individual interval fields as needed.
-        "interval_count": request.GET.get("interval_count", "0"),
         # Add recurring filter parameters
         "recurring_pattern": request.GET.get("recurring_pattern", "daily"),
         "recurring_start_date": request.GET.get("recurring_start_date", ""),
