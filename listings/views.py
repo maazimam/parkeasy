@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.core.paginator import Paginator
 from .forms import ListingForm, ListingSlotFormSet, validate_non_overlapping_slots
 from .models import Listing
+from django.db import models
 
 # Define half-hour choices for use in the search form
 HALF_HOUR_CHOICES = [
@@ -109,7 +110,17 @@ def simplify_location(location_string):
 
 
 def view_listings(request):
-    all_listings = Listing.objects.all()
+    # Get current datetime for comparison
+    current_datetime = datetime.now()
+
+    # Get all listings that have at least one slot with end date/time in the future
+    all_listings = Listing.objects.filter(
+        models.Q(slots__end_date__gt=current_datetime.date())
+        | models.Q(  # Future dates
+            slots__end_date=current_datetime.date(),
+            slots__end_time__gt=current_datetime.time(),
+        )
+    ).distinct()
 
     # Extract common filter parameters
     max_price = request.GET.get("max_price")
@@ -140,16 +151,18 @@ def view_listings(request):
                 user_end_str = f"{end_date} {end_time}"
                 user_start_dt = datetime.strptime(user_start_str, "%Y-%m-%d %H:%M")
                 user_end_dt = datetime.strptime(user_end_str, "%Y-%m-%d %H:%M")
+
                 filtered = []
                 for listing in all_listings:
                     if listing.is_available_for_range(user_start_dt, user_end_dt):
                         filtered.append(listing)
                 all_listings = filtered
+
             except ValueError:
                 pass
 
     elif filter_type == "multiple":
-        # Multiple intervals filter.
+        # Multiple intervals filter
         try:
             interval_count = int(request.GET.get("interval_count", "0"))
         except ValueError:
