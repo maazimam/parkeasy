@@ -1,5 +1,32 @@
 console.log("view_listings.js loaded");
 
+// Helper function to generate star HTML - extract it so it can be used anywhere
+function generateStarRating(rating) {
+  let starsHtml = '';
+  
+  if (!rating) {
+    // Show 5 empty stars if no rating
+    for (let i = 0; i < 5; i++) {
+      starsHtml += '<i class="far fa-star text-warning"></i>';
+    }
+  } else {
+    // Full stars
+    for (let i = 0; i < Math.floor(rating); i++) {
+      starsHtml += '<i class="fas fa-star text-warning"></i>';
+    }
+    // Half star
+    if (rating % 1 >= 0.5) {
+      starsHtml += '<i class="fas fa-star-half-alt text-warning"></i>';
+    }
+    // Empty stars
+    for (let i = Math.ceil(rating); i < 5; i++) {
+      starsHtml += '<i class="far fa-star text-warning"></i>';
+    }
+  }
+  
+  return starsHtml;
+}
+
 // Single DOMContentLoaded event listener for all functionality
 document.addEventListener("DOMContentLoaded", function () {
   // ---- FILTER SECTION ----
@@ -112,7 +139,15 @@ document.addEventListener("DOMContentLoaded", function () {
             // Add new listings to container
             const newListings = doc.querySelectorAll(".card");
             newListings.forEach((listing) => {
-              listingsContainer.appendChild(listing.cloneNode(true));
+            const listingClone = listing.cloneNode(true);
+            listingsContainer.appendChild(listingClone);
+              
+            // Find and update the star ratings in the newly added listing
+            const ratingStars = listingClone.querySelector('.rating-stars');
+            if (ratingStars) {
+              const rating = parseFloat(listingClone.dataset.rating || 0);
+              ratingStars.innerHTML = generateStarRating(rating);
+            }
             });
 
             // Add new load more button if available
@@ -203,28 +238,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
           const marker = L.marker([location.lat, location.lng]).addTo(map);
           bounds.push([location.lat, location.lng]);
-
-          // Generate rating stars HTML
-          function generateStars(rating) {
-            let starsHtml = '<div class="rating-stars">';
-            if (!rating) {
-              for (let i = 0; i < 5; i++) {
-                starsHtml += '<i class="far fa-star text-warning"></i>';
-              }
-            } else {
-              for (let i = 0; i < Math.floor(rating); i++) {
-                starsHtml += '<i class="fas fa-star text-warning"></i>';
-              }
-              if (rating % 1 >= 0.5) {
-                starsHtml += '<i class="fas fa-star-half-alt text-warning"></i>';
-              }
-              for (let i = Math.ceil(rating); i < 5; i++) {
-                starsHtml += '<i class="far fa-star text-warning"></i>';
-              }
-            }
-            starsHtml += "</div>";
-            return starsHtml;
-          }
 
           // Create popup content
           const ratingHtml = rating
