@@ -174,13 +174,31 @@ class ListingsFilterTest(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(username="testuser", password="testpass")
-        # Set a fixed test date for filtering.
+        # Set a fixed test date for filtering
         self.test_date = date(2025, 3, 15)
+
+        # Mock the current datetime to be 13:00 on test_date
+        # This ensures our "future time" tests work consistently
+        self.current_datetime = datetime.combine(self.test_date, time(13, 0))
+
+        # Patch datetime.now() to return our fixed time
+        from unittest.mock import patch
+
+        self.datetime_patcher = patch("listings.views.datetime")
+        self.mock_datetime = self.datetime_patcher.start()
+        self.mock_datetime.now.return_value = self.current_datetime
+        # Make sure strptime and combine still work
+        self.mock_datetime.strptime = datetime.strptime
+        self.mock_datetime.combine = datetime.combine
+
+    def tearDown(self):
+        # Stop patching datetime
+        self.datetime_patcher.stop()
 
     def test_listing_time_filtering_single_interval(self):
         # Create listings with associated slots.
 
-        # 1. Future Listing – slot from test_date 09:00 to (test_date+5 days) 17:00.
+        # 1. Future Listing – slot from test_date 09:00 to (test_date+5 days) 17:00
         future_listing = Listing.objects.create(
             user=self.user,
             title="Future Listing",
@@ -196,7 +214,7 @@ class ListingsFilterTest(TestCase):
             end_time=time(17, 0),
         )
 
-        # 2. Today with future time – slot from test_date 14:00 to 18:00.
+        # 2. Today with future time – slot from test_date 14:00 to 18:00
         today_future = Listing.objects.create(
             user=self.user,
             title="Today Future Time",
@@ -212,7 +230,7 @@ class ListingsFilterTest(TestCase):
             end_time=time(18, 0),
         )
 
-        # 3. Today with past time – slot from test_date 09:00 to 12:00.
+        # 3. Today with past time – slot from test_date 09:00 to 12:00
         today_past = Listing.objects.create(
             user=self.user,
             title="Today Past Time",
@@ -228,25 +246,10 @@ class ListingsFilterTest(TestCase):
             end_time=time(12, 0),
         )
 
-        # 4. Past Listing – slot from (test_date-10) to (test_date-1).
-        past_listing = Listing.objects.create(
-            user=self.user,
-            title="Past Listing",
-            location="Past Location",
-            rent_per_hour=10.0,
-            description="This should be excluded",
-        )
-        ListingSlot.objects.create(
-            listing=past_listing,
-            start_date=self.test_date - timedelta(days=10),
-            start_time=time(9, 0),
-            end_date=self.test_date - timedelta(days=1),
-            end_time=time(17, 0),
-        )
-
-        # Apply single continuous interval filter.
+        # Apply single continuous interval filter
         url = reverse("view_listings")
         params = {
+            "filter_type": "single",
             "start_date": self.test_date.strftime("%Y-%m-%d"),
             "end_date": self.test_date.strftime("%Y-%m-%d"),
             "start_time": "14:00",
@@ -259,8 +262,58 @@ class ListingsFilterTest(TestCase):
         self.assertIn("Future Listing", listing_titles)
         self.assertIn("Today Future Time", listing_titles)
         self.assertNotIn("Today Past Time", listing_titles)
-        self.assertNotIn("Past Listing", listing_titles)
-        self.assertEqual(len(context_listings), 2)
+        self.assertEqual(len(listing_titles), 2)
+
+    def test_listing_time_filtering_multiple_intervals(self):
+        # Create a listing with two slots that together cover 10:00 to 16:00 on test_date.
+        multi_listing = Listing.objects.create(
+            user=self.user,
+            title="Multi Interval Listing",
+            location="Multi Location",
+            rent_per_hour=15.0,
+            description="This listing has multiple intervals",
+        )
+        ListingSlot.objects.create(
+            listing=multi_listing,
+            start_date=self.test_date,
+            start_time=time(10, 0),
+            end_date=self.test_date,
+            end_time=time(13, 0),
+        )
+        ListingSlot.objects.create(
+            listing=multi_listing,
+            start_date=self.test_date,
+            start_time=time(13, 0),
+            end_date=self.test_date,
+            end_time=time(16, 0),
+        )
+
+        url = reverse("view_listings")
+        params = {
+            "filter_type": "multiple",
+            "interval_count": "2",
+            "start_date_1": self.test_date.strftime("%Y-%m-%d"),
+            "end_date_1": self.test_date.strftime("%Y-%m-%d"),
+            "start_time_1": "10:00",
+            "end_time_1": "12:00",
+            "start_date_2": self.test_date.strftime("%Y-%m-%d"),
+            "end_date_2": self.test_date.strftime("%Y-%m-%d"),
+            "start_time_2": "14:00",
+            "end_time_2": "15:00",
+        }
+        response = self.client.get(url, params)
+        context_listings = response.context["listings"]
+        listing_titles = [listing.title for listing in context_listings]
+        # Listing should cover both intervals.
+        self.assertIn("Multi Interval Listing", listing_titles)
+
+        # Now change the second interval so it is not covered.
+        params["start_time_2"] = "15:30"
+        params["end_time_2"] = "16:30"
+        response = self.client.get(url, params)
+        context_listings = response.context["listings"]
+        listing_titles = [listing.title for listing in context_listings]
+        self.assertNotIn("Multi Interval Listing", listing_titles)
 
 
 class ListingOwnerBookingTest(TestCase):

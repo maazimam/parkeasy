@@ -1,5 +1,173 @@
+let map;
+let marker;
+let locationData = {
+    address: "",
+    lat: "",
+    lng: "",
+};
+
+// Initialize the map when the document is ready
 document.addEventListener("DOMContentLoaded", function() {
     console.log("Create Listing JS loaded.");
+
+    // Make sure the map div exists
+    const mapDiv = document.getElementById("map");
+    if (!mapDiv) {
+        console.error("Map container not found! Make sure a div with id 'map' exists.");
+        return;
+    }
+    console.log("Map container found:", mapDiv);
+
+    try {
+        // Initialize the map
+        map = L.map("map").setView([40.69441, -73.98653], 13); // Default to NYU tandon
+        console.log("Map object created:", map);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "© OpenStreetMap contributors",
+        }).addTo(map);
+        console.log("Map tiles added");
+
+        // Add click event to map
+        map.on("click", function(e) {
+            console.log("Map clicked at:", e.latlng);
+
+            // Remove existing marker if any
+            if (marker) {
+                map.removeLayer(marker);
+            }
+
+            // Add new marker
+            marker = L.marker(e.latlng).addTo(map);
+
+            // Reverse geocode the coordinates
+            fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`
+                )
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log("Geocoding response:", data);
+                    const address = data.display_name;
+                    updateLocationField(address, e.latlng.lat, e.latlng.lng);
+                    marker.bindPopup(address).openPopup();
+                })
+                .catch((error) => {
+                    console.error("Geocoding error:", error);
+                    // Still update with coordinates even if geocoding fails
+                    updateLocationField("Selected location", e.latlng.lat, e.latlng.lng);
+                });
+        });
+        console.log("Click event handler added to map");
+
+        // Set up search functionality
+        setupSearch();
+        console.log("Search functionality set up");
+
+        // Load existing location if available
+        loadExistingLocation();
+        console.log("Existing location loaded (if any)");
+    } catch (error) {
+        console.error("Error initializing map:", error);
+    }
+
+    // Function to update the location field with formatted data
+    function updateLocationField(address, lat, lng) {
+        console.log("Updating location field with:", { address, lat, lng });
+        // Update the hidden location field with formatted data
+        const locationString = `${address} [${lat}, ${lng}]`;
+        const locationField = document.getElementById("id_location");
+        if (locationField) {
+            locationField.value = locationString;
+            console.log("Location field updated:", locationString);
+        } else {
+            console.error("Location field not found");
+        }
+
+        // Store the data for later use
+        locationData.address = address;
+        locationData.lat = lat;
+        locationData.lng = lng;
+    }
+
+    // Function to set up location search
+    function setupSearch() {
+        console.log("Setting up search functionality");
+        const searchInput = document.getElementById("location-search");
+        const searchButton = document.getElementById("search-location");
+
+        if (!searchInput || !searchButton) {
+            console.warn("Search elements not found");
+            return;
+        }
+
+        // Add event listeners
+        searchButton.addEventListener("click", (e) => {
+            e.preventDefault();
+            searchLocation();
+        });
+
+        searchInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                searchLocation();
+            }
+        });
+    }
+
+    // Function to handle location search
+    function searchLocation() {
+        console.log("Searching for location");
+        const searchInput = document.getElementById("location-search");
+        if (!searchInput) return;
+
+        const query = searchInput.value;
+        if (!query) return;
+
+        console.log("Search query:", query);
+        fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`
+            )
+            .then((response) => response.json())
+            .then((data) => {
+                console.log("Search results:", data);
+                if (data.length > 0) {
+                    const location = data[0];
+                    map.setView([location.lat, location.lon], 16);
+
+                    if (marker) {
+                        map.removeLayer(marker);
+                    }
+
+                    marker = L.marker([location.lat, location.lon]).addTo(map);
+                    updateLocationField(location.display_name, location.lat, location.lon);
+                    marker.bindPopup(location.display_name).openPopup();
+                }
+            })
+            .catch((error) => console.error("Search error:", error));
+    }
+
+    // Function to load existing location
+    function loadExistingLocation() {
+        console.log("Loading existing location");
+        const locationField = document.getElementById("id_location");
+        if (!locationField || !locationField.value) return;
+
+        const existingLocation = locationField.value;
+        console.log("Existing location value:", existingLocation);
+
+        // Try to parse coordinates if they exist
+        const match = existingLocation.match(/\[([-\d.]+),\s*([-\d.]+)\]/);
+        if (match) {
+            const lat = parseFloat(match[1]);
+            const lng = parseFloat(match[2]);
+            console.log("Parsed coordinates:", { lat, lng });
+            map.setView([lat, lng], 16);
+            marker = L.marker([lat, lng]).addTo(map);
+            marker.bindPopup(existingLocation.split("[")[0].trim()).openPopup();
+        }
+    }
 
     // Function to filter time options for today's date
     function filterTimeOptionsForToday(timeSelect) {

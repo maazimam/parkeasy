@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.core.paginator import Paginator
 from .forms import ListingForm, ListingSlotFormSet, validate_non_overlapping_slots
 from .models import Listing
+from django.db import models
 
 # Define half-hour choices for use in the search form
 HALF_HOUR_CHOICES = [
@@ -109,7 +110,17 @@ def simplify_location(location_string):
 
 
 def view_listings(request):
-    all_listings = Listing.objects.all()
+    # Get current datetime for comparison
+    current_datetime = datetime.now()
+
+    # Get all listings that have at least one slot with end date/time in the future
+    all_listings = Listing.objects.filter(
+        models.Q(slots__end_date__gt=current_datetime.date())
+        | models.Q(  # Future dates
+            slots__end_date=current_datetime.date(),
+            slots__end_time__gt=current_datetime.time(),
+        )
+    ).distinct()
 
     # Extract common filter parameters
     max_price = request.GET.get("max_price")
@@ -138,44 +149,52 @@ def view_listings(request):
         # Check if any filter is provided (not requiring all)
         if any([start_date, end_date, start_time, end_time]):
             try:
-                # Set defaults for today and tomorrow
-                today = datetime.now().date()
-                tomorrow = today + timedelta(days=1)
-
-                # Use provided values or reasonable defaults
-                s_date = (
-                    datetime.strptime(start_date, "%Y-%m-%d").date()
-                    if start_date
-                    else today
-                )
-                e_date = (
-                    datetime.strptime(end_date, "%Y-%m-%d").date()
-                    if end_date
-                    else tomorrow
-                )
-                s_time = (
-                    datetime.strptime(start_time, "%H:%M").time()
-                    if start_time
-                    else time(0, 0)
-                )  # Midnight
-                e_time = (
-                    datetime.strptime(end_time, "%H:%M").time()
-                    if end_time
-                    else time(23, 59)
-                )  # End of day
-
-                # Create datetime objects
-                user_start_dt = datetime.combine(s_date, s_time)
-                user_end_dt = datetime.combine(e_date, e_time)
-
-                # Filter listings
+                user_start_str = f"{start_date} {start_time}"  # "2025-03-12 10:00"
+                user_end_str = f"{end_date} {end_time}"
+                user_start_dt = datetime.strptime(user_start_str, "%Y-%m-%d %H:%M")
+                user_end_dt = datetime.strptime(user_end_str, "%Y-%m-%d %H:%M")
                 filtered = []
                 for listing in all_listings:
                     if listing.is_available_for_range(user_start_dt, user_end_dt):
                         filtered.append(listing)
                 all_listings = filtered
+
             except ValueError:
-                error_messages.append("Invalid date or time format")
+                pass
+
+    elif filter_type == "multiple":
+        # Multiple intervals filter.
+        try:
+            interval_count = int(request.GET.get("interval_count", "0"))
+        except ValueError:
+            interval_count = 0
+
+        intervals = []
+        for i in range(1, interval_count + 1):
+            s_date = request.GET.get(f"start_date_{i}")
+            e_date = request.GET.get(f"end_date_{i}")
+            s_time = request.GET.get(f"start_time_{i}")
+            e_time = request.GET.get(f"end_time_{i}")
+            if s_date and e_date and s_time and e_time:
+                try:
+                    s_dt = datetime.strptime(f"{s_date} {s_time}", "%Y-%m-%d %H:%M")
+                    e_dt = datetime.strptime(f"{e_date} {e_time}", "%Y-%m-%d %H:%M")
+                    intervals.append((s_dt, e_dt))
+                except ValueError:
+                    continue
+
+        if intervals:
+            filtered = []
+            for listing in all_listings:
+                # The listing must be available for every requested interval.
+                available_for_all = True
+                for s_dt, e_dt in intervals:
+                    if not listing.is_available_for_range(s_dt, e_dt):
+                        available_for_all = False
+                        break
+                if available_for_all:
+                    filtered.append(listing)
+            all_listings = filtered
 
     elif filter_type == "recurring":
         # Extract recurring filter parameters
