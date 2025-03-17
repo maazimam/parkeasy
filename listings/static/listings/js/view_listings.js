@@ -80,19 +80,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // ---- AUTO-SUBMIT FILTERS ----
-  function setupAutoSubmit() {
-    const filterForm = document.querySelector('form.filter-box');
-    if (filterForm) {
-      const filterInputs = filterForm.querySelectorAll('input, select');
-      filterInputs.forEach(input => {
-        input.addEventListener('change', function() {
-          filterForm.submit();
-        });
-      });
-    }
-  }
-
   // ---- LOAD MORE FUNCTIONALITY ----
   function setupLoadMoreButton() {
     const loadMoreBtn = document.getElementById("load-more-btn");
@@ -146,6 +133,20 @@ document.addEventListener("DOMContentLoaded", function () {
             loadMoreBtn.innerHTML = "Error Loading"; // Consistent - no icon
             loadMoreBtn.disabled = false;
           });
+      });
+    }
+  }
+
+  function setupFilterButton() {
+    const filterButton = document.querySelector('form.filter-box button[type="submit"]');
+    
+    if (filterButton) {
+      filterButton.addEventListener('click', function(event) {
+        event.preventDefault();
+        const form = this.closest('form');
+        if (form) {
+          form.submit();
+        }
       });
     }
   }
@@ -285,5 +286,5 @@ document.addEventListener("DOMContentLoaded", function () {
   setMinDates();
   setupLoadMoreButton();
   setupMapView();
-  setupAutoSubmit();
+  setupFilterButton();
 });
