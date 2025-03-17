@@ -442,6 +442,35 @@ class RecurringFilterTest(TestCase):
                 end_time=time(17, 0),
             )
 
+            # NEW: Create a listing available every week but at wrong time
+        wrong_time_listing = Listing.objects.create(
+            user=self.user,
+            title="Wrong Time Weekly Listing",
+            location="Wrong Time Location",
+            rent_per_hour=35.0,
+            description="Available every Saturday but outside requested hours",
+        )
+
+        # Create slots for 4 consecutive Saturdays but only from 6-8am and 18-20pm
+        for i in range(0, 28, 7):
+            current_date = self.test_date + timedelta(days=i)
+            # Morning slot (too early)
+            ListingSlot.objects.create(
+                listing=wrong_time_listing,
+                start_date=current_date,
+                start_time=time(6, 0),
+                end_date=current_date,
+                end_time=time(8, 0),
+            )
+            # Evening slot (too late)
+            ListingSlot.objects.create(
+                listing=wrong_time_listing,
+                start_date=current_date,
+                start_time=time(18, 0),
+                end_date=current_date,
+                end_time=time(20, 0),
+            )
+
         # Apply weekly recurring filter for 3 weeks
         url = reverse("view_listings")
         params = {
@@ -457,12 +486,15 @@ class RecurringFilterTest(TestCase):
         context_listings = response.context["listings"]
         listing_titles = [listing.title for listing in context_listings]
 
-        # Weekly listing should be included, inconsistent listing should be excluded
+        # Weekly listing should be included
         self.assertIn("Weekly Available Listing", listing_titles)
+
+        # Both inconsistent pattern and wrong time listings should be excluded
         self.assertNotIn("Inconsistent Weekly Listing", listing_titles)
+        self.assertNotIn("Wrong Time Weekly Listing", listing_titles)
 
     def test_overnight_recurring_filter(self):
-        # Create a listing available for overnight stays
+        # Create a listing available for overnight stays (24/7)
         overnight_listing = Listing.objects.create(
             user=self.user,
             title="Overnight Listing",
@@ -480,6 +512,26 @@ class RecurringFilterTest(TestCase):
                 start_time=time(0, 0),  # Available all day
                 end_date=current_date,
                 end_time=time(23, 59),
+            )
+
+        # Create a listing that's only available during daytime hours
+        daytime_listing = Listing.objects.create(
+            user=self.user,
+            title="Daytime Only Listing",
+            location="Daytime Location",
+            rent_per_hour=30.0,
+            description="Only available during daytime hours",
+        )
+
+        # Create daytime-only slots for the same 3 consecutive days
+        for i in range(3):
+            current_date = self.test_date + timedelta(days=i)
+            ListingSlot.objects.create(
+                listing=daytime_listing,
+                start_date=current_date,
+                start_time=time(9, 0),  # Available from 9am
+                end_date=current_date,
+                end_time=time(17, 0),  # Until 5pm
             )
 
         # Apply overnight recurring filter
@@ -502,6 +554,8 @@ class RecurringFilterTest(TestCase):
 
         # Overnight listing should be included
         self.assertIn("Overnight Listing", listing_titles)
+        # Daytime-only listing should NOT be included
+        self.assertNotIn("Daytime Only Listing", listing_titles)
 
     def test_start_time_after_end_time_validation(self):
         # Apply filter with start time after end time without overnight option
