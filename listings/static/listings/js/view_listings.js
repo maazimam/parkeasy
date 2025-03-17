@@ -189,24 +189,9 @@ document.addEventListener("DOMContentLoaded", function () {
           attribution: "© OpenStreetMap contributors",
         }).addTo(map);
 
-        // Fetch traffic data
-        fetch("/analytics/traffic-data/")
-          .then((response) => response.json())
-          .then((data) => {
-            const heat = L.heatLayer(data.data, {
-              radius: 25,
-              blur: 15,
-              maxZoom: 10,
-              gradient: { 0.4: "blue", 0.6: "lime", 0.8: "yellow", 1: "red" },
-            }).addTo(map);
-          })
-          .catch((error) => {
-            console.error("Error fetching traffic data:", error);
-          });
-
-        // Add markers for listings
-        const listings = document.querySelectorAll(".card");
-        const bounds = [];
+      // Add markers for all listings
+      const listings = document.querySelectorAll(".card");
+      const bounds = [];
 
         listings.forEach((listing) => {
           const location = parseLocation(listing.dataset.location);
