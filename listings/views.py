@@ -143,10 +143,26 @@ def view_listings(request):
                 tomorrow = today + timedelta(days=1)
 
                 # Use provided values or reasonable defaults
-                s_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else today
-                e_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else tomorrow
-                s_time = datetime.strptime(start_time, "%H:%M").time() if start_time else time(0, 0)  # Midnight
-                e_time = datetime.strptime(end_time, "%H:%M").time() if end_time else time(23, 59)  # End of day
+                s_date = (
+                    datetime.strptime(start_date, "%Y-%m-%d").date()
+                    if start_date
+                    else today
+                )
+                e_date = (
+                    datetime.strptime(end_date, "%Y-%m-%d").date()
+                    if end_date
+                    else tomorrow
+                )
+                s_time = (
+                    datetime.strptime(start_time, "%H:%M").time()
+                    if start_time
+                    else time(0, 0)
+                )  # Midnight
+                e_time = (
+                    datetime.strptime(end_time, "%H:%M").time()
+                    if end_time
+                    else time(23, 59)
+                )  # End of day
 
                 # Create datetime objects
                 user_start_dt = datetime.combine(s_date, s_time)
