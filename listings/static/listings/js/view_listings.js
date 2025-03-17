@@ -210,22 +210,6 @@ document.addEventListener("DOMContentLoaded", function () {
         attribution: "© OpenStreetMap contributors",
       }).addTo(map);
 
-      // Fetch traffic data from analytics app
-      fetch("/analytics/traffic-data/")
-        .then((response) => response.json())
-        .then((data) => {
-          // Create and add the heatmap layer
-          const heat = L.heatLayer(data.data, {
-            radius: 25,
-            blur: 15,
-            maxZoom: 10,
-            gradient: { 0.4: "blue", 0.6: "lime", 0.8: "yellow", 1: "red" },
-          }).addTo(map);
-        })
-        .catch((error) => {
-          console.error("Error fetching traffic data:", error);
-        });
-
       // Add markers for all listings
       const listings = document.querySelectorAll(".card");
       const bounds = [];
