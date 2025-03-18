@@ -1,13 +1,16 @@
 # listings/views.py
-from datetime import datetime, timedelta, time
+import math
+from datetime import datetime, time, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
 from django.core.paginator import Paginator
-from .forms import ListingForm, ListingSlotFormSet, validate_non_overlapping_slots
-from .models import Listing
 from django.db import models
+from django.shortcuts import get_object_or_404, redirect, render
+
+from .forms import (ListingForm, ListingSlotFormSet,
+                    validate_non_overlapping_slots)
+from .models import Listing
 
 # Define half-hour choices for use in the search form
 HALF_HOUR_CHOICES = [
@@ -460,3 +463,88 @@ def listing_reviews(request, listing_id):
         "listings/listing_reviews.html",
         {"listing": listing, "reviews": reviews},
     )
+
+
+def view_listings_by_location(request):
+    all_listings = Listing.objects.all()
+
+    # Get search parameters
+    search_lat = request.GET.get('lat')
+    search_lng = request.GET.get('lng')
+    search_radius = request.GET.get('radius', 5)  # Default 5km radius
+
+    # Filter by location proximity if coordinates provided
+    if search_lat and search_lng:
+        try:
+            search_lat = float(search_lat)
+            search_lng = float(search_lng)
+            search_radius = float(search_radius)
+
+            filtered_listings = []
+            for listing in all_listings:
+                # Extract listing coordinates from location string
+                coords = listing.location.split('[')[1].strip(']').split(',')
+                listing_lat = float(coords[0])
+                listing_lng = float(coords[1])
+
+                # Calculate distance using Haversine formula
+                from math import atan2, cos, radians, sin, sqrt
+
+                R = 6371  # Earth's radius in kilometers
+
+                dlat = radians(listing_lat - search_lat)
+                dlng = radians(listing_lng - search_lng)
+
+                a = (sin(dlat/2) * sin(dlat/2) +
+                     cos(radians(search_lat)) * cos(radians(listing_lat)) *
+                     sin(dlng/2) * sin(dlng/2))
+                c = 2 * atan2(sqrt(a), sqrt(1-a))
+                distance = R * c
+
+                if distance <= search_radius:
+                    listing.distance = round(distance, 1)  # Add distance to listing object
+                    filtered_listings.append(listing)
+
+            all_listings = sorted(filtered_listings, key=lambda x: x.distance)
+        except (ValueError, IndexError):
+            pass
+
+    # Process listings for display (same as before)
+    processed_listings = []
+    for listing in all_listings:
+        location_full = listing.location.split("[")[0].strip()
+        listing.location_name = simplify_location(location_full)
+        listing.avg_rating = listing.average_rating()
+        listing.rating_count = listing.rating_count()
+
+        try:
+            listing.available_from = listing.slots.earliest("start_date").start_date
+            listing.available_until = listing.slots.latest("end_date").end_date
+            listing.available_time_from = listing.slots.earliest("start_time").start_time
+            listing.available_time_until = listing.slots.latest("end_time").end_time
+        except listing.slots.model.DoesNotExist:
+            listing.available_from = None
+            listing.available_until = None
+            listing.available_time_from = None
+            listing.available_time_until = None
+
+        processed_listings.append(listing)
+
+    # Paginate results
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(processed_listings, 25)
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        "listings": page_obj,
+        "search_lat": search_lat,
+        "search_lng": search_lng,
+        "search_radius": search_radius,
+        "has_next": page_obj.has_next(),
+        "next_page": int(page_number) + 1 if page_obj.has_next() else None,
+    }
+
+    if request.GET.get("ajax") == "1":
+        return render(request, "listings/partials/listing_cards.html", context)
+
+    return render(request, "listings/view_listings_location.html", context)
