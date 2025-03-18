@@ -471,14 +471,12 @@ def view_listings_by_location(request):
     # Get search parameters
     search_lat = request.GET.get('lat')
     search_lng = request.GET.get('lng')
-    search_radius = request.GET.get('radius', 5)  # Default 5km radius
 
     # Filter by location proximity if coordinates provided
     if search_lat and search_lng:
         try:
             search_lat = float(search_lat)
             search_lng = float(search_lng)
-            search_radius = float(search_radius)
 
             filtered_listings = []
             for listing in all_listings:
@@ -488,22 +486,18 @@ def view_listings_by_location(request):
                 listing_lng = float(coords[1])
 
                 # Calculate distance using Haversine formula
-                from math import atan2, cos, radians, sin, sqrt
-
                 R = 6371  # Earth's radius in kilometers
+                dlat = math.radians(listing_lat - search_lat)
+                dlng = math.radians(listing_lng - search_lng)
 
-                dlat = radians(listing_lat - search_lat)
-                dlng = radians(listing_lng - search_lng)
-
-                a = (sin(dlat/2) * sin(dlat/2) +
-                     cos(radians(search_lat)) * cos(radians(listing_lat)) *
-                     sin(dlng/2) * sin(dlng/2))
-                c = 2 * atan2(sqrt(a), sqrt(1-a))
+                a = (math.sin(dlat/2) * math.sin(dlat/2) +
+                     math.cos(math.radians(search_lat)) * math.cos(math.radians(listing_lat)) *
+                     math.sin(dlng/2) * math.sin(dlng/2))
+                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
                 distance = R * c
 
-                if distance <= search_radius:
-                    listing.distance = round(distance, 1)  # Add distance to listing object
-                    filtered_listings.append(listing)
+                listing.distance = round(distance, 1)  # Add distance to listing object
+                filtered_listings.append(listing)
 
             all_listings = sorted(filtered_listings, key=lambda x: x.distance)
         except (ValueError, IndexError):
@@ -539,7 +533,6 @@ def view_listings_by_location(request):
         "listings": page_obj,
         "search_lat": search_lat,
         "search_lng": search_lng,
-        "search_radius": search_radius,
         "has_next": page_obj.has_next(),
         "next_page": int(page_number) + 1 if page_obj.has_next() else None,
     }

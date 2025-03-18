@@ -1,7 +1,47 @@
 let searchMap;
 let searchMarker;
+let mapInitialized = false;
 
 document.addEventListener("DOMContentLoaded", function () {
+  // Set up toggle map button
+  const toggleMapBtn = document.getElementById("toggle-map");
+  const mapContainer = document.getElementById("search-map-container");
+
+  toggleMapBtn.addEventListener("click", function () {
+    if (mapContainer.style.display === "none") {
+      mapContainer.style.display = "block";
+      if (!mapInitialized) {
+        initializeMap();
+      }
+      // Trigger a resize event to fix map rendering
+      setTimeout(() => {
+        searchMap.invalidateSize();
+      }, 100);
+    } else {
+      mapContainer.style.display = "none";
+    }
+  });
+
+  // Set up search functionality
+  setupSearch();
+
+  // Load existing search location if any
+  const searchLat = document.getElementById("search-lat").value;
+  const searchLng = document.getElementById("search-lng").value;
+  if (searchLat && searchLng) {
+    // Show map if we have coordinates
+    mapContainer.style.display = "block";
+    initializeMap();
+    const latlng = L.latLng(searchLat, searchLng);
+    placeMarker(latlng);
+    searchMap.setView(latlng, 15);
+
+    // Show coordinates
+    updateCoordinates(parseFloat(searchLat), parseFloat(searchLng));
+  }
+});
+
+function initializeMap() {
   // Initialize search map
   searchMap = L.map("search-map").setView([40.69441, -73.98653], 13);
   L.tileLayer("https://tile.openstreetmap.bzh/ca/{z}/{x}/{y}.png", {
@@ -12,18 +52,8 @@ document.addEventListener("DOMContentLoaded", function () {
   // Add click event to map
   searchMap.on("click", onMapClick);
 
-  // Set up search functionality
-  setupSearch();
-
-  // Load existing search location if any
-  const searchLat = document.getElementById("search-lat").value;
-  const searchLng = document.getElementById("search-lng").value;
-  if (searchLat && searchLng) {
-    const latlng = L.latLng(searchLat, searchLng);
-    placeMarker(latlng);
-    searchMap.setView(latlng, 15);
-  }
-});
+  mapInitialized = true;
+}
 
 function onMapClick(e) {
   placeMarker(e.latlng);
@@ -40,6 +70,11 @@ function placeMarker(latlng) {
 function updateCoordinates(lat, lng) {
   document.getElementById("search-lat").value = lat;
   document.getElementById("search-lng").value = lng;
+
+  // Update coordinate display
+  document.getElementById("coordinates-display").style.display = "block";
+  document.getElementById("lat-display").textContent = lat.toFixed(6);
+  document.getElementById("lng-display").textContent = lng.toFixed(6);
 }
 
 function setupSearch() {
@@ -57,6 +92,7 @@ function setupSearch() {
 
 function performSearch() {
   const searchInput = document.getElementById("location-search");
+  const mapContainer = document.getElementById("search-map-container");
   const query = searchInput.value;
 
   if (!query) return;
@@ -70,11 +106,32 @@ function performSearch() {
     .then((data) => {
       if (data.length > 0) {
         const location = data[0];
-        const latlng = L.latLng(location.lat, location.lon);
+        const lat = parseFloat(location.lat);
+        const lon = parseFloat(location.lon);
+        const latlng = L.latLng(lat, lon);
+
+        // Show map when location is found
+        mapContainer.style.display = "block";
+        if (!mapInitialized) {
+          initializeMap();
+        }
 
         searchMap.setView(latlng, 15);
         placeMarker(latlng);
-        updateCoordinates(location.lat, location.lon);
+
+        // Update the coordinate spans
+        document.getElementById("coordinates-display").style.display = "block";
+        document.getElementById("lat-display").textContent = lat.toFixed(6);
+        document.getElementById("lng-display").textContent = lon.toFixed(6);
+
+        // Update hidden inputs
+        document.getElementById("search-lat").value = lat;
+        document.getElementById("search-lng").value = lon;
+
+        // Fix map rendering
+        setTimeout(() => {
+          searchMap.invalidateSize();
+        }, 100);
       }
     })
     .catch((error) => console.error("Error:", error));

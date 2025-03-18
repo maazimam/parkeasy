@@ -56,7 +56,7 @@
     <!-- Simple location filter -->
     <div class="filter-box p-3 mb-4">
       <form method="get" class="row g-3">
-        <div class="col-md-6">
+        <div class="col-md-9">
           <label class="form-label">
             <i class="fas fa-map-marker-alt me-1"></i> Search Location
           </label>
@@ -68,35 +68,29 @@
             <button class="btn btn-primary" id="search-location" type="button">
               <i class="fas fa-search me-1"></i> Search
             </button>
+            <button class="btn btn-outline-secondary" type="button" id="toggle-map">
+              <i class="fas fa-map me-1"></i> Toggle Map
+            </button>
+          </div>
+          <!-- Add coordinate display -->
+          <div class="mt-2 text-muted small" id="coordinates-display" style="display: none;">
+            <i class="fas fa-crosshairs me-1"></i>
+            Selected coordinates: <span id="lat-display">-</span>, <span id="lng-display">-</span>
           </div>
           <!-- Hidden inputs for coordinates -->
           <input type="hidden" name="lat" id="search-lat">
           <input type="hidden" name="lng" id="search-lng">
         </div>
         
-        <div class="col-md-3">
-          <label for="radius" class="form-label">
-            <i class="fas fa-circle-notch me-1"></i> Search Radius (km)
-          </label>
-          <input type="number" 
-                 class="form-control" 
-                 id="radius" 
-                 name="radius" 
-                 value="{{ search_radius }}"
-                 min="1" 
-                 max="50" 
-                 step="1">
-        </div>
-        
         <div class="col-md-3 d-flex align-items-end">
           <button type="submit" class="btn btn-primary w-100">
-            <i class="fas fa-filter me-1"></i> Filter Results
+            <i class="fas fa-filter me-1"></i> Show Results
           </button>
         </div>
       </form>
       
-      <!-- Map for location selection -->
-      <div class="map-container mt-3" style="height: 300px;">
+      <!-- Map for location selection (hidden by default) -->
+      <div class="map-container mt-3" id="search-map-container" style="height: 300px; display: none;">
         <div id="search-map" style="height: 100%;"></div>
       </div>
     </div>
@@ -140,6 +134,13 @@
                 <i class="fas fa-info-circle text-secondary me-2"></i>
                 {{ listing.description|truncatechars:120 }}
               </p>
+
+              {% if listing.distance is not None %}
+              <p class="card-text small text-muted mb-1">
+                <i class="fas fa-route text-secondary me-2"></i>
+                {{ listing.distance }} km away
+              </p>
+              {% endif %}
             </div>
           </div>
 
