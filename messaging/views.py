@@ -25,12 +25,12 @@ def sent_messages(request):
 @login_required
 def compose_message(request, recipient_id=None):
     initial_data = {}
-    
+
     # If recipient_id is provided, get the user and pre-fill form
     if recipient_id:
         recipient = get_object_or_404(get_user_model(), pk=recipient_id)
-        initial_data = {'recipient': recipient}
-    
+        initial_data = {"recipient": recipient}
+
     if request.method == "POST":
         form = MessageForm(request.POST)
         if form.is_valid():
@@ -41,7 +41,7 @@ def compose_message(request, recipient_id=None):
     else:
         # Create form with initial data if recipient is specified
         form = MessageForm(initial=initial_data)
-    
+
     return render(request, "messaging/compose_message.html", {"form": form})
 
 
