@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.core.paginator import Paginator
 from .forms import ListingForm, ListingSlotFormSet, validate_non_overlapping_slots
 from .models import Listing
+from django.db import models
 
 # Define half-hour choices for use in the search form
 HALF_HOUR_CHOICES = [
@@ -109,11 +110,21 @@ def simplify_location(location_string):
 
 
 def view_listings(request):
-    all_listings = Listing.objects.all()
+    # Get current datetime for comparison
+    current_datetime = datetime.now()
+
+    # Get all listings that have at least one slot with end date/time in the future
+    all_listings = Listing.objects.filter(
+        models.Q(slots__end_date__gt=current_datetime.date())
+        | models.Q(  # Future dates
+            slots__end_date=current_datetime.date(),
+            slots__end_time__gt=current_datetime.time(),
+        )
+    ).distinct()
 
     # Extract common filter parameters
     max_price = request.GET.get("max_price")
-    filter_type = request.GET.get("filter_type", "single")  # "single" or "multiple"
+    filter_type = request.GET.get("filter_type", "single")  # "single" or "recurring"
 
     # Filter by price if provided
     if max_price:
@@ -130,11 +141,13 @@ def view_listings(request):
     # Apply availability filters
     if filter_type == "single":
         # Single continuous interval filter
-        start_date = request.GET.get("start_date")  # e.g., "2025-03-12"
-        end_date = request.GET.get("end_date")  # e.g., "2025-03-12"
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
         start_time = request.GET.get("start_time")
         end_time = request.GET.get("end_time")
-        if start_date and end_date and start_time and end_time:
+
+        # Check if any filter is provided (not requiring all)
+        if any([start_date, end_date, start_time, end_time]):
             try:
                 user_start_str = f"{start_date} {start_time}"  # "2025-03-12 10:00"
                 user_end_str = f"{end_date} {end_time}"
@@ -145,6 +158,7 @@ def view_listings(request):
                     if listing.is_available_for_range(user_start_dt, user_end_dt):
                         filtered.append(listing)
                 all_listings = filtered
+
             except ValueError:
                 pass
 
@@ -373,8 +387,6 @@ def view_listings(request):
         "end_date": request.GET.get("end_date", ""),
         "start_time": request.GET.get("start_time", ""),
         "end_time": request.GET.get("end_time", ""),
-        # For multiple intervals, also pass the interval_count and the individual interval fields as needed.
-        "interval_count": request.GET.get("interval_count", "0"),
         # Add recurring filter parameters
         "recurring_pattern": request.GET.get("recurring_pattern", "daily"),
         "recurring_start_date": request.GET.get("recurring_start_date", ""),
