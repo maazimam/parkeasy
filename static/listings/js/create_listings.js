@@ -293,6 +293,119 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    // Function to create a new slot form
+    function createNewSlotForm(index) {
+        const template = `
+            <div class="slot-form border p-3 mb-3" data-index="${index}">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock text-secondary me-2"></i>Time Slot ${index + 1}
+                    </h5>
+                    <button type="button" class="delete-slot" title="Delete this slot">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Start Date</label>
+                                <input type="date" name="form-${index}-start_date" id="id_form-${index}-start_date" class="form-control">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">End Date</label>
+                                <input type="date" name="form-${index}-end_date" id="id_form-${index}-end_date" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Start Time</label>
+                                <select name="form-${index}-start_time" id="id_form-${index}-start_time" class="form-select">
+                                    <option value="">Select start time</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">End Time</label>
+                                <select name="form-${index}-end_time" id="id_form-${index}-end_time" class="form-select">
+                                    <option value="">Select end time</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" name="form-${index}-id" id="id_form-${index}-id">
+            </div>
+        `;
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = template.trim();
+        return tempDiv.firstChild;
+    }
+
+    // Add click event listener to the Add Another Time Slot button
+    const addSlotBtn = document.getElementById('add-slot-btn');
+    if (addSlotBtn) {
+        addSlotBtn.addEventListener('click', function() {
+            const totalFormsInput = document.querySelector('[name="form-TOTAL_FORMS"]');
+            if (!totalFormsInput) return;
+
+            const currentFormCount = parseInt(totalFormsInput.value);
+            const newForm = createNewSlotForm(currentFormCount);
+
+            // Copy time options from the first form's selects
+            const firstForm = document.querySelector('.slot-form');
+            if (firstForm) {
+                const startTimeOptions = firstForm.querySelector('select[name$="start_time"]').innerHTML;
+                const endTimeOptions = firstForm.querySelector('select[name$="end_time"]').innerHTML;
+                newForm.querySelector('select[name$="start_time"]').innerHTML = startTimeOptions;
+                newForm.querySelector('select[name$="end_time"]').innerHTML = endTimeOptions;
+            }
+
+            // Add delete button event listener
+            const deleteBtn = newForm.querySelector('.delete-slot');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', handleDelete);
+            }
+
+            // Add the new form
+            document.getElementById('slot-forms-container').appendChild(newForm);
+            totalFormsInput.value = (currentFormCount + 1).toString();
+        });
+    }
+
+    // Function to handle deleting time slots
+    function handleDelete(event) {
+        const slotForm = event.target.closest('.slot-form');
+        if (slotForm) {
+            slotForm.remove();
+
+            // Update total forms count
+            const totalFormsInput = document.querySelector('[name="form-TOTAL_FORMS"]');
+            if (totalFormsInput) {
+                const formCount = document.querySelectorAll('.slot-form').length;
+                totalFormsInput.value = formCount;
+            }
+
+            // Update remaining form indices and headings
+            document.querySelectorAll('.slot-form').forEach((form, index) => {
+                form.querySelectorAll('input, select').forEach(input => {
+                    if (input.name) {
+                        input.name = input.name.replace(/form-\d+-/, `form-${index}-`);
+                    }
+                    if (input.id) {
+                        input.id = input.id.replace(/id_form-\d+-/, `id_form-${index}-`);
+                    }
+                });
+
+                const heading = form.querySelector('h5');
+                if (heading) {
+                    heading.innerHTML = `<i class="fas fa-clock text-secondary me-2"></i>Time Slot ${index + 1}`;
+                }
+            });
+        }
+    }
+
     // Function to validate end time is after start time
     function validateEndTime(formDiv) {
         const startDate = formDiv.querySelector('input[name$="start_date"]').value;
@@ -358,17 +471,6 @@ document.addEventListener("DOMContentLoaded", function() {
     // Initial attachment
     attachDateListeners();
 
-    // Add listener for new forms being added
-    const addSlotBtn = document.getElementById("add-slot-btn");
-    if (addSlotBtn) {
-        const originalAddSlotHandler = addSlotBtn.onclick;
-        addSlotBtn.onclick = function(e) {
-            if (originalAddSlotHandler) originalAddSlotHandler.call(this, e);
-            // After new form is added, attach listeners to its inputs
-            setTimeout(() => attachDateListeners(), 0);
-        };
-    }
-
     // Simple frontend check for overlapping intervals before submission.
     function checkOverlappingSlots() {
         const forms = document.querySelectorAll(".slot-form");
@@ -415,69 +517,5 @@ document.addEventListener("DOMContentLoaded", function() {
         if (!isValid || !checkOverlappingSlots()) {
             event.preventDefault();
         }
-    });
-
-    // Function to update indices after deletion
-    function updateFormIndices() {
-        const formDivs = document.querySelectorAll('.slot-form');
-        const totalFormsInput = document.querySelector('[name$="-TOTAL_FORMS"]');
-
-        // Update form count
-        totalFormsInput.value = formDivs.length.toString();
-
-        // Update each form's index
-        formDivs.forEach((div, idx) => {
-            // Update data-index attribute
-            div.setAttribute('data-index', idx.toString());
-
-            // Update heading text
-            const heading = div.querySelector('h5');
-            if (heading) {
-                heading.innerHTML = `<i class="fas fa-clock text-secondary me-2"></i>Time Slot ${idx + 1}`;
-            }
-
-            // Update input names and IDs
-            div.querySelectorAll('input, select, textarea, label').forEach(el => {
-                if (el.name) {
-                    el.name = el.name.replace(/-\d+-/, `-${idx}-`);
-                }
-                if (el.id) {
-                    el.id = el.id.replace(/_\d+_/, `_${idx}_`);
-                }
-            });
-
-            // Add delete button to all but the first form
-            if (idx > 0) {
-                if (!div.querySelector('.delete-slot')) {
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'delete-slot';
-                    deleteBtn.title = 'Delete this slot';
-                    deleteBtn.type = 'button';
-                    deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
-                    deleteBtn.addEventListener('click', handleDelete);
-                    div.appendChild(deleteBtn);
-                }
-            } else {
-                // Remove delete button from first form if it exists
-                const deleteBtn = div.querySelector('.delete-slot');
-                if (deleteBtn) {
-                    deleteBtn.remove();
-                }
-            }
-        });
-    }
-
-    // Function to handle delete button click
-    function handleDelete(e) {
-        const slotForm = e.target.closest('.slot-form');
-        if (slotForm) {
-            slotForm.remove();
-            updateFormIndices();
-        }
-    }
-
-    // Add event listeners to delete buttons
-    document.querySelectorAll('.delete-slot').forEach(btn => {
-        btn.addEventListener('click', handleDelete);
     });
 });
