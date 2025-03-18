@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!mapInitialized) {
         initializeMap();
       }
-      // Trigger a resize event to fix map rendering
       setTimeout(() => {
         searchMap.invalidateSize();
       }, 100);
@@ -25,9 +24,13 @@ document.addEventListener("DOMContentLoaded", function () {
   // Set up search functionality
   setupSearch();
 
-  // Load existing search location if any
-  const searchLat = document.getElementById("search-lat").value;
-  const searchLng = document.getElementById("search-lng").value;
+  // Check URL parameters first, then fallback to hidden inputs
+  const urlParams = new URLSearchParams(window.location.search);
+  const searchLat =
+    urlParams.get("lat") || document.getElementById("search-lat").value;
+  const searchLng =
+    urlParams.get("lng") || document.getElementById("search-lng").value;
+
   if (searchLat && searchLng) {
     // Show map if we have coordinates
     mapContainer.style.display = "block";
@@ -38,6 +41,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Show coordinates
     updateCoordinates(parseFloat(searchLat), parseFloat(searchLng));
+
+    // Get location name for the coordinates
+    fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${searchLat}&lon=${searchLng}`
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.display_name) {
+          document.getElementById("location-search").value = data.display_name;
+        }
+      })
+      .catch((error) => console.error("Error:", error));
   }
 });
 
