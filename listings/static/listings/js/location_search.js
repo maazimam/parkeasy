@@ -58,13 +58,50 @@ function initializeMap() {
 function onMapClick(e) {
   placeMarker(e.latlng);
   updateCoordinates(e.latlng.lat, e.latlng.lng);
+
+  // Reverse geocode to get location name
+  fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`
+  )
+    .then((response) => response.json())
+    .then((data) => {
+      console.log("hiiii", data);
+      if (data.display_name) {
+        document.getElementById("location-search").value = data.display_name;
+      }
+    })
+    .catch((error) => console.error("Error:", error));
 }
 
 function placeMarker(latlng) {
   if (searchMarker) {
     searchMap.removeLayer(searchMarker);
   }
-  searchMarker = L.marker(latlng).addTo(searchMap);
+  // Make marker draggable and add drag event
+  searchMarker = L.marker(latlng, { draggable: true }).addTo(searchMap);
+
+  // Update coordinates when marker is dragged
+  searchMarker.on("dragend", function (event) {
+    const marker = event.target;
+    const position = marker.getLatLng();
+    updateCoordinates(position.lat, position.lng);
+
+    // Reverse geocode to get location name
+    fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.lat}&lon=${position.lng}`
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("hiiii", data);
+        if (data.display_name) {
+          document.getElementById("location-search").value = data.display_name;
+        }
+      })
+      .catch((error) => console.error("Error:", error));
+
+    // Optional: Update map view to center on new position
+    searchMap.setView(position, searchMap.getZoom());
+  });
 }
 
 function updateCoordinates(lat, lng) {
