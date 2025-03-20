@@ -40,32 +40,31 @@ class ListingSlotForm(forms.ModelForm):
             ),
         }
 
-    def clean(self):
-        cleaned_data = super().clean()
-        start_date = cleaned_data.get("start_date")
-        start_time = cleaned_data.get("start_time")
-        end_date = cleaned_data.get("end_date")
-        end_time = cleaned_data.get("end_time")
 
-        # Check if dates are provided
-        if start_date and end_date:
-            # Check if start date is after end date
-            if start_date > end_date:
-                raise forms.ValidationError("Start date cannot be after end date.")
+def clean(self):
+    cleaned_data = super().clean()
+    start_date = cleaned_data.get("start_date")
+    start_time = cleaned_data.get("start_time")
+    end_date = cleaned_data.get("end_date")
+    end_time = cleaned_data.get("end_time")
 
-            # If dates are the same, check times
-            if start_date == end_date and start_time and end_time:
-                # Convert string times to time objects for proper comparison
-                st = datetime.strptime(start_time, "%H:%M").time()
-                et = datetime.strptime(end_time, "%H:%M").time()
-                if st >= et:
-                    raise forms.ValidationError(
-                        "End time must be later than start time on the same day."
-                    )
+    if start_date and end_date:
+        if start_date > end_date:
+            raise forms.ValidationError("Start date cannot be after end date.")
 
-            # If start date is today, validate times are not in the past
-            today = datetime.today().date()
-            if start_date == today and start_time:
+        if start_date == end_date and start_time and end_time:
+            st = datetime.strptime(start_time, "%H:%M").time()
+            et = datetime.strptime(end_time, "%H:%M").time()
+            if st >= et:
+                raise forms.ValidationError(
+                    "End time must be later than start time on the same day."
+                )
+
+        # Only enforce the "start time in the past" rule for new timeslots.
+        today = datetime.today().date()
+        if start_date == today and start_time:
+            # If this is a new timeslot (i.e. no instance.pk), enforce the check.
+            if not self.instance.pk:
                 current_time = datetime.now().time()
                 st = datetime.strptime(start_time, "%H:%M").time()
                 if st <= current_time:
@@ -73,7 +72,7 @@ class ListingSlotForm(forms.ModelForm):
                         "Start time cannot be in the past for today's date."
                     )
 
-        return cleaned_data
+    return cleaned_data
 
 
 def validate_non_overlapping_slots(formset):
