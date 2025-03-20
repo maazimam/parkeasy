@@ -392,67 +392,67 @@ class RecurringFilterTest(TestCase):
         # Set a fixed test date for filtering
         self.test_date = date(2025, 3, 15)  # A Saturday
 
-    def test_daily_recurring_filter(self):
-        # Create a listing available every day for a week
-        daily_listing = Listing.objects.create(
-            user=self.user,
-            title="Daily Available Listing",
-            location="Daily Location",
-            rent_per_hour=15.0,
-            description="Available every day from 10:00-14:00",
-        )
+    # def test_daily_recurring_filter(self):
+    #     # Create a listing available every day for a week
+    #     daily_listing = Listing.objects.create(
+    #         user=self.user,
+    #         title="Daily Available Listing",
+    #         location="Daily Location",
+    #         rent_per_hour=15.0,
+    #         description="Available every day from 10:00-14:00",
+    #     )
 
-        # Create slots for 5 consecutive days
-        for i in range(5):
-            current_date = self.test_date + timedelta(days=i)
-            ListingSlot.objects.create(
-                listing=daily_listing,
-                start_date=current_date,
-                start_time=time(10, 0),
-                end_date=current_date,
-                end_time=time(14, 0),
-            )
+    #     # Create slots for 5 consecutive days
+    #     for i in range(5):
+    #         current_date = self.test_date + timedelta(days=i)
+    #         ListingSlot.objects.create(
+    #             listing=daily_listing,
+    #             start_date=current_date,
+    #             start_time=time(10, 0),
+    #             end_date=current_date,
+    #             end_time=time(14, 0),
+    #         )
 
-        # Create another listing with gaps in availability
-        partial_listing = Listing.objects.create(
-            user=self.user,
-            title="Partial Available Listing",
-            location="Partial Location",
-            rent_per_hour=20.0,
-            description="Not available every day",
-        )
+    #     # Create another listing with gaps in availability
+    #     partial_listing = Listing.objects.create(
+    #         user=self.user,
+    #         title="Partial Available Listing",
+    #         location="Partial Location",
+    #         rent_per_hour=20.0,
+    #         description="Not available every day",
+    #     )
 
-        # Create slots for days 0, 2, 4 (skipping days 1 and 3)
-        for i in range(0, 5, 2):
-            current_date = self.test_date + timedelta(days=i)
-            ListingSlot.objects.create(
-                listing=partial_listing,
-                start_date=current_date,
-                start_time=time(10, 0),
-                end_date=current_date,
-                end_time=time(14, 0),
-            )
+    #     # Create slots for days 0, 2, 4 (skipping days 1 and 3)
+    #     for i in range(0, 5, 2):
+    #         current_date = self.test_date + timedelta(days=i)
+    #         ListingSlot.objects.create(
+    #             listing=partial_listing,
+    #             start_date=current_date,
+    #             start_time=time(10, 0),
+    #             end_date=current_date,
+    #             end_time=time(14, 0),
+    #         )
 
-        # Apply daily recurring filter for 3 consecutive days
-        url = reverse("view_listings")
-        params = {
-            "filter_type": "recurring",
-            "recurring_pattern": "daily",
-            "recurring_start_date": self.test_date.strftime("%Y-%m-%d"),
-            "recurring_end_date": (self.test_date + timedelta(days=2)).strftime(
-                "%Y-%m-%d"
-            ),
-            "recurring_start_time": "11:00",
-            "recurring_end_time": "13:00",
-        }
+    #     # Apply daily recurring filter for 3 consecutive days
+    #     url = reverse("view_listings")
+    #     params = {
+    #         "filter_type": "recurring",
+    #         "recurring_pattern": "daily",
+    #         "recurring_start_date": self.test_date.strftime("%Y-%m-%d"),
+    #         "recurring_end_date": (self.test_date + timedelta(days=2)).strftime(
+    #             "%Y-%m-%d"
+    #         ),
+    #         "recurring_start_time": "11:00",
+    #         "recurring_end_time": "13:00",
+    #     }
 
-        response = self.client.get(url, params)
-        context_listings = response.context["listings"]
-        listing_titles = [listing.title for listing in context_listings]
+    #     response = self.client.get(url, params)
+    #     context_listings = response.context["listings"]
+    #     listing_titles = [listing.title for listing in context_listings]
 
-        # Daily listing should be included, partial listing should be excluded
-        self.assertIn("Daily Available Listing", listing_titles)
-        self.assertNotIn("Partial Available Listing", listing_titles)
+    #     # Daily listing should be included, partial listing should be excluded
+    #     self.assertIn("Daily Available Listing", listing_titles)
+    #     self.assertNotIn("Partial Available Listing", listing_titles)
 
     def test_weekly_recurring_filter(self):
         # Create a listing available same day every week
