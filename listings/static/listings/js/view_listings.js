@@ -241,8 +241,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
           // Create popup content
           const ratingHtml = rating
-            ? `<br><strong>Rating:</strong> ${generateStars(rating)} (${rating.toFixed(1)})`
-            : `<br><span class="text-muted">No reviews yet ${generateStars(0)}</span>`;
+            ? `<br><strong>Rating:</strong> ${generateStarRating(rating)} (${rating.toFixed(1)})`
+            : `<br><span class="text-muted">No reviews yet ${generateStarRating(0)}</span>`;
 
           const popupContent = `
             <strong>${title}</strong><br>
