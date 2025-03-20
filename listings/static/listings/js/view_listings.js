@@ -107,6 +107,13 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // ---- STAR RATING FUNCTIONALITY ----
+  const ratingElements = document.querySelectorAll('.rating-stars');
+  ratingElements.forEach(function(ratingElement) {
+    const rating = parseFloat(ratingElement.getAttribute("data-rating"));
+    ratingElement.innerHTML = generateStarRating(rating);
+  });
+
   // ---- LOAD MORE FUNCTIONALITY ----
   function setupLoadMoreButton() {
     const loadMoreBtn = document.getElementById("load-more-btn");
