@@ -1,25 +1,67 @@
+import json
 import random
-from datetime import datetime, timedelta, date, time
-from django.core.management.base import BaseCommand
+from datetime import date, datetime, time, timedelta
+
 from django.contrib.auth.models import User
-from listings.models import Listing, ListingSlot, Review
-from booking.models import Booking, BookingSlot
-from faker import Faker
+from django.core.management.base import BaseCommand
 from django.utils import timezone
+from faker import Faker
+from shapely.geometry import Point, shape
+
+from booking.models import Booking, BookingSlot
+from listings.models import Listing, ListingSlot, Review
+
+
+def get_valid_nyc_coordinate(geojson_path):
+    """
+    Reads a GeoJSON file of NYC land boundaries and generates a random latitude 
+    and longitude that falls within a land polygon.
+    """
+    # Load GeoJSON file
+    with open(geojson_path, "r") as file:
+        geojson_data = json.load(file)
+
+    # Extract polygons from the GeoJSON file
+    polygons = [shape(feature["geometry"]) for feature in geojson_data["features"]]
+
+    # Define NYC bounding box (approximate limits to sample within)
+    NYC_BOUNDS = {
+        'min_lat': 40.477399,  # Southernmost point of NYC
+        'max_lat': 40.917577,  # Northernmost point of NYC
+        'min_lng': -74.259090,  # Westernmost point of NYC
+        'max_lng': -73.700272   # Easternmost point of NYC
+    }
+
+    # Generate a valid coordinate within NYC land boundaries
+    while True:
+        latitude = random.uniform(NYC_BOUNDS['min_lat'], NYC_BOUNDS['max_lat'])
+        longitude = random.uniform(NYC_BOUNDS['min_lng'], NYC_BOUNDS['max_lng'])
+        point = Point(longitude, latitude)
+
+        # Ensure the point is inside at least one NYC land polygon
+        if any(polygon.contains(point) for polygon in polygons):
+            return latitude, longitude  # Return a valid coordinate
 
 
 class Command(BaseCommand):
     help = "Create fake data: 10 users, 100 listings, 200 bookings, and 100 reviews"
 
     def handle(self, *args, **kwargs):
-        # Check if fake data already exists by verifying the existence of "user1"
+        # Check if fake data exists by verifying the existence of "user1"
         if User.objects.filter(username="user1").exists():
-            self.stdout.write(
-                self.style.WARNING(
-                    "Fake data already exists (user1 found). No changes made."
-                )
-            )
-            return 0
+            self.stdout.write("Existing fake data found. Deleting...")
+
+            # Delete all users created by this script (user1 through user10)
+            for i in range(1, 11):
+                username = f"user{i}"
+                User.objects.filter(username=username).delete()
+
+            # The cascading delete should handle related objects (listings, bookings, reviews)
+            # due to Django's foreign key relationships
+
+            self.stdout.write(self.style.SUCCESS("Existing fake data deleted."))
+
+        # Continue with creating new fake data...
 
         fake = Faker()
         users = []
@@ -37,14 +79,19 @@ class Command(BaseCommand):
             users.append(user)
             self.stdout.write(self.style.SUCCESS(f"User created: {username}"))
 
-        # Create 100 listings (all located on 5th Avenue, NYC)
+        # Create 100 listings with valid NYC coordinates
         self.stdout.write("Creating listings...")
         listings = []
+        geojson_path = "accounts/management/commands/community-districts-polygon.geojson"
+
         for i in range(1, 101):
             user = random.choice(users)
             title = f"Listing #{i}"
-            street_number = random.randint(1, 500)
-            location = f"{street_number} 5th Avenue, NYC"
+
+            # Generate valid NYC coordinates
+            latitude, longitude = get_valid_nyc_coordinate(geojson_path)
+            location = f"Sample Location {i} [{latitude},{longitude}]"
+
             rent_per_hour = round(random.uniform(10.00, 50.00), 2)
             description = fake.text(max_nb_chars=200)
             listing = Listing.objects.create(
@@ -55,7 +102,9 @@ class Command(BaseCommand):
                 description=description,
             )
             listings.append(listing)
-            self.stdout.write(self.style.SUCCESS(f"Listing created: {title}"))
+            self.stdout.write(
+                self.style.SUCCESS(f"Listing created: {title} at {location}")
+            )
 
         # Create ListingSlots for each listing (1 to 3 slots per listing)
         self.stdout.write("Creating listing slots...")
