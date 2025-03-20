@@ -1,4 +1,3 @@
-import json
 import random
 from datetime import date, datetime, time, timedelta
 
@@ -6,7 +5,6 @@ from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from faker import Faker
-from shapely.geometry import Point, shape
 
 from accounts.utilities import get_valid_nyc_coordinate
 from booking.models import Booking, BookingSlot

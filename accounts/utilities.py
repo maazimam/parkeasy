@@ -6,7 +6,7 @@ from shapely.geometry import Point, shape
 
 def get_valid_nyc_coordinate():
     """
-    Reads a GeoJSON file of NYC land boundaries and generates a random latitude 
+    Reads a GeoJSON file of NYC land boundaries and generates a random latitude
     and longitude that falls within a land polygon.
     """
 
@@ -20,16 +20,16 @@ def get_valid_nyc_coordinate():
 
     # Define NYC bounding box (approximate limits to sample within)
     NYC_BOUNDS = {
-        'min_lat': 40.477399,  # Southernmost point of NYC
-        'max_lat': 40.917577,  # Northernmost point of NYC
-        'min_lng': -74.259090,  # Westernmost point of NYC
-        'max_lng': -73.700272   # Easternmost point of NYC
+        "min_lat": 40.477399,  # Southernmost point of NYC
+        "max_lat": 40.917577,  # Northernmost point of NYC
+        "min_lng": -74.259090,  # Westernmost point of NYC
+        "max_lng": -73.700272,  # Easternmost point of NYC
     }
 
     # Generate a valid coordinate within NYC land boundaries
     while True:
-        latitude = random.uniform(NYC_BOUNDS['min_lat'], NYC_BOUNDS['max_lat'])
-        longitude = random.uniform(NYC_BOUNDS['min_lng'], NYC_BOUNDS['max_lng'])
+        latitude = random.uniform(NYC_BOUNDS["min_lat"], NYC_BOUNDS["max_lat"])
+        longitude = random.uniform(NYC_BOUNDS["min_lng"], NYC_BOUNDS["max_lng"])
         point = Point(longitude, latitude)
 
         # Ensure the point is inside at least one NYC land polygon
