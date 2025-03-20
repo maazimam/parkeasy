@@ -11,6 +11,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from .forms import (ListingForm, ListingSlotFormSet,
                     validate_non_overlapping_slots)
 from .models import Listing
+from .utils.location import (calculate_distance, extract_coordinates,
+                             simplify_location)
 
 # Define half-hour choices for use in the search form
 HALF_HOUR_CHOICES = [
@@ -72,44 +74,6 @@ def edit_listing(request, listing_id):
         "listings/edit_listing.html",
         {"form": listing_form, "slot_formset": slot_formset, "listing": listing},
     )
-
-
-def simplify_location(location_string):
-    """
-    Simplifies a location string before sending to template.
-    Example: "Tandon School of Engineering, Johnson Street, Downtown Brooklyn, Brooklyn..."
-    becomes "Tandon School of Engineering, Brooklyn"
-    """
-    if not location_string:
-        return ""
-
-    parts = [part.strip() for part in location_string.split(",")]
-    if len(parts) < 2:
-        return location_string
-
-    building = parts[0]
-
-    # Find the city (Brooklyn, Manhattan, etc.)
-    city = next(
-        (
-            part
-            for part in parts
-            if part.strip()
-            in ["Brooklyn", "Manhattan", "Queens", "Bronx", "Staten Island"]
-        ),
-        "New York",
-    )
-
-    # For educational institutions, keep the full name
-    if any(
-        term in building.lower()
-        for term in ["school", "university", "college", "institute"]
-    ):
-        return f"{building}, {city}"
-
-    # For other locations, use first two parts
-    street = parts[1]
-    return f"{building}, {street}, {city}"
 
 
 def view_listings(request):
@@ -480,27 +444,23 @@ def view_listings_by_location(request):
 
             filtered_listings = []
             for listing in all_listings:
-                # Extract listing coordinates from location string
-                coords = listing.location.split('[')[1].strip(']').split(',')
-                listing_lat = float(coords[0])
-                listing_lng = float(coords[1])
+                try:
+                    # Extract listing coordinates
+                    listing_lat, listing_lng = extract_coordinates(listing.location)
 
-                # Calculate distance using Haversine formula
-                R = 6371  # Earth's radius in kilometers
-                dlat = math.radians(listing_lat - search_lat)
-                dlng = math.radians(listing_lng - search_lng)
+                    # Calculate distance
+                    distance = calculate_distance(
+                        search_lat, search_lng,
+                        listing_lat, listing_lng
+                    )
 
-                a = (math.sin(dlat/2) * math.sin(dlat/2) +
-                     math.cos(math.radians(search_lat)) * math.cos(math.radians(listing_lat)) *
-                     math.sin(dlng/2) * math.sin(dlng/2))
-                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-                distance = R * c
-
-                listing.distance = round(distance, 1)  # Add distance to listing object
-                filtered_listings.append(listing)
+                    listing.distance = distance
+                    filtered_listings.append(listing)
+                except ValueError:
+                    continue  # Skip listings with invalid coordinates
 
             all_listings = sorted(filtered_listings, key=lambda x: x.distance)
-        except (ValueError, IndexError):
+        except ValueError:
             pass
 
     # Process listings for display (same as before)
