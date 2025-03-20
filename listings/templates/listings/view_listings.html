@@ -282,25 +282,17 @@
               <!-- Rating Block -->
               <div class="mb-2">
                 <p class="card-text mb-1 small fw-bold">Rating:</p>
-                {% if listing.avg_rating %}
                 <div class="d-flex align-items-center">
                   <span class="rating-stars me-2" data-rating="{{ listing.avg_rating }}"></span>
-                  <span class="badge bg-warning text-dark fw-bold">{{ listing.avg_rating|floatformat:1 }}</span>
-                  <span class="badge bg-light text-muted ms-2">
-                    {{ listing.rating_count }} {% if listing.rating_count == 1 %}rating{% else %}ratings{% endif %}
-                  </span>
+                  {% if listing.avg_rating %}
+                    <span class="badge bg-warning text-dark fw-bold">{{ listing.avg_rating|floatformat:1 }}</span>
+                    <span class="badge bg-light text-muted ms-2">
+                      {{ listing.rating_count }} {% if listing.rating_count == 1 %}rating{% else %}ratings{% endif %}
+                    </span>
+                  {% else %}
+                    <span class="badge bg-light text-muted">No ratings yet</span>
+                  {% endif %}
                 </div>
-                {% else %}
-                <div class="d-flex align-items-center">
-                  <div class="rating-stars me-2">
-                    {% for _ in "12345" %}
-                      <i class="far fa-star text-warning"></i>
-                    {% endfor %}
-                  </div>
-                  <span class="badge bg-warning text-dark fw-bold">0.0</span>
-                  <span class="badge bg-light text-muted ms-2">No ratings yet</span>
-                </div>
-                {% endif %}
               </div>
 
               <!-- User Info and Buttons -->
