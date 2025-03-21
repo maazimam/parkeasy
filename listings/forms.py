@@ -9,13 +9,11 @@ HALF_HOUR_CHOICES = [
     for minute in (0, 30)
 ]
 
-
 # 1. ListingForm: For basic listing details.
 class ListingForm(forms.ModelForm):
     class Meta:
         model = Listing
         fields = ["title", "location", "rent_per_hour", "description"]
-
 
 # 2. ListingSlotForm: For each availability interval.
 class ListingSlotForm(forms.ModelForm):
@@ -40,39 +38,44 @@ class ListingSlotForm(forms.ModelForm):
             ),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            if self.instance.start_time:
+                self.initial['start_time'] = self.instance.start_time.strftime("%H:%M")
+            if self.instance.end_time:
+                self.initial['end_time'] = self.instance.end_time.strftime("%H:%M")
 
-def clean(self):
-    cleaned_data = super().clean()
-    start_date = cleaned_data.get("start_date")
-    start_time = cleaned_data.get("start_time")
-    end_date = cleaned_data.get("end_date")
-    end_time = cleaned_data.get("end_time")
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get("start_date")
+        start_time = cleaned_data.get("start_time")
+        end_date = cleaned_data.get("end_date")
+        end_time = cleaned_data.get("end_time")
 
-    if start_date and end_date:
-        if start_date > end_date:
-            raise forms.ValidationError("Start date cannot be after end date.")
+        if start_date and end_date:
+            if start_date > end_date:
+                raise forms.ValidationError("Start date cannot be after end date.")
 
-        if start_date == end_date and start_time and end_time:
-            st = datetime.strptime(start_time, "%H:%M").time()
-            et = datetime.strptime(end_time, "%H:%M").time()
-            if st >= et:
-                raise forms.ValidationError(
-                    "End time must be later than start time on the same day."
-                )
-
-        # Only enforce the "start time in the past" rule for new timeslots.
-        today = datetime.today().date()
-        if start_date == today and start_time:
-            # If this is a new timeslot (i.e. no instance.pk), enforce the check.
-            if not self.instance.pk:
-                current_time = datetime.now().time()
+            if start_date == end_date and start_time and end_time:
                 st = datetime.strptime(start_time, "%H:%M").time()
-                if st <= current_time:
+                et = datetime.strptime(end_time, "%H:%M").time()
+                if st >= et:
                     raise forms.ValidationError(
-                        "Start time cannot be in the past for today's date."
+                        "End time must be later than start time on the same day."
                     )
 
-    return cleaned_data
+            # Only enforce the "start time in the past" rule for new timeslots
+            today = datetime.today().date()
+            if start_date == today and start_time:
+                if not self.instance.pk:  # i.e. newly added slot
+                    current_time = datetime.now().time()
+                    st = datetime.strptime(start_time, "%H:%M").time()
+                    if st <= current_time:
+                        raise forms.ValidationError(
+                            "Start time cannot be in the past for today's date."
+                        )
+        return cleaned_data
 
 
 def validate_non_overlapping_slots(formset):
@@ -91,22 +94,18 @@ def validate_non_overlapping_slots(formset):
         end_date = form.cleaned_data.get("end_date")
         end_time = form.cleaned_data.get("end_time")
         if start_date and start_time and end_date and end_time:
-            # Convert start_time and end_time to time objects.
             st = datetime.strptime(start_time, "%H:%M").time()
             et = datetime.strptime(end_time, "%H:%M").time()
             start_dt = datetime.combine(start_date, st)
             end_dt = datetime.combine(end_date, et)
             for existing_start, existing_end in intervals:
-                # If not completely before or after, they overlap.
                 if not (end_dt <= existing_start or start_dt >= existing_end):
                     raise forms.ValidationError("Availability slots cannot overlap.")
             intervals.append((start_dt, end_dt))
 
-
 ListingSlotFormSet = inlineformset_factory(
     Listing, ListingSlot, form=ListingSlotForm, extra=1, can_delete=True
 )
-
 
 # 3. ReviewForm: For reviewing a listing.
 class ReviewForm(forms.ModelForm):
