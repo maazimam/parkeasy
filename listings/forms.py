@@ -9,6 +9,7 @@ HALF_HOUR_CHOICES = [
     for minute in (0, 30)
 ]
 
+
 # 1. ListingForm: For basic listing details.
 class ListingForm(forms.ModelForm):
     class Meta:
@@ -20,6 +21,7 @@ class ListingForm(forms.ModelForm):
         # If this is an existing listing, disable editing for "location"
         if self.instance and self.instance.pk:
             self.fields["location"].disabled = True
+
 
 # 2. ListingSlotForm: For each availability interval.
 class ListingSlotForm(forms.ModelForm):
@@ -48,9 +50,9 @@ class ListingSlotForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
             if self.instance.start_time:
-                self.initial['start_time'] = self.instance.start_time.strftime("%H:%M")
+                self.initial["start_time"] = self.instance.start_time.strftime("%H:%M")
             if self.instance.end_time:
-                self.initial['end_time'] = self.instance.end_time.strftime("%H:%M")
+                self.initial["end_time"] = self.instance.end_time.strftime("%H:%M")
 
     def clean(self):
         cleaned_data = super().clean()
@@ -109,9 +111,11 @@ def validate_non_overlapping_slots(formset):
                     raise forms.ValidationError("Availability slots cannot overlap.")
             intervals.append((start_dt, end_dt))
 
+
 ListingSlotFormSet = inlineformset_factory(
     Listing, ListingSlot, form=ListingSlotForm, extra=1, can_delete=True
 )
+
 
 # 3. ReviewForm: For reviewing a listing.
 class ReviewForm(forms.ModelForm):

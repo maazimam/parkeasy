@@ -76,7 +76,7 @@ def create_listing(request):
 def edit_listing(request, listing_id):
     listing = get_object_or_404(Listing, id=listing_id, user=request.user)
     alert_message = ""
-    
+
     if request.method == "POST":
         listing_form = ListingForm(request.POST, instance=listing)
         slot_formset = ListingSlotFormSetEdit(
@@ -97,7 +97,7 @@ def edit_listing(request, listing_id):
                         "alert_message": alert_message,
                     },
                 )
-            
+
             # Block editing if there is any pending booking.
             pending_bookings = listing.booking_set.filter(status="PENDING")
             if pending_bookings.exists():
@@ -115,7 +115,7 @@ def edit_listing(request, listing_id):
                         "alert_message": alert_message,
                     },
                 )
-            
+
             # Build new intervals from the formset.
             new_intervals = []
             for form in slot_formset:
@@ -139,7 +139,7 @@ def edit_listing(request, listing_id):
                     start_dt = datetime.combine(start_date, st)
                     end_dt = datetime.combine(end_date, et)
                     new_intervals.append((start_dt, end_dt))
-            
+
             # Merge intervals into non-overlapping ranges.
             new_intervals.sort(key=lambda iv: iv[0])
             merged_intervals = []
@@ -152,8 +152,7 @@ def edit_listing(request, listing_id):
                         merged_intervals[-1] = (last_start, max(last_end, interval[1]))
                     else:
                         merged_intervals.append(interval)
-            
-            # For each active booking (approved), if its slots are still covered by the new intervals, block editing.
+
             active_bookings = listing.booking_set.filter(status="APPROVED")
             for booking in active_bookings:
                 if is_booking_covered_by_intervals(booking, merged_intervals):
@@ -171,7 +170,7 @@ def edit_listing(request, listing_id):
                             "alert_message": alert_message,
                         },
                     )
-            
+
             # No blocking conditions found; save changes.
             listing_form.save()
             slot_formset.save()
@@ -182,7 +181,7 @@ def edit_listing(request, listing_id):
     else:
         listing_form = ListingForm(instance=listing)
         slot_formset = ListingSlotFormSetEdit(instance=listing, prefix="form")
-    
+
     return render(
         request,
         "listings/edit_listing.html",
@@ -492,7 +491,8 @@ def delete_listing(request, listing_id):
             "listings/manage_listings.html",
             {
                 "listings": owner_listings,
-                "delete_error": "Cannot delete listing with pending or approved bookings. Please handle those bookings first.",
+                "delete_error": "Cannot delete listing with pending or approved bookings.\
+                Please handle those bookings first.",
                 "error_listing_id": listing_id,
             },
         )
