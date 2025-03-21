@@ -15,6 +15,12 @@ class ListingForm(forms.ModelForm):
         model = Listing
         fields = ["title", "location", "rent_per_hour", "description"]
 
+    def __init__(self, *args, **kwargs):
+        super(ListingForm, self).__init__(*args, **kwargs)
+        # If this is an existing listing, disable editing for "location"
+        if self.instance and self.instance.pk:
+            self.fields["location"].disabled = True
+
 # 2. ListingSlotForm: For each availability interval.
 class ListingSlotForm(forms.ModelForm):
     start_time = forms.ChoiceField(choices=HALF_HOUR_CHOICES)

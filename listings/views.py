@@ -31,18 +31,23 @@ HALF_HOUR_CHOICES = [
 
 @login_required
 def create_listing(request):
+    alert_message = ""
     if request.method == "POST":
         listing_form = ListingForm(request.POST)
         slot_formset = ListingSlotFormSet(request.POST, prefix="form")
         if listing_form.is_valid() and slot_formset.is_valid():
             try:
                 validate_non_overlapping_slots(slot_formset)
-            except Exception:  # catches ValidationError from our custom validator
-                messages.error(request, "Overlapping slots detected. Please correct.")
+            except Exception:
+                alert_message = "Overlapping slots detected. Please correct."
                 return render(
                     request,
                     "listings/create_listing.html",
-                    {"form": listing_form, "slot_formset": slot_formset},
+                    {
+                        "form": listing_form,
+                        "slot_formset": slot_formset,
+                        "alert_message": alert_message,
+                    },
                 )
             new_listing = listing_form.save(commit=False)
             new_listing.user = request.user
@@ -52,47 +57,63 @@ def create_listing(request):
             messages.success(request, "Listing created successfully!")
             return redirect("view_listings")
         else:
-            messages.error(request, "Please correct the errors below.")
+            alert_message = "Please correct the errors below."
     else:
         listing_form = ListingForm()
         slot_formset = ListingSlotFormSet(prefix="form")
     return render(
         request,
         "listings/create_listing.html",
-        {"form": listing_form, "slot_formset": slot_formset},
+        {
+            "form": listing_form,
+            "slot_formset": slot_formset,
+            "alert_message": alert_message,
+        },
     )
-
 
 
 @login_required
 def edit_listing(request, listing_id):
     listing = get_object_or_404(Listing, id=listing_id, user=request.user)
-    block_warning = ""  # This will hold our blocking message, if any.
+    alert_message = ""
     
     if request.method == "POST":
         listing_form = ListingForm(request.POST, instance=listing)
-        slot_formset = ListingSlotFormSetEdit(request.POST, instance=listing, prefix="form")
+        slot_formset = ListingSlotFormSetEdit(
+            request.POST, instance=listing, prefix="form"
+        )
         if listing_form.is_valid() and slot_formset.is_valid():
             try:
                 validate_non_overlapping_slots(slot_formset)
             except Exception:
-                messages.error(request, "Overlapping slots detected. Please correct.")
+                alert_message = "Overlapping slots detected. Please correct."
                 return render(
                     request,
                     "listings/edit_listing.html",
-                    {"form": listing_form, "slot_formset": slot_formset, "listing": listing}
+                    {
+                        "form": listing_form,
+                        "slot_formset": slot_formset,
+                        "listing": listing,
+                        "alert_message": alert_message,
+                    },
                 )
             
             # Block editing if there is any pending booking.
             pending_bookings = listing.booking_set.filter(status="PENDING")
             if pending_bookings.exists():
-                block_warning = ("You cannot edit your listing while there is a pending booking. "
-                                 "Please accept or reject all pending bookings before editing.")
-                messages.error(request, block_warning)
+                alert_message = (
+                    "You cannot edit your listing while there is a pending booking. "
+                    "Please accept or reject all pending bookings before editing."
+                )
                 return render(
                     request,
                     "listings/edit_listing.html",
-                    {"form": listing_form, "slot_formset": slot_formset, "listing": listing, "block_warning": block_warning}
+                    {
+                        "form": listing_form,
+                        "slot_formset": slot_formset,
+                        "listing": listing,
+                        "alert_message": alert_message,
+                    },
                 )
             
             # Build new intervals from the formset.
@@ -105,8 +126,16 @@ def edit_listing(request, listing_id):
                 end_date = form.cleaned_data.get("end_date")
                 end_time = form.cleaned_data.get("end_time")
                 if start_date and start_time and end_date and end_time:
-                    st = start_time if isinstance(start_time, time) else datetime.strptime(start_time, "%H:%M").time()
-                    et = end_time if isinstance(end_time, time) else datetime.strptime(end_time, "%H:%M").time()
+                    st = (
+                        start_time
+                        if isinstance(start_time, time)
+                        else datetime.strptime(start_time, "%H:%M").time()
+                    )
+                    et = (
+                        end_time
+                        if isinstance(end_time, time)
+                        else datetime.strptime(end_time, "%H:%M").time()
+                    )
                     start_dt = datetime.combine(start_date, st)
                     end_dt = datetime.combine(end_date, et)
                     new_intervals.append((start_dt, end_dt))
@@ -128,13 +157,19 @@ def edit_listing(request, listing_id):
             active_bookings = listing.booking_set.filter(status="APPROVED")
             for booking in active_bookings:
                 if is_booking_covered_by_intervals(booking, merged_intervals):
-                    block_warning = ("Your changes conflict with an active booking. "
-                                     "You cannot edit your listing while an active booking remains within your availability.")
-                    messages.error(request, block_warning)
+                    alert_message = (
+                        "Your changes conflict with an active booking. "
+                        "You cannot edit your listing while an active booking remains within your availability."
+                    )
                     return render(
                         request,
                         "listings/edit_listing.html",
-                        {"form": listing_form, "slot_formset": slot_formset, "listing": listing, "block_warning": block_warning}
+                        {
+                            "form": listing_form,
+                            "slot_formset": slot_formset,
+                            "listing": listing,
+                            "alert_message": alert_message,
+                        },
                     )
             
             # No blocking conditions found; save changes.
@@ -143,7 +178,7 @@ def edit_listing(request, listing_id):
             messages.success(request, "Listing updated successfully!")
             return redirect("manage_listings")
         else:
-            messages.error(request, "Please correct the errors below.")
+            alert_message = "Please correct the errors below."
     else:
         listing_form = ListingForm(instance=listing)
         slot_formset = ListingSlotFormSetEdit(instance=listing, prefix="form")
@@ -151,7 +186,12 @@ def edit_listing(request, listing_id):
     return render(
         request,
         "listings/edit_listing.html",
-        {"form": listing_form, "slot_formset": slot_formset, "listing": listing, "block_warning": block_warning}
+        {
+            "form": listing_form,
+            "slot_formset": slot_formset,
+            "listing": listing,
+            "alert_message": alert_message,
+        },
     )
 
 
@@ -452,8 +492,7 @@ def delete_listing(request, listing_id):
             "listings/manage_listings.html",
             {
                 "listings": owner_listings,
-                "delete_error": "Cannot delete listing with pending or approved bookings.\
-                    Please handle those bookings first.",
+                "delete_error": "Cannot delete listing with pending or approved bookings. Please handle those bookings first.",
                 "error_listing_id": listing_id,
             },
         )
