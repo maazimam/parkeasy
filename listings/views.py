@@ -28,11 +28,6 @@ HALF_HOUR_CHOICES = [
     for minute in (0, 30)
 ]
 
-# Define a separate inline formset for editing with extra=0 (no extra blank slot)
-ListingSlotFormSetEdit = inlineformset_factory(
-    Listing, ListingSlot, form=ListingSlotForm, extra=0, can_delete=True
-)
-
 
 @login_required
 def create_listing(request):
@@ -68,14 +63,15 @@ def create_listing(request):
     )
 
 
+
 @login_required
 def edit_listing(request, listing_id):
     listing = get_object_or_404(Listing, id=listing_id, user=request.user)
+    block_warning = ""  # This will hold our blocking message, if any.
+    
     if request.method == "POST":
         listing_form = ListingForm(request.POST, instance=listing)
-        slot_formset = ListingSlotFormSetEdit(
-            request.POST, instance=listing, prefix="form"
-        )
+        slot_formset = ListingSlotFormSetEdit(request.POST, instance=listing, prefix="form")
         if listing_form.is_valid() and slot_formset.is_valid():
             try:
                 validate_non_overlapping_slots(slot_formset)
@@ -84,14 +80,22 @@ def edit_listing(request, listing_id):
                 return render(
                     request,
                     "listings/edit_listing.html",
-                    {
-                        "form": listing_form,
-                        "slot_formset": slot_formset,
-                        "listing": listing,
-                    },
+                    {"form": listing_form, "slot_formset": slot_formset, "listing": listing}
                 )
-
-            # --- NEW CODE: Validate active/pending bookings against new slots ---
+            
+            # Block editing if there is any pending booking.
+            pending_bookings = listing.booking_set.filter(status="PENDING")
+            if pending_bookings.exists():
+                block_warning = ("You cannot edit your listing while there is a pending booking. "
+                                 "Please accept or reject all pending bookings before editing.")
+                messages.error(request, block_warning)
+                return render(
+                    request,
+                    "listings/edit_listing.html",
+                    {"form": listing_form, "slot_formset": slot_formset, "listing": listing, "block_warning": block_warning}
+                )
+            
+            # Build new intervals from the formset.
             new_intervals = []
             for form in slot_formset:
                 if form.cleaned_data.get("DELETE"):
@@ -101,20 +105,12 @@ def edit_listing(request, listing_id):
                 end_date = form.cleaned_data.get("end_date")
                 end_time = form.cleaned_data.get("end_time")
                 if start_date and start_time and end_date and end_time:
-                    # Convert times if needed
-                    st = (
-                        start_time
-                        if isinstance(start_time, time)
-                        else datetime.strptime(start_time, "%H:%M").time()
-                    )
-                    et = (
-                        end_time
-                        if isinstance(end_time, time)
-                        else datetime.strptime(end_time, "%H:%M").time()
-                    )
+                    st = start_time if isinstance(start_time, time) else datetime.strptime(start_time, "%H:%M").time()
+                    et = end_time if isinstance(end_time, time) else datetime.strptime(end_time, "%H:%M").time()
                     start_dt = datetime.combine(start_date, st)
                     end_dt = datetime.combine(end_date, et)
                     new_intervals.append((start_dt, end_dt))
+            
             # Merge intervals into non-overlapping ranges.
             new_intervals.sort(key=lambda iv: iv[0])
             merged_intervals = []
@@ -127,30 +123,21 @@ def edit_listing(request, listing_id):
                         merged_intervals[-1] = (last_start, max(last_end, interval[1]))
                     else:
                         merged_intervals.append(interval)
-            # Check each active or pending booking.
-            active_bookings = listing.booking_set.filter(
-                status__in=["PENDING", "APPROVED"]
-            )
+            
+            # For each active booking (approved), if its slots are still covered by the new intervals, block editing.
+            active_bookings = listing.booking_set.filter(status="APPROVED")
             for booking in active_bookings:
-                if not is_booking_covered_by_intervals(booking, merged_intervals):
-                    messages.error(
-                        request,
-                        "Your changes conflict with active or pending bookings. \
-                            All active booking times must remain within your availability.",
-                        extra_tags="booking-conflict",
-                    )
+                if is_booking_covered_by_intervals(booking, merged_intervals):
+                    block_warning = ("Your changes conflict with an active booking. "
+                                     "You cannot edit your listing while an active booking remains within your availability.")
+                    messages.error(request, block_warning)
                     return render(
                         request,
                         "listings/edit_listing.html",
-                        {
-                            "form": listing_form,
-                            "slot_formset": slot_formset,
-                            "listing": listing,
-                        },
+                        {"form": listing_form, "slot_formset": slot_formset, "listing": listing, "block_warning": block_warning}
                     )
-
-            # --- END NEW CODE ---
-
+            
+            # No blocking conditions found; save changes.
             listing_form.save()
             slot_formset.save()
             messages.success(request, "Listing updated successfully!")
@@ -160,10 +147,11 @@ def edit_listing(request, listing_id):
     else:
         listing_form = ListingForm(instance=listing)
         slot_formset = ListingSlotFormSetEdit(instance=listing, prefix="form")
+    
     return render(
         request,
         "listings/edit_listing.html",
-        {"form": listing_form, "slot_formset": slot_formset, "listing": listing},
+        {"form": listing_form, "slot_formset": slot_formset, "listing": listing, "block_warning": block_warning}
     )
 
 

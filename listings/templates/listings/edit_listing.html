@@ -19,8 +19,16 @@
         </div>
         <div class="card-body p-4">
           {% if form.errors %}
-            <div class="alert alert-danger">
-              <i class="fas fa-exclamation-circle me-2"></i> Please correct the errors below.
+            <div class="alert alert-danger" id="server-alert">
+              <i class="fas fa-exclamation-circle me-2"></i>
+              {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                  {{ error }}<br>
+                {% endfor %}
+              {% endfor %}
+              {% for message in messages %}
+                {{ message }}
+              {% endfor %}
             </div>
           {% endif %}
 
@@ -200,19 +208,33 @@
     </div>
   </div>
 </div>
+
+<!-- Hidden Warning Modal -->
+<div id="warning-modal" class="warning-modal">
+  <div class="warning-modal-content">
+    <span class="warning-modal-close">&times;</span>
+    <p id="warning-modal-message"></p>
+  </div>
+</div>
+
+<!-- Pass block warning message from server (if any) -->
+{% if block_warning %}
+<script>
+  var blockWarningMessage = "{{ block_warning|escapejs }}";
+</script>
+{% else %}
+<script>
+  var blockWarningMessage = "";
+</script>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script src="{% static 'listings/js/edit_listings.js' %}"></script>
-{% if messages %}
+{% if block_warning %}
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  {% for message in messages %}
-    {% if message.extra_tags == "booking-conflict" %}
-      alert("{{ message|escapejs }}");
-    {% endif %}
-  {% endfor %}
-});
+  // Use an alert for the blocking warning, as with overlapping slot warnings.
+  alert(blockWarningMessage);
 </script>
 {% endif %}
 {% endblock %}
