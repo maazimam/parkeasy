@@ -64,6 +64,7 @@ def verify(request):
     # If GET or POST with errors, render the form as normal
     return render(request, "accounts/verify.html", context)
 
+
 @login_required
 def profile_view(request):
     # Render the user's profile page
