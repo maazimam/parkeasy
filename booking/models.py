@@ -110,6 +110,28 @@ class Booking(models.Model):
         """Determine if booking can be reviewed."""
         return self.status == "APPROVED" and self.has_passed and not self.is_reviewed
 
+    @property
+    def is_ongoing(self):
+        """Check if any booking slot is currently active."""
+        now = timezone.now()
+
+        for slot in self.slots.all():
+            # Convert start and end dates/times to datetime with timezone
+            slot_start = timezone.make_aware(
+                dt.datetime.combine(slot.start_date, slot.start_time),
+                timezone.get_current_timezone(),
+            )
+            slot_end = timezone.make_aware(
+                dt.datetime.combine(slot.end_date, slot.end_time),
+                timezone.get_current_timezone(),
+            )
+
+            # If current time is between start and end, booking is ongoing
+            if slot_start <= now <= slot_end:
+                return True
+
+        return False
+
 
 class BookingSlot(models.Model):
     """

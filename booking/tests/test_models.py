@@ -296,3 +296,48 @@ class BookingPropertiesTest(TestCase):
             end_time=(self.now + datetime.timedelta(hours=2)).time(),
         )
         self.assertFalse(self.booking.can_be_reviewed)
+
+    @patch("django.utils.timezone.now")
+    def test_is_ongoing_property(self, mock_now):
+        """Test the is_ongoing property."""
+        # Set the current time
+        mock_now.return_value = self.now
+
+        # Test case 1: No slots
+        self.assertFalse(self.booking.is_ongoing)
+
+        # Test case 2: Ongoing slot (current time is between start and end)
+        two_hours_ago = self.now - datetime.timedelta(hours=4)
+        two_hours_future = self.now + datetime.timedelta(hours=4)
+
+        ongoing_slot = BookingSlot.objects.create(
+            booking=self.booking,
+            start_date=two_hours_ago.date(),
+            start_time=two_hours_ago.time(),
+            end_date=two_hours_future.date(),
+            end_time=two_hours_future.time(),
+        )
+        self.assertTrue(self.booking.is_ongoing)
+
+        # Test case 3: Not ongoing (future slot)
+        ongoing_slot.delete()
+        future_slot = BookingSlot.objects.create(
+            booking=self.booking,
+            start_date=(self.now + datetime.timedelta(days=1)).date(),
+            start_time=self.now.time(),
+            end_date=(self.now + datetime.timedelta(days=1)).date(),
+            end_time=(self.now + datetime.timedelta(hours=2)).time(),
+        )
+        self.assertFalse(self.booking.is_ongoing)
+
+        # Test case 4: Not ongoing (past slot)
+        future_slot.delete()
+        past_slot = BookingSlot.objects.create(
+            booking=self.booking,
+            start_date=(self.now - datetime.timedelta(days=2)).date(),
+            start_time=self.now.time(),
+            end_date=(self.now - datetime.timedelta(days=2)).date(),
+            end_time=(self.now + datetime.timedelta(hours=2)).time(),
+        )
+        self.assertFalse(self.booking.is_ongoing)
+        past_slot.delete()
