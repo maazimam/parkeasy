@@ -228,7 +228,7 @@ class BookingPropertiesTest(TestCase):
         self.assertFalse(self.booking.has_passed)
 
         # Test case 2: All slots have passed
-        start = self.now - datetime.timedelta(days=2) # 2 days ago
+        start = self.now - datetime.timedelta(days=2)  # 2 days ago
         end = start + datetime.timedelta(hours=2)  # 2 hours duration
         past_slot = BookingSlot.objects.create(
             booking=self.booking,
