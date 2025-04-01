@@ -72,39 +72,39 @@ class Booking(models.Model):
     @property
     def is_reviewed(self):
         """Check if booking has been reviewed."""
-        return hasattr(self, 'review')
-    
+        return hasattr(self, "review")
+
     @property
     def is_within_24_hours(self):
         """Check if any slot is within 24 hours from now."""
         now = timezone.now()
         time_threshold = now + dt.timedelta(hours=24)
-        
+
         for slot in self.slots.all():
             slot_start = timezone.make_aware(
                 dt.datetime.combine(slot.start_date, slot.start_time),
-                timezone.get_current_timezone()
+                timezone.get_current_timezone(),
             )
             if now <= slot_start <= time_threshold:
                 return True
         return False
-    
+
     @property
     def has_passed(self):
         """Check if all booking slots have passed."""
         if not self.slots.exists():
             return False
-            
+
         now = timezone.now()
         for slot in self.slots.all():
             slot_end = timezone.make_aware(
-                dt.datetime.combine(slot.end_date, slot.end_time), 
-                timezone.get_current_timezone()
+                dt.datetime.combine(slot.end_date, slot.end_time),
+                timezone.get_current_timezone(),
             )
             if slot_end > now:
                 return False
         return True
-    
+
     @property
     def can_be_reviewed(self):
         """Determine if booking can be reviewed."""

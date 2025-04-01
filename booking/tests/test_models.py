@@ -146,6 +146,7 @@ class BookingSlotModelTest(TestCase):
         self.booking.delete()
         self.assertEqual(BookingSlot.objects.filter(booking_id=booking_id).count(), 0)
 
+
 class BookingPropertiesTest(TestCase):
     def setUp(self):
         # Create test user and listing
@@ -172,25 +173,26 @@ class BookingPropertiesTest(TestCase):
         """Test the is_reviewed property."""
         # Initially, booking should not be reviewed
         self.assertFalse(self.booking.is_reviewed)
-        
+
         # Create an actual Review instance
         review = Review.objects.create(
             booking=self.booking,
             listing=self.listing,
-            user=self.user,  # Add the user who created the review
+            user=self.user,
             rating=5,
-            comment="Great parking spot!"
+            comment="Great parking spot!",
         )
-        
-        # Now the booking should be reviewed
+
+        # Use the review variable explicitly
+        self.assertEqual(review.rating, 5)
         self.assertTrue(self.booking.is_reviewed)
 
-    @patch('django.utils.timezone.now')
+    @patch("django.utils.timezone.now")
     def test_is_within_24_hours_property(self, mock_now):
         """Test the is_within_24_hours property."""
         # Set the current time
         mock_now.return_value = self.now
-        
+
         # Test case 1: Slot starting within 24 hours
         slot_within_24h = BookingSlot.objects.create(
             booking=self.booking,
@@ -200,7 +202,7 @@ class BookingPropertiesTest(TestCase):
             end_time=(self.now + datetime.timedelta(hours=14)).time(),
         )
         self.assertTrue(self.booking.is_within_24_hours)
-        
+
         # Remove that slot and create one more than 24 hours away
         slot_within_24h.delete()
         BookingSlot.objects.create(
@@ -212,15 +214,15 @@ class BookingPropertiesTest(TestCase):
         )
         self.assertFalse(self.booking.is_within_24_hours)
 
-    @patch('django.utils.timezone.now')
+    @patch("django.utils.timezone.now")
     def test_has_passed_property(self, mock_now):
         """Test the has_passed property."""
         # Set the current time
         mock_now.return_value = self.now
-        
+
         # Test case 1: No slots
         self.assertFalse(self.booking.has_passed)
-        
+
         # Test case 2: All slots have passed
         past_slot = BookingSlot.objects.create(
             booking=self.booking,
@@ -229,8 +231,10 @@ class BookingPropertiesTest(TestCase):
             end_date=(self.now - datetime.timedelta(days=2)).date(),
             end_time=(self.now + datetime.timedelta(hours=2)).time(),
         )
+        # Use past_slot explicitly
+        self.assertEqual(past_slot.booking, self.booking)
         self.assertTrue(self.booking.has_passed)
-        
+
         # Test case 3: Not all slots have passed
         future_slot = BookingSlot.objects.create(
             booking=self.booking,
@@ -239,14 +243,16 @@ class BookingPropertiesTest(TestCase):
             end_date=(self.now + datetime.timedelta(days=1)).date(),
             end_time=(self.now + datetime.timedelta(hours=2)).time(),
         )
+        # Use future_slot explicitly
+        self.assertEqual(future_slot.booking, self.booking)
         self.assertFalse(self.booking.has_passed)
 
-    @patch('django.utils.timezone.now')
+    @patch("django.utils.timezone.now")
     def test_can_be_reviewed_property(self, mock_now):
         """Test the can_be_reviewed property."""
         # Set the current time
         mock_now.return_value = self.now
-        
+
         # Create a past slot
         past_slot = BookingSlot.objects.create(
             booking=self.booking,
@@ -255,30 +261,30 @@ class BookingPropertiesTest(TestCase):
             end_date=(self.now - datetime.timedelta(days=2)).date(),
             end_time=(self.now + datetime.timedelta(hours=2)).time(),
         )
-        
+
         # Test case 1: Approved, has passed, not reviewed
         self.assertTrue(self.booking.can_be_reviewed)
-        
+
         # Test case 2: Not approved, has passed, not reviewed
         self.booking.status = "PENDING"
         self.booking.save()
         self.assertFalse(self.booking.can_be_reviewed)
-        
+
         # Test case 3: Approved, has passed, already reviewed
         self.booking.status = "APPROVED"
         self.booking.save()
-        
+
         # Create an actual Review instance
         review = Review.objects.create(
             booking=self.booking,
             listing=self.listing,
             user=self.user,  # Add the user who created the review
             rating=4,
-            comment="Nice parking spot!"
+            comment="Nice parking spot!",
         )
-        
+
         self.assertFalse(self.booking.can_be_reviewed)
-        
+
         # Test case 4: Approved, not passed, not reviewed
         review.delete()  # Remove the review
         past_slot.delete()
@@ -290,4 +296,3 @@ class BookingPropertiesTest(TestCase):
             end_time=(self.now + datetime.timedelta(hours=2)).time(),
         )
         self.assertFalse(self.booking.can_be_reviewed)
-
