@@ -454,9 +454,9 @@ def view_listings(request):
                 all_listings = Listing.objects.none()
 
     if isinstance(all_listings, list):
-        all_listings.sort(key=lambda x: x.id)
+        all_listings.sort(key=lambda x: x.id, reverse=True)
     else:
-        all_listings = all_listings.order_by("id")
+        all_listings = all_listings.order_by("-id")  # Note the minus sign
 
     processed_listings = []
     for listing in all_listings:
@@ -479,7 +479,7 @@ def view_listings(request):
         processed_listings.append(listing)
 
     page_number = request.GET.get("page", 1)
-    paginator = Paginator(processed_listings, 25)
+    paginator = Paginator(processed_listings, 10)
     page_obj = paginator.get_page(page_number)
 
     context = {
