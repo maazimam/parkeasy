@@ -199,32 +199,8 @@
     </div>
   </div>
 </div>
-
-<!-- Hidden Warning Modal -->
-<div id="warning-modal" class="warning-modal" style="display: none;">
-  <div class="warning-modal-content">
-    <span class="warning-modal-close" style="cursor:pointer;">&times;</span>
-    <p id="warning-modal-message"></p>
-  </div>
-</div>
-
-<!-- Pass block warning message from server (if any) -->
-{% if block_warning %}
-<script>
-  var blockWarningMessage = "{{ block_warning|escapejs }}";
-</script>
-{% else %}
-<script>
-  var blockWarningMessage = "";
-</script>
-{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script src="{% static 'listings/js/edit_listings.js' %}"></script>
-{% if block_warning %}
-<script>
-  alert(blockWarningMessage);
-</script>
-{% endif %}
 {% endblock %}
