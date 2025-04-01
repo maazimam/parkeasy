@@ -194,23 +194,27 @@ class BookingPropertiesTest(TestCase):
         mock_now.return_value = self.now
 
         # Test case 1: Slot starting within 24 hours
+        start = self.now + datetime.timedelta(hours=12)  # 12 hours from now
+        end = start + datetime.timedelta(hours=2)  # 2 hours duration
         slot_within_24h = BookingSlot.objects.create(
             booking=self.booking,
-            start_date=self.now.date(),
-            start_time=(self.now + datetime.timedelta(hours=12)).time(),
-            end_date=self.now.date(),
-            end_time=(self.now + datetime.timedelta(hours=14)).time(),
+            start_date=start.date(),  # Use the date of the start time
+            start_time=start.time(),  # Use the time of the start
+            end_date=end.date(),  # Ensure end date matches the start date
+            end_time=end.time(),  # Use the time of the end
         )
         self.assertTrue(self.booking.is_within_24_hours)
 
         # Remove that slot and create one more than 24 hours away
         slot_within_24h.delete()
+        start = self.now + datetime.timedelta(days=2)  # 2 days from now
+        end = start + datetime.timedelta(hours=2)  # 2 hours duration
         BookingSlot.objects.create(
             booking=self.booking,
-            start_date=(self.now + datetime.timedelta(days=2)).date(),
-            start_time=self.now.time(),
-            end_date=(self.now + datetime.timedelta(days=2)).date(),
-            end_time=(self.now + datetime.timedelta(hours=2)).time(),
+            start_date=start.date(),  # Use the date of the start time
+            start_time=start.time(),  # Use the time of the start
+            end_date=end.date(),  # Ensure end date matches the start date
+            end_time=end.time(),  # Use the time of the end
         )
         self.assertFalse(self.booking.is_within_24_hours)
 
@@ -224,24 +228,28 @@ class BookingPropertiesTest(TestCase):
         self.assertFalse(self.booking.has_passed)
 
         # Test case 2: All slots have passed
+        start = self.now - datetime.timedelta(days=2) # 2 days ago
+        end = start + datetime.timedelta(hours=2)  # 2 hours duration
         past_slot = BookingSlot.objects.create(
             booking=self.booking,
-            start_date=(self.now - datetime.timedelta(days=2)).date(),
-            start_time=self.now.time(),
-            end_date=(self.now - datetime.timedelta(days=2)).date(),
-            end_time=(self.now + datetime.timedelta(hours=2)).time(),
+            start_date=start.date(),  # Use the date of the start time
+            start_time=start.time(),  # Use the time of the start
+            end_date=end.date(),  # Ensure end date matches the start date
+            end_time=end.time(),  # Use the time of the end
         )
         # Use past_slot explicitly
         self.assertEqual(past_slot.booking, self.booking)
         self.assertTrue(self.booking.has_passed)
 
         # Test case 3: Not all slots have passed
+        start = self.now + datetime.timedelta(days=1)  # 1 day from now
+        end = start + datetime.timedelta(hours=2)  # 2 hours duration
         future_slot = BookingSlot.objects.create(
             booking=self.booking,
-            start_date=(self.now + datetime.timedelta(days=1)).date(),
-            start_time=self.now.time(),
-            end_date=(self.now + datetime.timedelta(days=1)).date(),
-            end_time=(self.now + datetime.timedelta(hours=2)).time(),
+            start_date=start.date(),  # Use the date of the start time
+            start_time=start.time(),  # Use the time of the start
+            end_date=end.date(),  # Ensure end date matches the start date
+            end_time=end.time(),  # Use the time of the end
         )
         # Use future_slot explicitly
         self.assertEqual(future_slot.booking, self.booking)
@@ -254,12 +262,14 @@ class BookingPropertiesTest(TestCase):
         mock_now.return_value = self.now
 
         # Create a past slot
+        start = self.now - datetime.timedelta(days=2)  # 2 days ago
+        end = start + datetime.timedelta(hours=2)  # 2 hours duration
         past_slot = BookingSlot.objects.create(
             booking=self.booking,
-            start_date=(self.now - datetime.timedelta(days=2)).date(),
-            start_time=self.now.time(),
-            end_date=(self.now - datetime.timedelta(days=2)).date(),
-            end_time=(self.now + datetime.timedelta(hours=2)).time(),
+            start_date=start.date(),  # Use the date of the start time
+            start_time=start.time(),  # Use the time of the start
+            end_date=end.date(),  # Ensure end date matches the start date
+            end_time=end.time(),  # Use the time of the end
         )
 
         # Test case 1: Approved, has passed, not reviewed
@@ -288,12 +298,14 @@ class BookingPropertiesTest(TestCase):
         # Test case 4: Approved, not passed, not reviewed
         review.delete()  # Remove the review
         past_slot.delete()
+        start = self.now + datetime.timedelta(days=1)  # 1 day from now
+        end = start + datetime.timedelta(hours=2)  # 2 hours duration
         BookingSlot.objects.create(
             booking=self.booking,
-            start_date=(self.now + datetime.timedelta(days=1)).date(),
-            start_time=self.now.time(),
-            end_date=(self.now + datetime.timedelta(days=1)).date(),
-            end_time=(self.now + datetime.timedelta(hours=2)).time(),
+            start_date=start.date(),  # Use the date of the start time
+            start_time=start.time(),  # Use the time of the start
+            end_date=end.date(),  # Ensure end date matches the start date
+            end_time=end.time(),  # Use the time of the end
         )
         self.assertFalse(self.booking.can_be_reviewed)
 
@@ -321,23 +333,27 @@ class BookingPropertiesTest(TestCase):
 
         # Test case 3: Not ongoing (future slot)
         ongoing_slot.delete()
+        start = self.now + datetime.timedelta(days=1)  # 1 day from now
+        end = start + datetime.timedelta(hours=2)
         future_slot = BookingSlot.objects.create(
             booking=self.booking,
-            start_date=(self.now + datetime.timedelta(days=1)).date(),
-            start_time=self.now.time(),
-            end_date=(self.now + datetime.timedelta(days=1)).date(),
-            end_time=(self.now + datetime.timedelta(hours=2)).time(),
+            start_date=start.date(),  # Use the date of the start time
+            start_time=start.time(),  # Use the time of the start
+            end_date=end.date(),  # Ensure end date matches the start date
+            end_time=end.time(),  # Use the time of the end
         )
         self.assertFalse(self.booking.is_ongoing)
 
         # Test case 4: Not ongoing (past slot)
         future_slot.delete()
+        start = self.now - datetime.timedelta(days=2)  # 2 days ago
+        end = start + datetime.timedelta(hours=2)
         past_slot = BookingSlot.objects.create(
             booking=self.booking,
-            start_date=(self.now - datetime.timedelta(days=2)).date(),
-            start_time=self.now.time(),
-            end_date=(self.now - datetime.timedelta(days=2)).date(),
-            end_time=(self.now + datetime.timedelta(hours=2)).time(),
+            start_date=start.date(),  # Use the date of the start time
+            start_time=start.time(),  # Use the time of the start
+            end_date=end.date(),  # Ensure end date matches the start date
+            end_time=end.time(),  # Use the time of the end
         )
         self.assertFalse(self.booking.is_ongoing)
         past_slot.delete()
