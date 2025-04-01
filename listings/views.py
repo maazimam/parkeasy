@@ -159,10 +159,13 @@ def edit_listing(request, listing_id):
                     booking_start = datetime.combine(slot.start_date, slot.start_time)
                     booking_end = datetime.combine(slot.end_date, slot.end_time)
                     for interval_start, interval_end in merged_intervals:
-                        if interval_start < booking_end and booking_start < interval_end:
+                        if (
+                            interval_start < booking_end
+                            and booking_start < interval_end
+                        ):
                             alert_message = (
                                 "Your changes conflict with an active booking. "
-                                "You cannot edit your listing when any new availability overlaps with an approved booking."
+                                "You cannot edit when new availability overlaps with an approved booking."
                             )
                             return render(
                                 request,
@@ -249,11 +252,15 @@ def simplify_location(location_string):
         (
             part
             for part in parts
-            if part.strip() in ["Brooklyn", "Manhattan", "Queens", "Bronx", "Staten Island"]
+            if part.strip()
+            in ["Brooklyn", "Manhattan", "Queens", "Bronx", "Staten Island"]
         ),
         "New York",
     )
-    if any(term in building.lower() for term in ["school", "university", "college", "institute"]):
+    if any(
+        term in building.lower()
+        for term in ["school", "university", "college", "institute"]
+    ):
         return f"{building}, {city}"
     street = parts[1]
     return f"{building}, {street}, {city}"
@@ -350,47 +357,69 @@ def view_listings(request):
                 s_time = datetime.strptime(r_start_time, "%H:%M").time()
                 e_time = datetime.strptime(r_end_time, "%H:%M").time()
                 if s_time >= e_time and not overnight:
-                    error_messages.append("Start time must be before end time unless overnight booking is selected")
+                    error_messages.append(
+                        "Start time must be before end time unless overnight booking is selected"
+                    )
                     continue_with_filter = False
                 if pattern == "daily":
                     r_end_date = request.GET.get("recurring_end_date")
                     if not r_end_date:
-                        error_messages.append("End date is required for daily recurring pattern")
+                        error_messages.append(
+                            "End date is required for daily recurring pattern"
+                        )
                         continue_with_filter = False
                     else:
                         end_date_obj = datetime.strptime(r_end_date, "%Y-%m-%d").date()
                         if end_date_obj < start_date_obj:
-                            error_messages.append("End date must be on or after start date")
+                            error_messages.append(
+                                "End date must be on or after start date"
+                            )
                             continue_with_filter = False
                         else:
                             days_count = (end_date_obj - start_date_obj).days + 1
                             if days_count > 90:
-                                warning_messages.append("Daily recurring pattern spans over 90 days, results may be limited")
+                                warning_messages.append(
+                                    "Daily recurring pattern spans over 90 days, results may be limited"
+                                )
                             if continue_with_filter:
                                 for day_offset in range(days_count):
-                                    current_date = start_date_obj + timedelta(days=day_offset)
+                                    current_date = start_date_obj + timedelta(
+                                        days=day_offset
+                                    )
                                     s_dt = datetime.combine(current_date, s_time)
-                                    end_date_for_slot = current_date + timedelta(days=1 if overnight else 0)
+                                    end_date_for_slot = current_date + timedelta(
+                                        days=1 if overnight else 0
+                                    )
                                     e_dt = datetime.combine(end_date_for_slot, e_time)
                                     intervals.append((s_dt, e_dt))
                 elif pattern == "weekly":
                     try:
                         weeks_str = request.GET.get("recurring_weeks")
                         if not weeks_str:
-                            error_messages.append("Number of weeks is required for weekly recurring pattern")
+                            error_messages.append(
+                                "Number of weeks is required for weekly recurring pattern"
+                            )
                             continue_with_filter = False
                         else:
                             weeks = int(weeks_str)
                             if weeks <= 0:
-                                error_messages.append("Number of weeks must be positive")
+                                error_messages.append(
+                                    "Number of weeks must be positive"
+                                )
                                 continue_with_filter = False
                             elif weeks > 52:
-                                warning_messages.append("Weekly recurring pattern spans over 52 weeks, results may be limited")
+                                warning_messages.append(
+                                    "Weekly recurring pattern spans over 52 weeks, results may be limited"
+                                )
                             if continue_with_filter:
                                 for week_offset in range(weeks):
-                                    current_date = start_date_obj + timedelta(weeks=week_offset)
+                                    current_date = start_date_obj + timedelta(
+                                        weeks=week_offset
+                                    )
                                     s_dt = datetime.combine(current_date, s_time)
-                                    end_date_for_slot = current_date + timedelta(days=1 if overnight else 0)
+                                    end_date_for_slot = current_date + timedelta(
+                                        days=1 if overnight else 0
+                                    )
                                     e_dt = datetime.combine(end_date_for_slot, e_time)
                                     intervals.append((s_dt, e_dt))
                     except ValueError:
@@ -403,8 +432,12 @@ def view_listings(request):
                         available_for_all = True
                         for s_dt, e_dt in intervals:
                             if overnight and s_time >= e_time:
-                                evening_available = listing.is_available_for_range(s_dt, datetime.combine(s_dt.date(), time(23, 59)))
-                                morning_available = listing.is_available_for_range(datetime.combine(e_dt.date(), time(0, 0)), e_dt)
+                                evening_available = listing.is_available_for_range(
+                                    s_dt, datetime.combine(s_dt.date(), time(23, 59))
+                                )
+                                morning_available = listing.is_available_for_range(
+                                    datetime.combine(e_dt.date(), time(0, 0)), e_dt
+                                )
                                 if not (evening_available and morning_available):
                                     available_for_all = False
                                     break
@@ -500,7 +533,7 @@ def delete_listing(request, listing_id):
             "listings/manage_listings.html",
             {
                 "listings": owner_listings,
-                "delete_error": "Cannot delete listing with pending or approved bookings. Please handle those bookings first.",
+                "delete_error": "Cannot delete listing with pending bookings. Please handle those first.",
                 "error_listing_id": listing_id,
             },
         )
