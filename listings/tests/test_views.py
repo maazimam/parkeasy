@@ -1,4 +1,4 @@
-from datetime import datetime, date, time, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 from django.contrib.auth.models import User
@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from ..forms import ListingForm
 from ..models import Listing, ListingSlot
-from ..views import simplify_location
+from ..utilities import simplify_location
 
 
 class ListingViewsTests(TestCase):

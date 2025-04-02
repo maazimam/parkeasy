@@ -234,38 +234,6 @@ def edit_listing(request, listing_id):
     )
 
 
-def simplify_location(location_string):
-    """
-    Simplifies a location string before sending to template.
-    Example: "Tandon School of Engineering, Johnson Street, Downtown Brooklyn, Brooklyn..."
-    becomes "Tandon School of Engineering, Brooklyn"
-    """
-    if not location_string:
-        return ""
-
-    parts = [part.strip() for part in location_string.split(",")]
-    if len(parts) < 2:
-        return location_string
-
-    building = parts[0]
-    city = next(
-        (
-            part
-            for part in parts
-            if part.strip()
-            in ["Brooklyn", "Manhattan", "Queens", "Bronx", "Staten Island"]
-        ),
-        "New York",
-    )
-    if any(
-        term in building.lower()
-        for term in ["school", "university", "college", "institute"]
-    ):
-        return f"{building}, {city}"
-    street = parts[1]
-    return f"{building}, {street}, {city}"
-
-
 def view_listings(request):
     current_datetime = datetime.now()
 
@@ -460,10 +428,6 @@ def view_listings(request):
 
     processed_listings = []
     for listing in all_listings:
-        location_full = listing.location.split("[")[0].strip()
-        listing.location_name = simplify_location(location_full)
-        listing.avg_rating = listing.average_rating()
-        listing.rating_count = listing.rating_count()
         try:
             earliest_slot = listing.slots.earliest("start_date", "start_time")
             latest_slot = listing.slots.latest("end_date", "end_time")
