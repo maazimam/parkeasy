@@ -1,4 +1,3 @@
-# listings/views.py
 from datetime import datetime, time, timedelta
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -14,7 +13,6 @@ from .forms import (
     ListingSlotForm,
 )
 from .models import Listing, ListingSlot
-from listings.utils import is_booking_covered_by_intervals  # NEW IMPORT
 
 # Define an inline formset for editing (extra=0)
 ListingSlotFormSetEdit = inlineformset_factory(
@@ -76,6 +74,7 @@ def create_listing(request):
 def edit_listing(request, listing_id):
     listing = get_object_or_404(Listing, id=listing_id, user=request.user)
     alert_message = ""
+    current_dt = datetime.now()
 
     if request.method == "POST":
         listing_form = ListingForm(request.POST, instance=listing)
@@ -153,34 +152,75 @@ def edit_listing(request, listing_id):
                     else:
                         merged_intervals.append(interval)
 
+            # BLOCK EDIT IF ANY NEW INTERVAL OVERLAPS WITH ANY APPROVED BOOKING SLOT
             active_bookings = listing.booking_set.filter(status="APPROVED")
             for booking in active_bookings:
-                if is_booking_covered_by_intervals(booking, merged_intervals):
-                    alert_message = (
-                        "Your changes conflict with an active booking. "
-                        "You cannot edit your listing while an active booking remains within your availability."
-                    )
-                    return render(
-                        request,
-                        "listings/edit_listing.html",
-                        {
-                            "form": listing_form,
-                            "slot_formset": slot_formset,
-                            "listing": listing,
-                            "alert_message": alert_message,
-                        },
-                    )
+                for slot in booking.slots.all():
+                    booking_start = datetime.combine(slot.start_date, slot.start_time)
+                    booking_end = datetime.combine(slot.end_date, slot.end_time)
+                    for interval_start, interval_end in merged_intervals:
+                        if (
+                            interval_start < booking_end
+                            and booking_start < interval_end
+                        ):
+                            alert_message = (
+                                "Your changes conflict with an active booking. "
+                                "You cannot edit when new availability overlaps with an approved booking."
+                            )
+                            return render(
+                                request,
+                                "listings/edit_listing.html",
+                                {
+                                    "form": listing_form,
+                                    "slot_formset": slot_formset,
+                                    "listing": listing,
+                                    "alert_message": alert_message,
+                                },
+                            )
 
-            # No blocking conditions found; save changes.
+            # Save the changes.
             listing_form.save()
             slot_formset.save()
+
+            # Delete any timeslots that have already passed.
+            for slot in listing.slots.all():
+                slot_end = datetime.combine(slot.end_date, slot.end_time)
+                if slot_end <= datetime.now():
+                    slot.delete()
+
             messages.success(request, "Listing updated successfully!")
             return redirect("manage_listings")
         else:
             alert_message = "Please correct the errors below."
     else:
+        # GET: Pre-process timeslots.
+        all_slots = listing.slots.all()
+        non_passed_ids = [
+            slot.id
+            for slot in all_slots
+            if datetime.combine(slot.end_date, slot.end_time) > current_dt
+        ]
+        non_passed_qs = listing.slots.filter(id__in=non_passed_ids)
         listing_form = ListingForm(instance=listing)
-        slot_formset = ListingSlotFormSetEdit(instance=listing, prefix="form")
+        slot_formset = ListingSlotFormSetEdit(
+            instance=listing, prefix="form", queryset=non_passed_qs
+        )
+        # For any ongoing slot, update its initial start_time to the next half‑hour slot.
+        for form in slot_formset.forms:
+            slot = form.instance
+            slot_start_dt = datetime.combine(slot.start_date, slot.start_time)
+            slot_end_dt = datetime.combine(slot.end_date, slot.end_time)
+            if slot_start_dt <= current_dt < slot_end_dt:
+                minutes = current_dt.minute
+                if minutes < 30:
+                    new_minute = 30
+                    new_hour = current_dt.hour
+                else:
+                    new_minute = 0
+                    new_hour = current_dt.hour + 1
+                    if new_hour >= 24:
+                        new_hour -= 24
+                form.initial["start_time"] = f"{new_hour:02d}:{new_minute:02d}"
 
     return render(
         request,
@@ -229,6 +269,7 @@ def simplify_location(location_string):
 def view_listings(request):
     current_datetime = datetime.now()
 
+    # This query returns listings with at least one slot that has not yet ended.
     all_listings = Listing.objects.filter(
         models.Q(slots__end_date__gt=current_datetime.date())
         | models.Q(
@@ -320,7 +361,6 @@ def view_listings(request):
                         "Start time must be before end time unless overnight booking is selected"
                     )
                     continue_with_filter = False
-
                 if pattern == "daily":
                     r_end_date = request.GET.get("recurring_end_date")
                     if not r_end_date:
@@ -407,14 +447,16 @@ def view_listings(request):
                         if available_for_all:
                             filtered.append(listing)
                     all_listings = filtered
-
             except ValueError:
                 error_messages.append("Invalid date or time format")
 
+            if not continue_with_filter:
+                all_listings = Listing.objects.none()
+
     if isinstance(all_listings, list):
-        all_listings.sort(key=lambda x: x.id)
+        all_listings.sort(key=lambda x: x.id, reverse=True)
     else:
-        all_listings = all_listings.order_by("id")
+        all_listings = all_listings.order_by("-id")  # Note the minus sign
 
     processed_listings = []
     for listing in all_listings:
@@ -437,7 +479,7 @@ def view_listings(request):
         processed_listings.append(listing)
 
     page_number = request.GET.get("page", 1)
-    paginator = Paginator(processed_listings, 25)
+    paginator = Paginator(processed_listings, 10)
     page_obj = paginator.get_page(page_number)
 
     context = {
@@ -491,8 +533,7 @@ def delete_listing(request, listing_id):
             "listings/manage_listings.html",
             {
                 "listings": owner_listings,
-                "delete_error": "Cannot delete listing with pending or approved bookings.\
-                Please handle those bookings first.",
+                "delete_error": "Cannot delete listing with pending bookings. Please handle those first.",
                 "error_listing_id": listing_id,
             },
         )
