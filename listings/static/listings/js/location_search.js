@@ -54,6 +54,31 @@ document.addEventListener("DOMContentLoaded", function () {
       })
       .catch((error) => console.error("Error:", error));
   }
+
+  // Set up radius toggle
+  const enableRadiusCheckbox = document.getElementById("enable-radius");
+  const radiusInputGroup = document.getElementById("radius-input-group");
+  const radiusInput = document.getElementById("radius-input");
+  const radiusHint = document.getElementById("radius-hint");
+
+  enableRadiusCheckbox.addEventListener("change", function () {
+    if (this.checked) {
+      radiusInputGroup.style.display = "flex";
+      radiusHint.style.display = "none";
+      radiusInput.focus();
+    } else {
+      radiusInputGroup.style.display = "none";
+      radiusHint.style.display = "block";
+      radiusInput.value = ""; // Clear the radius value when disabled
+    }
+  });
+
+  // Clear radius input when unchecked before form submission
+  document.querySelector("form").addEventListener("submit", function (e) {
+    if (!enableRadiusCheckbox.checked) {
+      radiusInput.value = "";
+    }
+  });
 });
 
 function initializeMap() {

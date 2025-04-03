@@ -521,14 +521,13 @@ def view_listings_by_location(request):
     # Get search parameters
     search_lat = request.GET.get('lat')
     search_lng = request.GET.get('lng')
-    radius = request.GET.get('radius', 5)  # Default radius of 5km
+    radius = request.GET.get('radius')  # Now optional
 
     # Filter by location proximity if coordinates provided
     if search_lat and search_lng:
         try:
             search_lat = float(search_lat)
             search_lng = float(search_lng)
-            radius = float(radius)
 
             filtered_listings = []
             for listing in all_listings:
@@ -542,13 +541,20 @@ def view_listings_by_location(request):
                         listing_lat, listing_lng
                     )
 
-                    # Only include listings within the specified radius
-                    if distance <= radius:
-                        listing.distance = distance
+                    # Add distance to listing object
+                    listing.distance = distance
+
+                    # Only apply radius filter if specified
+                    if radius:
+                        radius = float(radius)
+                        if distance <= radius:
+                            filtered_listings.append(listing)
+                    else:
                         filtered_listings.append(listing)
                 except ValueError:
                     continue  # Skip listings with invalid coordinates
 
+            # Sort by distance regardless of radius filter
             all_listings = sorted(filtered_listings, key=lambda x: x.distance)
         except ValueError:
             pass

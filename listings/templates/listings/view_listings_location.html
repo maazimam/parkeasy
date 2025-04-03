@@ -82,15 +82,27 @@
         </div>
 
         <div class="col-md-2">
-          <label class="form-label">
-            <i class="fas fa-circle-notch me-1"></i> Radius (km)
-          </label>
-          <input type="number" 
-                 name="radius" 
-                 class="form-control" 
-                 value="{{ radius|default:5 }}" 
-                 min="1" 
-                 max="100">
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="enable-radius" 
+                   {% if radius %}checked{% endif %}>
+            <label class="form-check-label" for="enable-radius">
+              <i class="fas fa-circle-notch me-1"></i> Filter by radius
+            </label>
+          </div>
+          <div id="radius-input-group" class="input-group" {% if not radius %}style="display: none;"{% endif %}>
+            <input type="number" 
+                   name="radius" 
+                   id="radius-input"
+                   class="form-control" 
+                   value="{{ radius|default:'' }}" 
+                   placeholder="km"
+                   min="1" 
+                   max="100">
+            <span class="input-group-text">km</span>
+          </div>
+          <small class="text-muted" id="radius-hint" {% if radius %}style="display: none;"{% endif %}>
+            Results will be sorted by distance
+          </small>
         </div>
         
         <div class="col-md-3 d-flex align-items-end">
