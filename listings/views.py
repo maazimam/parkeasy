@@ -426,14 +426,24 @@ def view_listings(request):
             if not continue_with_filter:
                 all_listings = Listing.objects.none()
 
-    print("Before EV, listings:", len(all_listings) if isinstance(all_listings, list) else all_listings.count())
+    print(
+        "Before EV, listings:",
+        len(all_listings) if isinstance(all_listings, list) else all_listings.count(),
+    )
 
     # EV Charger filtering - check both possible parameter names
     ev_param = request.GET.get("ev_charger") or request.GET.get("has_ev_charger")
     if ev_param == "on":
         print("Applying EV filter")
         all_listings = all_listings.filter(has_ev_charger=True)
-        print("After EV, listings:", len(all_listings) if isinstance(all_listings, list) else all_listings.count())
+        print(
+            "After EV, listings:",
+            (
+                len(all_listings)
+                if isinstance(all_listings, list)
+                else all_listings.count()
+            ),
+        )
 
     charger_level = request.GET.get("charger_level")
     if charger_level:

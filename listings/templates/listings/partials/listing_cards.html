@@ -35,16 +35,13 @@
             </p>
             
             {% if listing.has_ev_charger %}
-            <div class="mt-2 small">
-              <span class="badge bg-success">
-                <i class="fas fa-charging-station me-1"></i> EV Charger Available
+            <div class="mt-2">
+              <span class="badge bg-warning text-dark">
+                <i class="fas fa-charging-station me-1"></i>
+                {{ listing.get_charger_level_display }} 
+                <i class="fas fa-plug mx-1"></i>
+                {{ listing.get_connector_type_display }}
               </span>
-              {% if listing.charger_level %}
-              <span class="badge bg-info ms-1">{{ listing.get_charger_level_display }}</span>
-              {% endif %}
-              {% if listing.connector_type %}
-              <span class="badge bg-secondary ms-1">{{ listing.get_connector_type_display }}</span>
-              {% endif %}
             </div>
             {% endif %}
           </div>
