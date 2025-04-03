@@ -38,7 +38,7 @@ class ListingModelTest(TestCase):
 
     def test_average_rating_no_reviews(self):
         """Test average_rating returns None when there are no reviews."""
-        self.assertIsNone(self.listing.average_rating())
+        self.assertIsNone(self.listing.avg_rating)
 
     def test_is_available_for_range_single_slot(self):
         """Test availability check with a single slot covering the entire range."""

@@ -107,6 +107,13 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // ---- STAR RATING FUNCTIONALITY ----
+  const ratingElements = document.querySelectorAll('.rating-stars');
+  ratingElements.forEach(function(ratingElement) {
+    const rating = parseFloat(ratingElement.getAttribute("data-rating"));
+    ratingElement.innerHTML = generateStarRating(rating);
+  });
+
   // ---- LOAD MORE FUNCTIONALITY ----
   function setupLoadMoreButton() {
     const loadMoreBtn = document.getElementById("load-more-btn");
@@ -220,7 +227,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function initMap() {
       if (!map) {
         map = L.map("map-view").setView([40.69441, -73.98653], 13);
-        L.tileLayer("https://tile.openstreetmap.bzh/ca/{z}/{x}/{y}.png", {
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
           maxZoom: 19,
           attribution: "© OpenStreetMap contributors",
         }).addTo(map);
@@ -241,8 +248,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
           // Create popup content
           const ratingHtml = rating
-            ? `<br><strong>Rating:</strong> ${generateStars(rating)} (${rating.toFixed(1)})`
-            : `<br><span class="text-muted">No reviews yet ${generateStars(0)}</span>`;
+            ? `<br><strong>Rating:</strong> ${generateStarRating(rating)} (${rating.toFixed(1)})`
+            : `<br><span class="text-muted">No reviews yet ${generateStarRating(0)}</span>`;
 
           const popupContent = `
             <strong>${title}</strong><br>

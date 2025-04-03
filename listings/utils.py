@@ -1,22 +1,58 @@
+from datetime import datetime
 import math
 
+def is_booking_slot_covered(booking_slot, intervals):
+    """
+    Check if the given booking slot is completely covered by at least one interval.
+
+    :param booking_slot: A booking slot instance with attributes start_date, start_time, end_date, end_time.
+    :param intervals: A list of tuples (start_dt, end_dt) where each is a datetime object.
+    :return: True if the booking slot is fully within one of the intervals, otherwise False.
+    """
+    booking_start = datetime.combine(booking_slot.start_date, booking_slot.start_time)
+    booking_end = datetime.combine(booking_slot.end_date, booking_slot.end_time)
+
+    for iv_start, iv_end in intervals:
+        if iv_start <= booking_start and iv_end >= booking_end:
+            return True
+    return False
+
+
+def is_booking_covered_by_intervals(booking, intervals):
+    """
+    Check if every slot in the booking is completely covered by one of the intervals.
+
+    :param booking: A booking instance with related slots accessible via booking.slots.all()
+    :param intervals: A list of tuples (start_dt, end_dt) representing new availability intervals.
+    :return: True if all booking slots are fully covered, otherwise False.
+    """
+    for slot in booking.slots.all():
+        if not is_booking_slot_covered(slot, intervals):
+            return False
+    return True
 
 def simplify_location(location_string):
     """
-    Simplifies a location string before sending to template.
+    Simplifies a location string.
     Example: "Tandon School of Engineering, Johnson Street, Downtown Brooklyn, Brooklyn..."
     becomes "Tandon School of Engineering, Brooklyn"
+
+    Args:
+        location_string (str): Full location string that may include coordinates
+
+    Returns:
+        str: Simplified location name
     """
-    if not location_string:
+    # Extract location name part before coordinates
+    location_full = location_string.split("[")[0].strip()
+    if not location_full:
         return ""
 
-    parts = [part.strip() for part in location_string.split(",")]
+    parts = [part.strip() for part in location_full.split(",")]
     if len(parts) < 2:
-        return location_string
+        return location_full
 
     building = parts[0]
-
-    # Find the city (Brooklyn, Manhattan, etc.)
     city = next(
         (
             part
@@ -27,17 +63,15 @@ def simplify_location(location_string):
         "New York",
     )
 
-    # For educational institutions, keep the full name
+    # Handle educational institutions differently
     if any(
         term in building.lower()
         for term in ["school", "university", "college", "institute"]
     ):
         return f"{building}, {city}"
 
-    # For other locations, use first two parts
     street = parts[1]
     return f"{building}, {street}, {city}"
-
 
 def calculate_distance(lat1, lng1, lat2, lng2):
     """
