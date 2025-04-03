@@ -10,8 +10,9 @@ from listings.forms import ListingForm
 from listings.models import Listing, ListingSlot
 from booking.models import Booking, BookingSlot
 
+
 #############################
-# Tests for views (listings/tests/test_views.py)
+# Existing Tests for create, edit, delete, reviews, EV filters, etc.
 #############################
 
 
@@ -194,7 +195,6 @@ class ListingViewsTests(TestCase):
             end_time="12:00",
         )
         url = reverse("edit_listing", args=[self.listing.id])
-        print(url)
         listing_data = {
             "title": "Conflict Edit",
             "description": "Conflicting interval",
@@ -204,6 +204,7 @@ class ListingViewsTests(TestCase):
             "charger_level": "",
             "connector_type": "",
         }
+        print(url)
         slot_data = {
             "form-TOTAL_FORMS": "1",
             "form-INITIAL_FORMS": "0",
@@ -275,14 +276,19 @@ class ListingViewsTests(TestCase):
         self.assertIn("reviews", response.context)
 
 
+#############################
+# New Tests for recurring filters (covering lines 356–427)
+#############################
+
+
 class ListingsFilterTest(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(username="filteruser", password="pass")
         self.client.login(username="filteruser", password="pass")
         # Set test_date to a future date.
-        self.test_date = date.today() + timedelta(days=5)
-        # Create Listing 1: Future Listing – available from test_date 09:00 to (test_date+5 days) 17:00.
+        self.test_date = date.today() + timedelta(days=10)
+        # Create listings for filtering.
         self.future_listing = Listing.objects.create(
             user=self.user,
             title="Future Listing",
@@ -297,7 +303,6 @@ class ListingsFilterTest(TestCase):
             end_date=self.test_date + timedelta(days=5),
             end_time=time(17, 0),
         )
-        # Listing 2: Today with future time – available on test_date 14:00 to 18:00.
         self.today_future = Listing.objects.create(
             user=self.user,
             title="Today Future Time",
@@ -312,7 +317,6 @@ class ListingsFilterTest(TestCase):
             end_date=self.test_date,
             end_time=time(18, 0),
         )
-        # Listing 3: Today with past time – available on test_date 09:00 to 12:00.
         self.today_past = Listing.objects.create(
             user=self.user,
             title="Today Past Time",
@@ -327,8 +331,7 @@ class ListingsFilterTest(TestCase):
             end_date=self.test_date,
             end_time=time(12, 0),
         )
-
-        # Patch datetime in listings.views so that "now" is before self.test_date.
+        # Patch datetime in listings.views so that "now" is before test_date.
         self.patcher = patch("listings.views.datetime")
         self.mock_datetime = self.patcher.start()
         fixed_now = datetime.combine(self.test_date - timedelta(days=1), time(12, 0))
@@ -420,6 +423,7 @@ class ListingsFilterTest(TestCase):
         response = self.client.get(url, params)
         titles = [listing.title for listing in response.context["listings"]]
         self.assertIn("Multi Interval Listing", titles)
+        # Change second interval so it is not covered.
         params["start_time_2"] = "15:30"
         params["end_time_2"] = "16:30"
         response = self.client.get(url, params)
@@ -434,13 +438,155 @@ class ListingsFilterTest(TestCase):
             "recurring_start_date": self.test_date.strftime("%Y-%m-%d"),
             "recurring_end_date": self.test_date.strftime("%Y-%m-%d"),
             "recurring_start_time": "14:00",
-            "recurring_end_time": "12:00",
+            "recurring_end_time": "12:00",  # invalid: end before start without overnight
         }
         response = self.client.get(url, params)
         self.assertIn(
             "Start time must be before end time unless overnight booking is selected",
             response.context["error_messages"],
         )
+
+    # New tests to cover lines 356-427 (recurring branch)
+
+    def test_recurring_daily_missing_end_date(self):
+        url = reverse("view_listings")
+        params = {
+            "filter_type": "recurring",
+            "recurring_pattern": "daily",
+            "recurring_start_date": self.test_date.strftime("%Y-%m-%d"),
+            # Missing recurring_end_date
+            "recurring_start_time": "10:00",
+            "recurring_end_time": "12:00",
+        }
+        response = self.client.get(url, params)
+        # Expect error about missing end date.
+        self.assertIn(
+            "End date is required for daily recurring pattern",
+            response.context["error_messages"],
+        )
+        # Since continue_with_filter is False, all_listings becomes empty.
+        self.assertEqual(len(response.context["listings"]), 0)
+
+    def test_recurring_daily_end_date_before_start(self):
+        url = reverse("view_listings")
+        params = {
+            "filter_type": "recurring",
+            "recurring_pattern": "daily",
+            "recurring_start_date": "2025-04-10",
+            "recurring_end_date": "2025-04-09",  # end date before start date
+            "recurring_start_time": "10:00",
+            "recurring_end_time": "12:00",
+        }
+        response = self.client.get(url, params)
+        self.assertIn(
+            "End date must be on or after start date",
+            response.context["error_messages"],
+        )
+        self.assertEqual(len(response.context["listings"]), 0)
+
+    def test_recurring_weekly_missing_weeks(self):
+        url = reverse("view_listings")
+        params = {
+            "filter_type": "recurring",
+            "recurring_pattern": "weekly",
+            "recurring_start_date": "2025-04-10",
+            "recurring_start_time": "10:00",
+            "recurring_end_time": "12:00",
+            # Missing recurring_weeks
+        }
+        response = self.client.get(url, params)
+        self.assertIn(
+            "Number of weeks is required for weekly recurring pattern",
+            response.context["error_messages"],
+        )
+        self.assertEqual(len(response.context["listings"]), 0)
+
+    def test_recurring_weekly_invalid_weeks(self):
+        url = reverse("view_listings")
+        params = {
+            "filter_type": "recurring",
+            "recurring_pattern": "weekly",
+            "recurring_start_date": "2025-04-10",
+            "recurring_start_time": "10:00",
+            "recurring_end_time": "12:00",
+            "recurring_weeks": "-1",
+        }
+        response = self.client.get(url, params)
+        self.assertIn(
+            "Number of weeks must be positive", response.context["error_messages"]
+        )
+        self.assertEqual(len(response.context["listings"]), 0)
+
+    def test_recurring_daily_valid(self):
+        # Create a listing with a slot covering a wide period.
+        valid_listing = Listing.objects.create(
+            user=self.user,
+            title="Recurring Daily Listing",
+            location="Valid Location",
+            rent_per_hour=20.00,
+            description="Available daily",
+            has_ev_charger=False,
+        )
+        # Create a slot that covers a long period (e.g., from April 10 to April 20).
+        start_date_slot = datetime.strptime("2025-04-10", "%Y-%m-%d").date()
+        end_date_slot = datetime.strptime("2025-04-20", "%Y-%m-%d").date()
+        ListingSlot.objects.create(
+            listing=valid_listing,
+            start_date=start_date_slot,
+            start_time="08:00",
+            end_date=end_date_slot,
+            end_time="20:00",
+        )
+        url = reverse("view_listings")
+        params = {
+            "filter_type": "recurring",
+            "recurring_pattern": "daily",
+            "recurring_start_date": "2025-04-12",
+            "recurring_end_date": "2025-04-14",
+            "recurring_start_time": "09:00",
+            "recurring_end_time": "10:00",
+        }
+        response = self.client.get(url, params)
+        # Our listing should be included because its availability covers the requested intervals.
+        listings = response.context["listings"]
+        titles = [listing.title for listing in listings]
+        self.assertIn("Recurring Daily Listing", titles)
+
+
+def test_recurring_weekly_valid(self):
+    # Create a listing with weekly availability on a specific day.
+    weekly_listing = Listing.objects.create(
+        user=self.user,
+        title="Recurring Weekly Listing",
+        location="Weekly Location",
+        rent_per_hour=25.00,
+        description="Available weekly",
+        has_ev_charger=False,
+    )
+    # Create slots for 3 consecutive Mondays starting from 2025-04-14.
+    start_date = datetime.strptime("2025-04-14", "%Y-%m-%d").date()  # Monday
+    for week_offset in range(3):
+        slot_date = start_date + timedelta(weeks=week_offset)
+        ListingSlot.objects.create(
+            listing=weekly_listing,
+            start_date=slot_date,
+            start_time="09:00",
+            end_date=slot_date,
+            end_time="17:00",
+        )
+    url = reverse("view_listings")
+    params = {
+        "filter_type": "recurring",
+        "recurring_pattern": "weekly",
+        "recurring_start_date": "2025-04-14",
+        "recurring_weeks": "3",
+        "recurring_start_time": "10:00",
+        "recurring_end_time": "16:00",
+    }
+    response = self.client.get(url, params)
+    listings = response.context["listings"]
+    titles = [listing.title for listing in listings]
+    self.assertIn("Recurring Weekly Listing", titles)
 
 
 class ManageListingsTest(TestCase):
