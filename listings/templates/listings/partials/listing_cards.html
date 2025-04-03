@@ -33,6 +33,14 @@
               <i class="fas fa-info-circle text-secondary me-2"></i>
               {{ listing.description|truncatechars:120 }}
             </p>
+
+            <!-- Distance (if available) -->
+            {% if listing.distance is not None %}
+            <p class="card-text small text-muted mb-1">
+              <i class="fas fa-route text-secondary me-2"></i>
+              {{ listing.distance|floatformat:1 }} km away
+            </p>
+            {% endif %}
           </div>
         </div>
 

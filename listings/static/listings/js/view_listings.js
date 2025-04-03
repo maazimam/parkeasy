@@ -2,8 +2,8 @@ console.log("view_listings.js loaded");
 
 // Helper function to generate star HTML - extract it so it can be used anywhere
 function generateStarRating(rating) {
-  let starsHtml = '';
-  
+  let starsHtml = "";
+
   if (!rating) {
     // Show 5 empty stars if no rating
     for (let i = 0; i < 5; i++) {
@@ -23,8 +23,117 @@ function generateStarRating(rating) {
       starsHtml += '<i class="far fa-star text-warning"></i>';
     }
   }
-  
+
   return starsHtml;
+}
+
+// Global variables
+let searchMap;
+let searchMarker;
+let mapInitialized = false;
+
+// Map-related functions (outside DOMContentLoaded)
+function initializeMap() {
+  if (!mapInitialized) {
+    searchMap = L.map("search-map").setView([40.69441, -73.98653], 13);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "© OpenStreetMap contributors",
+    }).addTo(searchMap);
+
+    // Add click event to map
+    searchMap.on("click", onMapClick);
+    mapInitialized = true;
+  }
+}
+
+function onMapClick(e) {
+  placeMarker(e.latlng);
+  updateCoordinates(e.latlng.lat, e.latlng.lng);
+
+  // Reverse geocode to get location name
+  fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`
+  )
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.display_name) {
+        document.getElementById("location-search").value = data.display_name;
+      }
+    })
+    .catch((error) => console.error("Error:", error));
+}
+
+function placeMarker(latlng) {
+  if (searchMarker) {
+    searchMap.removeLayer(searchMarker);
+  }
+  searchMarker = L.marker(latlng, { draggable: true }).addTo(searchMap);
+
+  // Update coordinates when marker is dragged
+  searchMarker.on("dragend", function (event) {
+    const marker = event.target;
+    const position = marker.getLatLng();
+    updateCoordinates(position.lat, position.lng);
+
+    // Reverse geocode to get location name
+    fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.lat}&lon=${position.lng}`
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.display_name) {
+          document.getElementById("location-search").value = data.display_name;
+        }
+      })
+      .catch((error) => console.error("Error:", error));
+
+    // Optional: Update map view to center on new position
+    searchMap.setView(position, searchMap.getZoom());
+  });
+}
+
+function updateCoordinates(lat, lng) {
+  document.getElementById("search-lat").value = lat;
+  document.getElementById("search-lng").value = lng;
+
+  // Update coordinate display
+  const coordDisplay = document.getElementById("coordinates-display");
+  if (coordDisplay) {
+    coordDisplay.style.display = "block";
+    document.getElementById("lat-display").textContent = lat.toFixed(6);
+    document.getElementById("lng-display").textContent = lng.toFixed(6);
+  }
+}
+
+function setupLocationMap() {
+  const toggleMapBtn = document.getElementById("toggle-map");
+  const mapContainer = document.getElementById("search-map-container");
+
+  if (!toggleMapBtn || !mapContainer) return;
+
+  toggleMapBtn.addEventListener("click", function () {
+    const isMapHidden = mapContainer.style.display === "none";
+
+    if (isMapHidden) {
+      mapContainer.style.display = "block";
+      toggleMapBtn.classList.remove("btn-outline-secondary");
+      toggleMapBtn.classList.add("btn-secondary");
+
+      if (!mapInitialized) {
+        initializeMap();
+      }
+      setTimeout(() => {
+        if (searchMap) {
+          searchMap.invalidateSize();
+        }
+      }, 100);
+    } else {
+      mapContainer.style.display = "none";
+      toggleMapBtn.classList.remove("btn-secondary");
+      toggleMapBtn.classList.add("btn-outline-secondary");
+    }
+  });
 }
 
 // Single DOMContentLoaded event listener for all functionality
@@ -46,7 +155,7 @@ document.addEventListener("DOMContentLoaded", function () {
         singleFilter.style.display = "none";
         recurringFilter.style.display = "block";
       }
-      
+
       // Add event listeners for filter type changes
       filterSingle.addEventListener("change", function () {
         if (this.checked) {
@@ -63,7 +172,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
   }
-  
+
   // Recurring pattern toggle (daily/weekly)
   function initializeRecurringPatterns() {
     const patternDaily = document.getElementById("pattern_daily");
@@ -108,8 +217,8 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // ---- STAR RATING FUNCTIONALITY ----
-  const ratingElements = document.querySelectorAll('.rating-stars');
-  ratingElements.forEach(function(ratingElement) {
+  const ratingElements = document.querySelectorAll(".rating-stars");
+  ratingElements.forEach(function (ratingElement) {
     const rating = parseFloat(ratingElement.getAttribute("data-rating"));
     ratingElement.innerHTML = generateStarRating(rating);
   });
@@ -122,7 +231,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const nextPage = this.getAttribute("data-next-page");
         const listingsContainer = document.querySelector(".listings-container");
 
-        loadMoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
+        loadMoreBtn.innerHTML =
+          '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
         loadMoreBtn.disabled = true;
 
         // Build URL with existing filters
@@ -134,7 +244,8 @@ document.addEventListener("DOMContentLoaded", function () {
           .then((response) => response.text())
           .then((html) => {
             // Find and remove the existing load more button container
-            const existingButtonContainer = document.querySelector(".text-center.my-4");
+            const existingButtonContainer =
+              document.querySelector(".text-center.my-4");
             if (existingButtonContainer) {
               existingButtonContainer.remove();
             }
@@ -146,15 +257,15 @@ document.addEventListener("DOMContentLoaded", function () {
             // Add new listings to container
             const newListings = doc.querySelectorAll(".card");
             newListings.forEach((listing) => {
-            const listingClone = listing.cloneNode(true);
-            listingsContainer.appendChild(listingClone);
-              
-            // Find and update the star ratings in the newly added listing
-            const ratingStars = listingClone.querySelector('.rating-stars');
-            if (ratingStars) {
-              const rating = parseFloat(listingClone.dataset.rating || 0);
-              ratingStars.innerHTML = generateStarRating(rating);
-            }
+              const listingClone = listing.cloneNode(true);
+              listingsContainer.appendChild(listingClone);
+
+              // Find and update the star ratings in the newly added listing
+              const ratingStars = listingClone.querySelector(".rating-stars");
+              if (ratingStars) {
+                const rating = parseFloat(listingClone.dataset.rating || 0);
+                ratingStars.innerHTML = generateStarRating(rating);
+              }
             });
 
             // Add new load more button if available
@@ -180,12 +291,14 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function setupFilterButton() {
-    const filterButton = document.querySelector('form.filter-box button[type="submit"]');
-    
+    const filterButton = document.querySelector(
+      'form.filter-box button[type="submit"]'
+    );
+
     if (filterButton) {
-      filterButton.addEventListener('click', function(event) {
+      filterButton.addEventListener("click", function (event) {
         event.preventDefault();
-        const form = this.closest('form');
+        const form = this.closest("form");
         if (form) {
           form.submit();
         }
@@ -232,9 +345,9 @@ document.addEventListener("DOMContentLoaded", function () {
           attribution: "© OpenStreetMap contributors",
         }).addTo(map);
 
-      // Add markers for all listings
-      const listings = document.querySelectorAll(".card");
-      const bounds = [];
+        // Add markers for all listings
+        const listings = document.querySelectorAll(".card");
+        const bounds = [];
 
         listings.forEach((listing) => {
           const location = parseLocation(listing.dataset.location);
@@ -248,8 +361,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
           // Create popup content
           const ratingHtml = rating
-            ? `<br><strong>Rating:</strong> ${generateStarRating(rating)} (${rating.toFixed(1)})`
-            : `<br><span class="text-muted">No reviews yet ${generateStarRating(0)}</span>`;
+            ? `<br><strong>Rating:</strong> ${generateStarRating(
+                rating
+              )} (${rating.toFixed(1)})`
+            : `<br><span class="text-muted">No reviews yet ${generateStarRating(
+                0
+              )}</span>`;
 
           const popupContent = `
             <strong>${title}</strong><br>
@@ -300,6 +417,38 @@ document.addEventListener("DOMContentLoaded", function () {
     showListView();
   }
 
+  // Radius toggle functionality
+  function setupRadiusToggle() {
+    const enableRadiusCheckbox = document.getElementById("enable-radius");
+    const radiusInputGroup = document.getElementById("radius-input-group");
+    const radiusInput = document.getElementById("radius-input");
+    const radiusHint = document.getElementById("radius-hint");
+
+    if (enableRadiusCheckbox && radiusInputGroup && radiusInput && radiusHint) {
+      // Initialize state based on checkbox
+      if (enableRadiusCheckbox.checked) {
+        radiusInputGroup.style.display = "flex";
+        radiusHint.style.display = "none";
+      } else {
+        radiusInputGroup.style.display = "none";
+        radiusHint.style.display = "block";
+      }
+
+      // Toggle radius input visibility
+      enableRadiusCheckbox.addEventListener("change", function () {
+        if (this.checked) {
+          radiusInputGroup.style.display = "flex";
+          radiusHint.style.display = "none";
+          radiusInput.focus();
+        } else {
+          radiusInputGroup.style.display = "none";
+          radiusHint.style.display = "block";
+          radiusInput.value = ""; // Clear the radius value when disabled
+        }
+      });
+    }
+  }
+
   // Initialize all components
   initializeFilters();
   initializeRecurringPatterns();
@@ -307,4 +456,110 @@ document.addEventListener("DOMContentLoaded", function () {
   setupLoadMoreButton();
   setupMapView();
   setupFilterButton();
+  setupRadiusToggle();
+  setupLocationMap();
+  setupSearch();
+
+  // Initialize location name if coordinates exist
+  const searchLat = document.getElementById("search-lat").value;
+  const searchLng = document.getElementById("search-lng").value;
+
+  if (searchLat && searchLng && searchLat !== "None" && searchLng !== "None") {
+    // Initialize map and place marker
+    initializeMap();
+    const latlng = L.latLng(parseFloat(searchLat), parseFloat(searchLng));
+    placeMarker(latlng);
+    searchMap.setView(latlng, 15);
+
+    // Get location name for the coordinates
+    fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${searchLat}&lon=${searchLng}`
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.display_name) {
+          document.getElementById("location-search").value = data.display_name;
+        }
+      })
+      .catch((error) => console.error("Error:", error));
+
+    // Show map container and update toggle button state
+    const mapContainer = document.getElementById("search-map-container");
+    const toggleMapBtn = document.getElementById("toggle-map");
+    mapContainer.style.display = "block";
+    toggleMapBtn.classList.remove("btn-outline-secondary");
+    toggleMapBtn.classList.add("btn-secondary");
+
+    // Fix map rendering
+    setTimeout(() => {
+      searchMap.invalidateSize();
+    }, 100);
+  }
 });
+
+function setupSearch() {
+  const searchInput = document.getElementById("location-search");
+  const searchButton = document.getElementById("search-location");
+
+  if (!searchButton || !searchInput) return;
+
+  searchButton.addEventListener("click", performSearch);
+  searchInput.addEventListener("keypress", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      performSearch();
+    }
+  });
+}
+
+function performSearch() {
+  const searchInput = document.getElementById("location-search");
+  const mapContainer = document.getElementById("search-map-container");
+  const query = searchInput.value;
+
+  if (!query) return;
+
+  fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+      query
+    )}`
+  )
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.length > 0) {
+        const location = data[0];
+        const lat = parseFloat(location.lat);
+        const lon = parseFloat(location.lon);
+        const latlng = L.latLng(lat, lon);
+
+        // Show map when location is found
+        mapContainer.style.display = "block";
+        if (!mapInitialized) {
+          initializeMap();
+        }
+
+        searchMap.setView(latlng, 15);
+        placeMarker(latlng);
+
+        // Update the coordinate spans
+        document.getElementById("coordinates-display").style.display = "block";
+        document.getElementById("lat-display").textContent = lat.toFixed(6);
+        document.getElementById("lng-display").textContent = lon.toFixed(6);
+
+        // Update hidden inputs
+        document.getElementById("search-lat").value = lat;
+        document.getElementById("search-lng").value = lon;
+
+        // Fix map rendering
+        setTimeout(() => {
+          searchMap.invalidateSize();
+        }, 100);
+
+        // Update toggle button state
+        const toggleMapBtn = document.getElementById("toggle-map");
+        toggleMapBtn.classList.remove("btn-outline-secondary");
+        toggleMapBtn.classList.add("btn-secondary");
+      }
+    })
+    .catch((error) => console.error("Error:", error));
+}

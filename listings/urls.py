@@ -11,5 +11,4 @@ urlpatterns = [
     path("<int:listing_id>/edit/", views.edit_listing, name="edit_listing"),
     path("<int:listing_id>/delete/", views.delete_listing, name="delete_listing"),
     path("reviews/<int:listing_id>/", views.listing_reviews, name="listing_reviews"),
-    path('view-by-location/', views.view_listings_by_location, name='view_listings_by_location'),
 ]
