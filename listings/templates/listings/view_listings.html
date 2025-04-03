@@ -133,8 +133,9 @@
     <!-- Collapsible Additional Filters -->
     <div class="collapse" id="additionalFilters">
       <div class="card card-body mb-3">
-        <!-- Price and Booking Type Row -->
+        <!-- Price and EV Charger Row -->
         <div class="row g-3 mb-3">
+          <!-- Max Price -->
           <div class="col-md-3">
             <label for="max_price" class="form-label">
               <i class="fas fa-tag me-1"></i> Max Price ($/hr)
@@ -147,8 +148,51 @@
                    value="{{ request.GET.max_price|default_if_none:'' }}" 
                    placeholder="Enter max price">
           </div>
-          
-          <div class="col-md-9">
+
+          <!-- EV Charger Checkbox -->
+          <div class="col-md-3">
+            <label class="form-label">
+              <i class="fas fa-charging-station me-1"></i> EV Charging
+            </label>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="ev_charger" name="has_ev_charger" 
+                     {% if request.GET.has_ev_charger == 'on' %}checked{% endif %}>
+              <label class="form-check-label" for="ev_charger">
+                Has EV Charger
+              </label>
+            </div>
+          </div>
+
+          <!-- Charger Level -->
+          <div class="col-md-3 ev-charger-container">
+            <label class="form-label">
+              <i class="fas fa-bolt me-1"></i> Charger Level
+            </label>
+            <select class="form-select" name="charger_level" id="charger_level">
+              <option value="">Any Level</option>
+              {% for value, label in charger_level_choices %}
+                <option value="{{ value }}" {% if request.GET.charger_level == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Connector Type -->
+          <div class="col-md-3 ev-charger-container">
+            <label class="form-label">
+              <i class="fas fa-plug me-1"></i> Connector Type
+            </label>
+            <select class="form-select" name="connector_type" id="connector_type">
+              <option value="">Any Type</option>
+              {% for value, label in connector_type_choices %}
+                <option value="{{ value }}" {% if request.GET.connector_type == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- Booking Type Row -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-12">
             <label class="form-label">
               <i class="fas fa-calendar me-1"></i> Booking Type
             </label>

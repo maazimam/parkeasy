@@ -9,8 +9,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import (ListingForm, ListingSlotForm, ListingSlotFormSet,
                     validate_non_overlapping_slots)
-from .models import Listing, ListingSlot
-from .utils import calculate_distance, extract_coordinates, simplify_location
+from .models import EV_CHARGER_LEVELS, EV_CONNECTOR_TYPES, Listing, ListingSlot
+from .utils import calculate_distance, extract_coordinates
 
 # Define an inline formset for editing (extra=0)
 ListingSlotFormSetEdit = inlineformset_factory(
@@ -75,9 +75,16 @@ def edit_listing(request, listing_id):
     current_dt = datetime.now()
 
     if request.method == "POST":
-        listing_form = ListingForm(request.POST, instance=listing)
+        # Create mutable copy of POST data
+        post_data = request.POST.copy()
+
+        # Explicitly handle the unchecked EV charger checkbox
+        if "has_ev_charger" not in post_data:
+            post_data["has_ev_charger"] = False
+
+        listing_form = ListingForm(post_data, instance=listing)
         slot_formset = ListingSlotFormSetEdit(
-            request.POST, instance=listing, prefix="form"
+            post_data, instance=listing, prefix="form"
         )
         if listing_form.is_valid() and slot_formset.is_valid():
             try:
@@ -233,34 +240,221 @@ def edit_listing(request, listing_id):
 
 
 def view_listings(request):
-    # Get filter parameters
-    filter_type = request.GET.get("filter_type", "single")
+    current_datetime = datetime.now()
+
+    # This query returns listings with at least one slot that has not yet ended.
+    all_listings = Listing.objects.filter(
+        models.Q(slots__end_date__gt=current_datetime.date())
+        | models.Q(
+            slots__end_date=current_datetime.date(),
+            slots__end_time__gt=current_datetime.time(),
+        )
+    ).distinct()
+
     max_price = request.GET.get("max_price")
-    search_lat = request.GET.get('lat')
-    search_lng = request.GET.get('lng')
-    radius = request.GET.get('radius')
+    filter_type = request.GET.get("filter_type", "single")
+
+    if max_price:
+        try:
+            max_price_val = float(max_price)
+            all_listings = all_listings.filter(rent_per_hour__lte=max_price_val)
+        except ValueError:
+            pass
+
     error_messages = []
     warning_messages = []
 
-    # Base queryset
-    listings = Listing.objects.all().prefetch_related('reviews')
+    if filter_type == "single":
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+        start_time = request.GET.get("start_time")
+        end_time = request.GET.get("end_time")
+        if any([start_date, end_date, start_time, end_time]):
+            try:
+                user_start_str = f"{start_date} {start_time}"
+                user_end_str = f"{end_date} {end_time}"
+                user_start_dt = datetime.strptime(user_start_str, "%Y-%m-%d %H:%M")
+                user_end_dt = datetime.strptime(user_end_str, "%Y-%m-%d %H:%M")
+                filtered = []
+                for listing in all_listings:
+                    if listing.is_available_for_range(user_start_dt, user_end_dt):
+                        filtered.append(listing)
+                all_listings = filtered
+            except ValueError:
+                pass
 
-    # Apply price filter if specified
-    if max_price:
+    elif filter_type == "multiple":
         try:
-            max_price = float(max_price)
-            listings = listings.filter(rent_per_hour__lte=max_price)
+            interval_count = int(request.GET.get("interval_count", "0"))
         except ValueError:
-            error_messages.append("Invalid price filter")
+            interval_count = 0
 
-    # Filter by location proximity if coordinates provided
+        intervals = []
+        for i in range(1, interval_count + 1):
+            s_date = request.GET.get(f"start_date_{i}")
+            e_date = request.GET.get(f"end_date_{i}")
+            s_time = request.GET.get(f"start_time_{i}")
+            e_time = request.GET.get(f"end_time_{i}")
+            if s_date and e_date and s_time and e_time:
+                try:
+                    s_dt = datetime.strptime(f"{s_date} {s_time}", "%Y-%m-%d %H:%M")
+                    e_dt = datetime.strptime(f"{e_date} {e_time}", "%Y-%m-%d %H:%M")
+                    intervals.append((s_dt, e_dt))
+                except ValueError:
+                    continue
+
+        if intervals:
+            filtered = []
+            for listing in all_listings:
+                available_for_all = True
+                for s_dt, e_dt in intervals:
+                    if not listing.is_available_for_range(s_dt, e_dt):
+                        available_for_all = False
+                        break
+                if available_for_all:
+                    filtered.append(listing)
+            all_listings = filtered
+
+    elif filter_type == "recurring":
+        r_start_date = request.GET.get("recurring_start_date")
+        r_start_time = request.GET.get("recurring_start_time")
+        r_end_time = request.GET.get("recurring_end_time")
+        pattern = request.GET.get("recurring_pattern", "daily")
+        overnight = request.GET.get("recurring_overnight") == "on"
+        continue_with_filter = True
+
+        if r_start_date and r_start_time and r_end_time:
+            try:
+                intervals = []
+                start_date_obj = datetime.strptime(r_start_date, "%Y-%m-%d").date()
+                s_time = datetime.strptime(r_start_time, "%H:%M").time()
+                e_time = datetime.strptime(r_end_time, "%H:%M").time()
+                if s_time >= e_time and not overnight:
+                    error_messages.append(
+                        "Start time must be before end time unless overnight booking is selected"
+                    )
+                    continue_with_filter = False
+                if pattern == "daily":
+                    r_end_date = request.GET.get("recurring_end_date")
+                    if not r_end_date:
+                        error_messages.append(
+                            "End date is required for daily recurring pattern"
+                        )
+                        continue_with_filter = False
+                    else:
+                        end_date_obj = datetime.strptime(r_end_date, "%Y-%m-%d").date()
+                        if end_date_obj < start_date_obj:
+                            error_messages.append(
+                                "End date must be on or after start date"
+                            )
+                            continue_with_filter = False
+                        else:
+                            days_count = (end_date_obj - start_date_obj).days + 1
+                            if days_count > 90:
+                                warning_messages.append(
+                                    "Daily recurring pattern spans over 90 days, results may be limited"
+                                )
+                            if continue_with_filter:
+                                for day_offset in range(days_count):
+                                    current_date = start_date_obj + timedelta(
+                                        days=day_offset
+                                    )
+                                    s_dt = datetime.combine(current_date, s_time)
+                                    end_date_for_slot = current_date + timedelta(
+                                        days=1 if overnight else 0
+                                    )
+                                    e_dt = datetime.combine(end_date_for_slot, e_time)
+                                    intervals.append((s_dt, e_dt))
+                elif pattern == "weekly":
+                    try:
+                        weeks_str = request.GET.get("recurring_weeks")
+                        if not weeks_str:
+                            error_messages.append(
+                                "Number of weeks is required for weekly recurring pattern"
+                            )
+                            continue_with_filter = False
+                        else:
+                            weeks = int(weeks_str)
+                            if weeks <= 0:
+                                error_messages.append(
+                                    "Number of weeks must be positive"
+                                )
+                                continue_with_filter = False
+                            elif weeks > 52:
+                                warning_messages.append(
+                                    "Weekly recurring pattern spans over 52 weeks, results may be limited"
+                                )
+                            if continue_with_filter:
+                                for week_offset in range(weeks):
+                                    current_date = start_date_obj + timedelta(
+                                        weeks=week_offset
+                                    )
+                                    s_dt = datetime.combine(current_date, s_time)
+                                    end_date_for_slot = current_date + timedelta(
+                                        days=1 if overnight else 0
+                                    )
+                                    e_dt = datetime.combine(end_date_for_slot, e_time)
+                                    intervals.append((s_dt, e_dt))
+                    except ValueError:
+                        error_messages.append("Invalid number of weeks")
+                        continue_with_filter = False
+
+                if continue_with_filter and intervals:
+                    filtered = []
+                    for listing in all_listings:
+                        available_for_all = True
+                        for s_dt, e_dt in intervals:
+                            if overnight and s_time >= e_time:
+                                evening_available = listing.is_available_for_range(
+                                    s_dt, datetime.combine(s_dt.date(), time(23, 59))
+                                )
+                                morning_available = listing.is_available_for_range(
+                                    datetime.combine(e_dt.date(), time(0, 0)), e_dt
+                                )
+                                if not (evening_available and morning_available):
+                                    available_for_all = False
+                                    break
+                            elif not listing.is_available_for_range(s_dt, e_dt):
+                                available_for_all = False
+                                break
+                        if available_for_all:
+                            filtered.append(listing)
+                    all_listings = filtered
+            except ValueError:
+                error_messages.append("Invalid date or time format")
+
+            if not continue_with_filter:
+                all_listings = Listing.objects.none()
+
+    if request.GET.get("has_ev_charger") == "on":
+        all_listings = all_listings.filter(has_ev_charger=True)
+
+        # Apply additional EV filters only if has_ev_charger is selected
+        charger_level = request.GET.get("charger_level")
+        if charger_level:
+            all_listings = all_listings.filter(charger_level=charger_level)
+
+        connector_type = request.GET.get("connector_type")
+        if connector_type:
+            all_listings = all_listings.filter(connector_type=connector_type)
+
+    if isinstance(all_listings, list):
+        all_listings.sort(key=lambda x: x.id, reverse=True)
+    else:
+        all_listings = all_listings.order_by("-id")  # Note the minus sign
+
     processed_listings = []
+
+    search_lat = request.GET.get("lat")
+    search_lng = request.GET.get("lng")
+    radius = request.GET.get("radius")
+
     if search_lat and search_lng:
         try:
             search_lat = float(search_lat)
             search_lng = float(search_lng)
 
-            for listing in listings:
+            for listing in all_listings:
                 try:
                     # Extract listing coordinates
                     listing_lat, listing_lng = extract_coordinates(listing.location)
@@ -289,7 +483,7 @@ def view_listings(request):
             processed_listings = list(listings)  # Use all listings if coordinates invalid
     else:
         # If no location search, process listings normally
-        for listing in listings:
+        for listing in all_listings:
             listing.distance = None  # Set distance to None when no search location
             processed_listings.append(listing)
 
@@ -340,6 +534,8 @@ def view_listings(request):
         "next_page": int(page_number) + 1 if page_obj.has_next() else None,
         "error_messages": error_messages,
         "warning_messages": warning_messages,
+        "charger_level_choices": EV_CHARGER_LEVELS,
+        "connector_type_choices": EV_CONNECTOR_TYPES,
     }
 
     if request.GET.get("ajax") == "1":

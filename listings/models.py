@@ -6,6 +6,21 @@ from django.db.models import Max, Min
 
 from .utils import simplify_location
 
+EV_CHARGER_LEVELS = [
+    ("L1", "Level 1 (120V)"),
+    ("L2", "Level 2 (240V)"),
+    ("L3", "Level 3 (DC Fast Charging)"),
+]
+
+EV_CONNECTOR_TYPES = [
+    ("J1772", "J1772 (Standard)"),
+    ("CCS", "CCS (Combined Charging System)"),
+    ("CHAdeMO", "CHAdeMO"),
+    ("TESLA", "Tesla"),
+    ("TYPE2", "Type 2 (European)"),
+    ("OTHER", "Other"),
+]
+
 
 class Listing(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -101,6 +116,22 @@ class Listing(models.Model):
         )["latest_time"]
 
         return dt.datetime.combine(latest_date, latest_time)
+
+    has_ev_charger = models.BooleanField(default=False, verbose_name="Has EV Charger")
+    charger_level = models.CharField(
+        max_length=10,
+        choices=EV_CHARGER_LEVELS,
+        default="L2",  # Default to Level 2 as it's most common
+        blank=True,
+        verbose_name="EV Charger Level",
+    )
+    connector_type = models.CharField(
+        max_length=10,
+        choices=EV_CONNECTOR_TYPES,
+        default="J1772",  # Default to the standard connector
+        blank=True,
+        verbose_name="EV Connector Type",
+    )
 
 
 class ListingSlot(models.Model):
