@@ -250,6 +250,114 @@ class ListingModelTest(TestCase):
         expected_datetime = dt.datetime.combine(tomorrow, dt.time(18, 0))
         self.assertEqual(self.listing.latest_end_datetime, expected_datetime)
 
+    def test_ev_charger_default_values(self):
+        """Test that EV charger fields have correct default values."""
+        # Create a new listing without specifying EV charger fields
+        new_listing = Listing.objects.create(
+            user=self.user,
+            title="EV Test Space",
+            location="456 EV Street",
+            rent_per_hour=Decimal("30.00"),
+            description="A space for testing EV defaults",
+        )
+
+        # Check default values
+        self.assertFalse(new_listing.has_ev_charger)
+        self.assertEqual(new_listing.charger_level, "L2")  # Default is L2
+        self.assertEqual(new_listing.connector_type, "J1772")  # Default is J1772
+
+    def test_ev_charger_custom_values(self):
+        """Test creating a listing with custom EV charger values."""
+        ev_listing = Listing.objects.create(
+            user=self.user,
+            title="Tesla Charging Spot",
+            location="789 Tesla Ave",
+            rent_per_hour=Decimal("35.00"),
+            description="A spot with Tesla charger",
+            has_ev_charger=True,
+            charger_level="L3",
+            connector_type="TESLA",
+        )
+
+        # Check custom values were saved
+        self.assertTrue(ev_listing.has_ev_charger)
+        self.assertEqual(ev_listing.charger_level, "L3")
+        self.assertEqual(ev_listing.connector_type, "TESLA")
+
+    def test_ev_charger_display_values(self):
+        """Test that the get_charger_level_display and get_connector_type_display methods work correctly."""
+        ev_listing = Listing.objects.create(
+            user=self.user,
+            title="CCS Charging Spot",
+            location="101 CCS Blvd",
+            rent_per_hour=Decimal("40.00"),
+            description="A spot with CCS fast charger",
+            has_ev_charger=True,
+            charger_level="L3",
+            connector_type="CCS",
+        )
+
+        # Update expected strings to match your model's actual format
+        self.assertEqual(
+            ev_listing.get_charger_level_display(), "Level 3 (DC Fast Charging)"
+        )
+        self.assertEqual(
+            ev_listing.get_connector_type_display(), "CCS (Combined Charging System)"
+        )
+
+    def test_filter_by_ev_charger(self):
+        """Test filtering listings by EV charger attributes."""
+        # Clear any existing listings to avoid test pollution
+        Listing.objects.all().delete()
+
+        # Create listings with different EV charger configurations
+        Listing.objects.create(
+            user=self.user,
+            title="No Charger Spot",
+            location="No Charger St",
+            rent_per_hour=Decimal("20.00"),
+            description="No charger here",
+            has_ev_charger=False,
+        )
+
+        Listing.objects.create(
+            user=self.user,
+            title="L1 J1772 Spot",
+            location="L1 St",
+            rent_per_hour=Decimal("25.00"),
+            description="Slow charging",
+            has_ev_charger=True,
+            charger_level="L1",
+            connector_type="J1772",
+        )
+
+        Listing.objects.create(
+            user=self.user,
+            title="L2 Tesla Spot",
+            location="L2 St",
+            rent_per_hour=Decimal("30.00"),
+            description="Medium charging",
+            has_ev_charger=True,
+            charger_level="L2",
+            connector_type="TESLA",
+        )
+
+        # Test filter by has_ev_charger
+        ev_listings = Listing.objects.filter(has_ev_charger=True)
+        self.assertEqual(ev_listings.count(), 2)
+
+        # Filter by charger_level AND has_ev_charger
+        l2_listings = Listing.objects.filter(has_ev_charger=True, charger_level="L2")
+        self.assertEqual(l2_listings.count(), 1)
+        self.assertEqual(l2_listings[0].title, "L2 Tesla Spot")
+
+        # Filter by connector_type AND has_ev_charger
+        tesla_listings = Listing.objects.filter(
+            has_ev_charger=True, connector_type="TESLA"
+        )
+        self.assertEqual(tesla_listings.count(), 1)
+        self.assertEqual(tesla_listings[0].title, "L2 Tesla Spot")
+
 
 class ListingSlotModelTest(TestCase):
     def setUp(self):

@@ -77,9 +77,16 @@ def edit_listing(request, listing_id):
     current_dt = datetime.now()
 
     if request.method == "POST":
-        listing_form = ListingForm(request.POST, instance=listing)
+        # Create mutable copy of POST data
+        post_data = request.POST.copy()
+
+        # Explicitly handle the unchecked EV charger checkbox
+        if 'has_ev_charger' not in post_data:
+            post_data['has_ev_charger'] = False
+
+        listing_form = ListingForm(post_data, instance=listing)
         slot_formset = ListingSlotFormSetEdit(
-            request.POST, instance=listing, prefix="form"
+            post_data, instance=listing, prefix="form"
         )
         if listing_form.is_valid() and slot_formset.is_valid():
             try:
@@ -235,11 +242,6 @@ def edit_listing(request, listing_id):
 
 
 def view_listings(request):
-    print("=== EV FILTER DEBUG ===")
-    print("All request.GET params:", request.GET)
-    print("ev_charger param:", request.GET.get("ev_charger"))
-    print("has_ev_charger param:", request.GET.get("has_ev_charger"))
-
     current_datetime = datetime.now()
 
     # This query returns listings with at least one slot that has not yet ended.
@@ -426,34 +428,25 @@ def view_listings(request):
             if not continue_with_filter:
                 all_listings = Listing.objects.none()
 
-    print(
-        "Before EV, listings:",
-        len(all_listings) if isinstance(all_listings, list) else all_listings.count(),
-    )
-
-    # EV Charger filtering - check both possible parameter names
-    ev_param = request.GET.get("ev_charger") or request.GET.get("has_ev_charger")
-    if ev_param == "on":
-        print("Applying EV filter")
-        all_listings = all_listings.filter(has_ev_charger=True)
-        print(
-            "After EV, listings:",
-            (
-                len(all_listings)
-                if isinstance(all_listings, list)
-                else all_listings.count()
-            ),
-        )
-
     charger_level = request.GET.get("charger_level")
     if charger_level:
-        print("Filtering by charger level:", charger_level)
         all_listings = all_listings.filter(charger_level=charger_level)
 
     connector_type = request.GET.get("connector_type")
     if connector_type:
-        print("Filtering by connector type:", connector_type)
         all_listings = all_listings.filter(connector_type=connector_type)
+
+    if request.GET.get('has_ev_charger') == 'on':
+        all_listings = all_listings.filter(has_ev_charger=True)
+
+        # Apply additional EV filters only if has_ev_charger is selected
+        charger_level = request.GET.get('charger_level')
+        if charger_level:
+            all_listings = all_listings.filter(charger_level=charger_level)
+
+        connector_type = request.GET.get('connector_type')
+        if connector_type:
+            all_listings = all_listings.filter(connector_type=connector_type)
 
     if isinstance(all_listings, list):
         all_listings.sort(key=lambda x: x.id, reverse=True)

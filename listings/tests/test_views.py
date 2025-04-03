@@ -629,3 +629,281 @@ class RecurringFilterTest(TestCase):
             "Start time must be before end time unless overnight booking is selected",
             response.context["error_messages"],
         )
+
+
+class EVChargerViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="evuser", password="evpassword")
+        self.client.login(username="evuser", password="evpassword")
+
+        # Create a non-EV listing
+        self.non_ev_listing = Listing.objects.create(
+            user=self.user,
+            title="Regular Parking",
+            location="Regular Location",
+            rent_per_hour=Decimal("10.00"),
+            description="No EV charger here",
+            has_ev_charger=False,
+        )
+
+        # Create an L2 J1772 listing
+        self.l2_listing = Listing.objects.create(
+            user=self.user,
+            title="Level 2 Charging",
+            location="L2 Location",
+            rent_per_hour=Decimal("15.00"),
+            description="Standard Level 2 charger",
+            has_ev_charger=True,
+            charger_level="L2",
+            connector_type="J1772",
+        )
+
+        # Create an L3 Tesla listing
+        self.l3_listing = Listing.objects.create(
+            user=self.user,
+            title="Fast Charging Tesla",
+            location="Tesla Location",
+            rent_per_hour=Decimal("25.00"),
+            description="DC Fast Charging for Tesla",
+            has_ev_charger=True,
+            charger_level="L3",
+            connector_type="TESLA",
+        )
+
+        # Create slots for all listings to ensure they appear in searches
+        tomorrow = (datetime.now() + timedelta(days=1)).date()
+        for listing in [self.non_ev_listing, self.l2_listing, self.l3_listing]:
+            ListingSlot.objects.create(
+                listing=listing,
+                start_date=tomorrow,
+                start_time="09:00",
+                end_date=tomorrow,
+                end_time="17:00",
+            )
+
+    def test_create_listing_with_ev_charger(self):
+        """Test creating a new listing with EV charger information"""
+        tomorrow = (datetime.now() + timedelta(days=1)).date()
+        listing_data = {
+            "title": "New EV Listing",
+            "description": "New EV Description",
+            "rent_per_hour": "20.00",
+            "location": "New EV Location [123, 456]",
+            "has_ev_charger": "on",  # Checkbox value when checked
+            "charger_level": "L1",
+            "connector_type": "CHAdeMO",
+        }
+
+        # Add slot formset data
+        slot_data = {
+            "form-0-start_date": tomorrow.strftime("%Y-%m-%d"),
+            "form-0-start_time": "09:00",
+            "form-0-end_date": tomorrow.strftime("%Y-%m-%d"),
+            "form-0-end_time": "17:00",
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "0",
+            "form-MIN_NUM_FORMS": "0",
+            "form-MAX_NUM_FORMS": "1000",
+        }
+
+        post_data = {**listing_data, **slot_data}
+        response = self.client.post(reverse("create_listing"), post_data)
+
+        # Check redirect indicates success
+        self.assertEqual(response.status_code, 302)
+
+        # Verify listing was created with correct EV data
+        new_listing = Listing.objects.get(title="New EV Listing")
+        self.assertTrue(new_listing.has_ev_charger)
+        self.assertEqual(new_listing.charger_level, "L1")
+        self.assertEqual(new_listing.connector_type, "CHAdeMO")
+
+    def test_edit_listing_add_ev_charger(self):
+        """Test editing a non-EV listing to add EV charger information"""
+        tomorrow = (datetime.now() + timedelta(days=1)).date()
+        listing_data = {
+            "title": "Updated with EV",
+            "description": "Now with EV charger",
+            "rent_per_hour": "15.00",
+            "location": self.non_ev_listing.location,
+            "has_ev_charger": "on",
+            "charger_level": "L2",
+            "connector_type": "CCS",
+        }
+
+        # Add slot formset data for the existing slot
+        slot = self.non_ev_listing.slots.first()
+        slot_data = {
+            "form-0-id": str(slot.id),
+            "form-0-start_date": tomorrow.strftime("%Y-%m-%d"),
+            "form-0-start_time": "09:00",
+            "form-0-end_date": tomorrow.strftime("%Y-%m-%d"),
+            "form-0-end_time": "17:00",
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-MIN_NUM_FORMS": "0",
+            "form-MAX_NUM_FORMS": "1000",
+        }
+
+        post_data = {**listing_data, **slot_data}
+        response = self.client.post(
+            reverse("edit_listing", args=[self.non_ev_listing.id]), post_data
+        )
+
+        # Check redirect indicates success
+        self.assertEqual(response.status_code, 302)
+
+        # Verify listing was updated with EV data
+        self.non_ev_listing.refresh_from_db()
+        self.assertTrue(self.non_ev_listing.has_ev_charger)
+        self.assertEqual(self.non_ev_listing.charger_level, "L2")
+        self.assertEqual(self.non_ev_listing.connector_type, "CCS")
+
+    def test_edit_listing_remove_ev_charger(self):
+        """Test editing an EV listing to remove EV charger information"""
+        tomorrow = (datetime.now() + timedelta(days=1)).date()
+        listing_data = {
+            "title": "No Longer EV",
+            "description": "Removed EV charger",
+            "rent_per_hour": "10.00",
+            "location": self.l2_listing.location,
+        }
+
+        # Add slot formset data for the existing slot
+        slot = self.l2_listing.slots.first()
+        slot_data = {
+            "form-0-id": str(slot.id),
+            "form-0-start_date": tomorrow.strftime("%Y-%m-%d"),
+            "form-0-start_time": "09:00",
+            "form-0-end_date": tomorrow.strftime("%Y-%m-%d"),
+            "form-0-end_time": "17:00",
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-MIN_NUM_FORMS": "0",
+            "form-MAX_NUM_FORMS": "1000",
+        }
+
+        post_data = {**listing_data, **slot_data}
+        response = self.client.post(
+            reverse("edit_listing", args=[self.l2_listing.id]), post_data
+        )
+
+        # Check redirect indicates success
+        self.assertEqual(response.status_code, 302)
+
+        # Verify listing was updated with EV charger removed
+        self.l2_listing.refresh_from_db()
+        self.assertFalse(self.l2_listing.has_ev_charger)
+        self.assertEqual(self.l2_listing.charger_level, "")  # Should be cleared
+        self.assertEqual(self.l2_listing.connector_type, "")  # Should be cleared
+
+    def test_filter_by_ev_charger_presence(self):
+        """Test filtering listings by presence of EV charger"""
+        response = self.client.get(reverse("view_listings"), {"has_ev_charger": "on"})
+
+        # Check that filtering works
+        listings = response.context["listings"]
+        listing_ids = [listing.id for listing in listings]
+
+        # Should include both EV listings
+        self.assertIn(self.l2_listing.id, listing_ids)
+        self.assertIn(self.l3_listing.id, listing_ids)
+
+        # Should exclude non-EV listing
+        self.assertNotIn(self.non_ev_listing.id, listing_ids)
+
+    def test_filter_by_charger_level(self):
+        """Test filtering listings by specific charger level"""
+        response = self.client.get(
+            reverse("view_listings"), {"has_ev_charger": "on", "charger_level": "L3"}
+        )
+
+        listings = response.context["listings"]
+        listing_ids = [listing.id for listing in listings]
+
+        # Should include only L3 listing
+        self.assertIn(self.l3_listing.id, listing_ids)
+
+        # Should exclude L2 listing
+        self.assertNotIn(self.l2_listing.id, listing_ids)
+
+        # Should exclude non-EV listing
+        self.assertNotIn(self.non_ev_listing.id, listing_ids)
+
+    def test_filter_by_connector_type(self):
+        """Test filtering listings by specific connector type"""
+        response = self.client.get(
+            reverse("view_listings"),
+            {"has_ev_charger": "on", "connector_type": "TESLA"},
+        )
+
+        listings = response.context["listings"]
+        listing_ids = [listing.id for listing in listings]
+
+        # Should include only Tesla listing
+        self.assertIn(self.l3_listing.id, listing_ids)
+
+        # Should exclude J1772 listing
+        self.assertNotIn(self.l2_listing.id, listing_ids)
+
+        # Should exclude non-EV listing
+        self.assertNotIn(self.non_ev_listing.id, listing_ids)
+
+    def test_combined_ev_filters(self):
+        """Test combining multiple EV filter criteria"""
+        # Create an L3 J1772 listing to test combined filters
+        l3_j1772_listing = Listing.objects.create(
+            user=self.user,
+            title="L3 with J1772",
+            location="L3 J1772 Location",
+            rent_per_hour=Decimal("20.00"),
+            description="Fast charging with J1772",
+            has_ev_charger=True,
+            charger_level="L3",
+            connector_type="J1772",
+        )
+
+        # Add slots to make it appear in searches
+        tomorrow = (datetime.now() + timedelta(days=1)).date()
+        ListingSlot.objects.create(
+            listing=l3_j1772_listing,
+            start_date=tomorrow,
+            start_time="09:00",
+            end_date=tomorrow,
+            end_time="17:00",
+        )
+
+        # Filter for L3 + TESLA
+        response = self.client.get(
+            reverse("view_listings"),
+            {"has_ev_charger": "on", "charger_level": "L3", "connector_type": "TESLA"},
+        )
+
+        listings = response.context["listings"]
+        listing_ids = [listing.id for listing in listings]
+
+        # Should include only L3 Tesla listing
+        self.assertIn(self.l3_listing.id, listing_ids)
+
+        # Should exclude L2 J1772 listing
+        self.assertNotIn(self.l2_listing.id, listing_ids)
+
+        # Should exclude L3 J1772 listing
+        self.assertNotIn(l3_j1772_listing.id, listing_ids)
+
+    def test_ev_badge_displayed(self):
+        """Test that listings with EV chargers show the EV badge in the view"""
+        response = self.client.get(reverse("view_listings"))
+
+        # Check that EV charger details appear for L2 listing
+        self.assertContains(response, "Level 2")
+        self.assertContains(response, "J1772")
+
+        # Check that EV charger details appear for L3 listing
+        self.assertContains(response, "Level 3")
+        self.assertContains(response, "Tesla")
+
+        # Check badge formatting
+        self.assertContains(response, "fa-charging-station")
+        self.assertContains(response, "fa-plug")
