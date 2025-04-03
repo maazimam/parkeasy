@@ -56,9 +56,9 @@
   <form method="GET" action="{% url 'view_listings' %}" class="filter-box">
     <!-- Primary Search Row -->
     <div class="row mb-3">
-      <div class="col-md-7">
+      <div class="col-md-8">
         <label class="form-label">
-          <i class="fas fa-map-marker-alt me-1"></i> Search Location
+          <i class="fas fa-map-marker-alt me-1"></i> Search by Location
         </label>
         <div class="input-group">
           <input type="text" 
@@ -66,8 +66,8 @@
                  class="form-control" 
                  placeholder="Search for address or landmark"
                  value="{{ request.GET.location|default:'' }}"/>
-          <button class="btn btn-primary" id="search-location" type="button">
-            <i class="fas fa-search me-1"></i> Search Location
+          <button class="btn btn-outline-secondary" id="search-location" type="button">
+            <i class="fas fa-search me-1"></i> Find Location
           </button>
           <button class="btn btn-outline-secondary" type="button" id="toggle-map">
             <i class="fas fa-map me-1"></i> Toggle Map
@@ -83,7 +83,7 @@
         <input type="hidden" name="lng" id="search-lng" value="{{ search_lng|default:'' }}">
       </div>
 
-      <div class="col-md-3">
+      <div class="col-md-4">
         <div class="form-check mb-2">
           <input class="form-check-input" 
                  type="checkbox" 
@@ -112,15 +112,9 @@
           Results will be sorted by distance
         </small>
       </div>
-
-      <div class="col-md-2 d-flex align-items-end">
-        <button type="submit" class="btn btn-primary w-100">
-          <i class="fas fa-search me-1"></i> Search
-        </button>
-      </div>
     </div>
 
-    <!-- Map Container - hidden by default -->
+    <!-- Map Container -->
     <div class="map-container mb-4" id="search-map-container" style="display: none;">
       <div id="search-map" style="height: 300px;"></div>
     </div>
@@ -298,6 +292,13 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Search Button -->
+    <div class="d-flex justify-content-center">
+      <button type="submit" class="btn btn-primary w-100">
+        <i class="fas fa-search me-1"></i> Search
+      </button>
     </div>
   </form>
 
