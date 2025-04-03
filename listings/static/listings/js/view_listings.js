@@ -302,7 +302,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Add this function in your document ready handler
   function initializeEvFilters() {
-    console.log("Initializing EV filters");
     // Try multiple selectors to find the checkbox
     const evChargerCheckbox = 
       document.querySelector('input[name="has_ev_charger"]') || 

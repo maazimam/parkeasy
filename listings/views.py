@@ -428,14 +428,6 @@ def view_listings(request):
             if not continue_with_filter:
                 all_listings = Listing.objects.none()
 
-    charger_level = request.GET.get("charger_level")
-    if charger_level:
-        all_listings = all_listings.filter(charger_level=charger_level)
-
-    connector_type = request.GET.get("connector_type")
-    if connector_type:
-        all_listings = all_listings.filter(connector_type=connector_type)
-
     if request.GET.get("has_ev_charger") == "on":
         all_listings = all_listings.filter(has_ev_charger=True)
 
