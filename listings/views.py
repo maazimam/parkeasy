@@ -12,7 +12,7 @@ from .forms import (
     validate_non_overlapping_slots,
     ListingSlotForm,
 )
-from .models import Listing, ListingSlot
+from .models import Listing, ListingSlot, EV_CHARGER_LEVELS, EV_CONNECTOR_TYPES
 
 # Define an inline formset for editing (extra=0)
 ListingSlotFormSetEdit = inlineformset_factory(
@@ -235,6 +235,11 @@ def edit_listing(request, listing_id):
 
 
 def view_listings(request):
+    print("=== EV FILTER DEBUG ===")
+    print("All request.GET params:", request.GET)
+    print("ev_charger param:", request.GET.get("ev_charger"))
+    print("has_ev_charger param:", request.GET.get("has_ev_charger"))
+
     current_datetime = datetime.now()
 
     # This query returns listings with at least one slot that has not yet ended.
@@ -421,6 +426,25 @@ def view_listings(request):
             if not continue_with_filter:
                 all_listings = Listing.objects.none()
 
+    print("Before EV, listings:", len(all_listings) if isinstance(all_listings, list) else all_listings.count())
+
+    # EV Charger filtering - check both possible parameter names
+    ev_param = request.GET.get("ev_charger") or request.GET.get("has_ev_charger")
+    if ev_param == "on":
+        print("Applying EV filter")
+        all_listings = all_listings.filter(has_ev_charger=True)
+        print("After EV, listings:", len(all_listings) if isinstance(all_listings, list) else all_listings.count())
+
+    charger_level = request.GET.get("charger_level")
+    if charger_level:
+        print("Filtering by charger level:", charger_level)
+        all_listings = all_listings.filter(charger_level=charger_level)
+
+    connector_type = request.GET.get("connector_type")
+    if connector_type:
+        print("Filtering by connector type:", connector_type)
+        all_listings = all_listings.filter(connector_type=connector_type)
+
     if isinstance(all_listings, list):
         all_listings.sort(key=lambda x: x.id, reverse=True)
     else:
@@ -466,6 +490,8 @@ def view_listings(request):
         "next_page": int(page_number) + 1 if page_obj.has_next() else None,
         "error_messages": error_messages,
         "warning_messages": warning_messages,
+        "charger_level_choices": EV_CHARGER_LEVELS,
+        "connector_type_choices": EV_CONNECTOR_TYPES,
     }
 
     if request.GET.get("ajax") == "1":

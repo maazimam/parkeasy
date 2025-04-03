@@ -140,4 +140,9 @@ document.addEventListener("DOMContentLoaded", function() {
       }
     });
   }
+
+  // Initialize EV charger fields if utility is available
+  if (typeof ListingFormUtils !== 'undefined') {
+    ListingFormUtils.initializeEvChargerFields();
+  }
 });

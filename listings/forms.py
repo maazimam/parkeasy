@@ -14,13 +14,52 @@ HALF_HOUR_CHOICES = [
 class ListingForm(forms.ModelForm):
     class Meta:
         model = Listing
-        fields = ["title", "location", "rent_per_hour", "description"]
+        fields = [
+            "title",
+            "location",
+            "rent_per_hour",
+            "description",
+            "has_ev_charger",
+            "charger_level",
+            "connector_type"
+        ]
 
     def __init__(self, *args, **kwargs):
         super(ListingForm, self).__init__(*args, **kwargs)
         # If this is an existing listing, disable editing for "location"
         if self.instance and self.instance.pk:
             self.fields["location"].disabled = True
+
+        # Only attempt to modify EV fields if they exist
+        if 'has_ev_charger' in self.fields and 'charger_level' in self.fields and 'connector_type' in self.fields:
+            # Make charger_level and connector_type dependent on has_ev_charger
+            self.fields['charger_level'].widget.attrs['class'] = 'ev-charger-option form-select'
+            self.fields['connector_type'].widget.attrs['class'] = 'ev-charger-option form-select'
+
+            # If initial has_ev_charger is False, disable the other fields
+            if not self.initial.get('has_ev_charger', False):
+                self.fields['charger_level'].widget.attrs['disabled'] = 'disabled'
+                self.fields['connector_type'].widget.attrs['disabled'] = 'disabled'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        has_charger = cleaned_data.get('has_ev_charger')
+
+        if has_charger:
+            charger_level = cleaned_data.get('charger_level')
+            connector_type = cleaned_data.get('connector_type')
+
+            if not charger_level:
+                self.add_error('charger_level', 'You must specify the charger level.')
+
+            if not connector_type:
+                self.add_error('connector_type', 'You must specify the connector type.')
+        else:
+            # Reset charger fields if no charger is selected
+            cleaned_data['charger_level'] = ''
+            cleaned_data['connector_type'] = ''
+
+        return cleaned_data
 
 
 # 2. ListingSlotForm: For each availability interval.
