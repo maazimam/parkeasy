@@ -81,8 +81,8 @@ def edit_listing(request, listing_id):
         post_data = request.POST.copy()
 
         # Explicitly handle the unchecked EV charger checkbox
-        if 'has_ev_charger' not in post_data:
-            post_data['has_ev_charger'] = False
+        if "has_ev_charger" not in post_data:
+            post_data["has_ev_charger"] = False
 
         listing_form = ListingForm(post_data, instance=listing)
         slot_formset = ListingSlotFormSetEdit(
@@ -436,15 +436,15 @@ def view_listings(request):
     if connector_type:
         all_listings = all_listings.filter(connector_type=connector_type)
 
-    if request.GET.get('has_ev_charger') == 'on':
+    if request.GET.get("has_ev_charger") == "on":
         all_listings = all_listings.filter(has_ev_charger=True)
 
         # Apply additional EV filters only if has_ev_charger is selected
-        charger_level = request.GET.get('charger_level')
+        charger_level = request.GET.get("charger_level")
         if charger_level:
             all_listings = all_listings.filter(charger_level=charger_level)
 
-        connector_type = request.GET.get('connector_type')
+        connector_type = request.GET.get("connector_type")
         if connector_type:
             all_listings = all_listings.filter(connector_type=connector_type)
 

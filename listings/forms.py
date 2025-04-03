@@ -51,22 +51,28 @@ class ListingForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        has_ev_charger = cleaned_data.get('has_ev_charger')
+        has_ev_charger = cleaned_data.get("has_ev_charger")
 
         if not has_ev_charger:
             # Explicitly set empty strings instead of using defaults
-            cleaned_data['charger_level'] = ''
-            cleaned_data['connector_type'] = ''
+            cleaned_data["charger_level"] = ""
+            cleaned_data["connector_type"] = ""
         elif has_ev_charger:
             # Validate required fields when charger is enabled
-            charger_level = cleaned_data.get('charger_level')
-            connector_type = cleaned_data.get('connector_type')
+            charger_level = cleaned_data.get("charger_level")
+            connector_type = cleaned_data.get("connector_type")
 
             if not charger_level:
-                self.add_error('charger_level', 'Charger level is required when EV charger is available')
+                self.add_error(
+                    "charger_level",
+                    "Charger level is required when EV charger is available",
+                )
 
             if not connector_type:
-                self.add_error('connector_type', 'Connector type is required when EV charger is available')
+                self.add_error(
+                    "connector_type",
+                    "Connector type is required when EV charger is available",
+                )
 
         return cleaned_data
 
@@ -75,8 +81,8 @@ class ListingForm(forms.ModelForm):
 
         # Double-check the clearing of fields
         if not instance.has_ev_charger:
-            instance.charger_level = ''
-            instance.connector_type = ''
+            instance.charger_level = ""
+            instance.connector_type = ""
 
         if commit:
             instance.save()
