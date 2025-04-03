@@ -122,7 +122,13 @@
     <!-- Additional Filters Toggle -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <button class="btn btn-outline-secondary btn-sm" type="button" 
-              data-bs-toggle="collapse" data-bs-target="#additionalFilters">
+              data-bs-toggle="collapse" 
+              data-bs-target="#additionalFilters"
+              {% if request.GET.max_price or request.GET.has_ev_charger or request.GET.charger_level or request.GET.connector_type or request.GET.filter_type %}
+              aria-expanded="true"
+              {% else %}
+              aria-expanded="false"
+              {% endif %}>
         <i class="fas fa-sliders-h me-1"></i> Additional Filters
       </button>
       <a href="{% url 'view_listings' %}" class="btn btn-outline-secondary btn-sm">
@@ -131,7 +137,8 @@
     </div>
 
     <!-- Collapsible Additional Filters -->
-    <div class="collapse" id="additionalFilters">
+    <div class="collapse {% if request.GET.max_price or request.GET.has_ev_charger or request.GET.charger_level or request.GET.connector_type or request.GET.filter_type %}show{% endif %}" 
+         id="additionalFilters">
       <div class="card card-body mb-3">
         <!-- Price and EV Charger Row -->
         <div class="row g-3 mb-3">

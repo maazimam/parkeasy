@@ -480,7 +480,7 @@ def view_listings(request):
                     processed_listings.append(listing)  # Still include the listing
         except ValueError:
             error_messages.append("Invalid coordinates provided")
-            processed_listings = list(listings)  # Use all listings if coordinates invalid
+            processed_listings = list(all_listings)  # Use all listings if coordinates invalid
     else:
         # If no location search, process listings normally
         for listing in all_listings:
