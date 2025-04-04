@@ -12,7 +12,7 @@ from .forms import (
     validate_non_overlapping_slots,
     ListingSlotForm,
 )
-from .models import Listing, ListingSlot
+from .models import Listing, ListingSlot, EV_CHARGER_LEVELS, EV_CONNECTOR_TYPES
 
 # Define an inline formset for editing (extra=0)
 ListingSlotFormSetEdit = inlineformset_factory(
@@ -77,9 +77,16 @@ def edit_listing(request, listing_id):
     current_dt = datetime.now()
 
     if request.method == "POST":
-        listing_form = ListingForm(request.POST, instance=listing)
+        # Create mutable copy of POST data
+        post_data = request.POST.copy()
+
+        # Explicitly handle the unchecked EV charger checkbox
+        if "has_ev_charger" not in post_data:
+            post_data["has_ev_charger"] = False
+
+        listing_form = ListingForm(post_data, instance=listing)
         slot_formset = ListingSlotFormSetEdit(
-            request.POST, instance=listing, prefix="form"
+            post_data, instance=listing, prefix="form"
         )
         if listing_form.is_valid() and slot_formset.is_valid():
             try:
@@ -232,38 +239,6 @@ def edit_listing(request, listing_id):
             "alert_message": alert_message,
         },
     )
-
-
-def simplify_location(location_string):
-    """
-    Simplifies a location string before sending to template.
-    Example: "Tandon School of Engineering, Johnson Street, Downtown Brooklyn, Brooklyn..."
-    becomes "Tandon School of Engineering, Brooklyn"
-    """
-    if not location_string:
-        return ""
-
-    parts = [part.strip() for part in location_string.split(",")]
-    if len(parts) < 2:
-        return location_string
-
-    building = parts[0]
-    city = next(
-        (
-            part
-            for part in parts
-            if part.strip()
-            in ["Brooklyn", "Manhattan", "Queens", "Bronx", "Staten Island"]
-        ),
-        "New York",
-    )
-    if any(
-        term in building.lower()
-        for term in ["school", "university", "college", "institute"]
-    ):
-        return f"{building}, {city}"
-    street = parts[1]
-    return f"{building}, {street}, {city}"
 
 
 def view_listings(request):
@@ -453,6 +428,18 @@ def view_listings(request):
             if not continue_with_filter:
                 all_listings = Listing.objects.none()
 
+    if request.GET.get("has_ev_charger") == "on":
+        all_listings = all_listings.filter(has_ev_charger=True)
+
+        # Apply additional EV filters only if has_ev_charger is selected
+        charger_level = request.GET.get("charger_level")
+        if charger_level:
+            all_listings = all_listings.filter(charger_level=charger_level)
+
+        connector_type = request.GET.get("connector_type")
+        if connector_type:
+            all_listings = all_listings.filter(connector_type=connector_type)
+
     if isinstance(all_listings, list):
         all_listings.sort(key=lambda x: x.id, reverse=True)
     else:
@@ -460,10 +447,6 @@ def view_listings(request):
 
     processed_listings = []
     for listing in all_listings:
-        location_full = listing.location.split("[")[0].strip()
-        listing.location_name = simplify_location(location_full)
-        listing.avg_rating = listing.average_rating()
-        listing.rating_count = listing.rating_count()
         try:
             earliest_slot = listing.slots.earliest("start_date", "start_time")
             latest_slot = listing.slots.latest("end_date", "end_time")
@@ -502,6 +485,8 @@ def view_listings(request):
         "next_page": int(page_number) + 1 if page_obj.has_next() else None,
         "error_messages": error_messages,
         "warning_messages": warning_messages,
+        "charger_level_choices": EV_CHARGER_LEVELS,
+        "connector_type_choices": EV_CONNECTOR_TYPES,
     }
 
     if request.GET.get("ajax") == "1":
