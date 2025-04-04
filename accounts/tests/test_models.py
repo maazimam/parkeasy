@@ -1,6 +1,5 @@
 # accounts/tests/test_models.py
 
-import os
 import shutil
 import tempfile
 
@@ -26,17 +25,19 @@ class ProfileModelTest(TestCase):
         Test that a Profile is automatically created when a User is created,
         and that its default values are set as expected.
         """
-        user = User.objects.create_user(username='testuser', password='testpass123')
-        self.assertTrue(hasattr(user, 'profile'))
+        user = User.objects.create_user(username="testuser", password="testpass123")
+        self.assertTrue(hasattr(user, "profile"))
         self.assertFalse(user.profile.is_verified)
         # Check that the file field is falsy (None or an empty string)
-        self.assertFalse(user.profile.verification_file, "verification_file should be empty or None")
+        self.assertFalse(
+            user.profile.verification_file, "verification_file should be empty or None"
+        )
 
     def test_profile_str_method(self):
         """
         Test that the __str__ method of Profile returns the expected string.
         """
-        user = User.objects.create_user(username='john', password='testpass123')
+        user = User.objects.create_user(username="john", password="testpass123")
         self.assertEqual(str(user.profile), "john's Profile")
 
     def test_profile_update_on_user_save(self):
@@ -44,7 +45,7 @@ class ProfileModelTest(TestCase):
         Test that saving the User (which triggers the post_save signal)
         saves the associated Profile.
         """
-        user = User.objects.create_user(username='testuser2', password='testpass123')
+        user = User.objects.create_user(username="testuser2", password="testpass123")
         user.profile.is_verified = True
         user.save()
         profile = Profile.objects.get(user=user)
@@ -54,9 +55,11 @@ class ProfileModelTest(TestCase):
         """
         Test that the verification_file field can accept a PDF file.
         """
-        user = User.objects.create_user(username='fileuser', password='testpass123')
+        user = User.objects.create_user(username="fileuser", password="testpass123")
         # Create a simple PDF file
-        pdf_file = SimpleUploadedFile("test.pdf", b"PDF file content", content_type="application/pdf")
+        pdf_file = SimpleUploadedFile(
+            "test.pdf", b"PDF file content", content_type="application/pdf"
+        )
         user.profile.verification_file = pdf_file
         user.profile.save()
         profile = Profile.objects.get(user=user)

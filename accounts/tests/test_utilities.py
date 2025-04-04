@@ -7,6 +7,7 @@ from unittest.mock import mock_open, patch
 from shapely.geometry import Point, shape
 from accounts.utilities import get_valid_nyc_coordinate
 
+
 class GetValidNYCCoordinateTest(unittest.TestCase):
     def setUp(self):
         # Create a dummy GeoJSON that covers the entire NYC_BOUNDS defined in the function.
@@ -24,13 +25,13 @@ class GetValidNYCCoordinateTest(unittest.TestCase):
                                 [-74.259090, 40.917577],
                                 [-73.700272, 40.917577],
                                 [-73.700272, 40.477399],
-                                [-74.259090, 40.477399]
+                                [-74.259090, 40.477399],
                             ]
-                        ]
+                        ],
                     },
-                    "properties": {}
+                    "properties": {},
                 }
-            ]
+            ],
         }
         self.dummy_geojson_str = json.dumps(self.dummy_geojson)
 
@@ -71,5 +72,6 @@ class GetValidNYCCoordinateTest(unittest.TestCase):
         polygon = shape(self.dummy_geojson["features"][0]["geometry"])
         self.assertTrue(polygon.contains(point))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -48,7 +48,7 @@ def verify(request):
         verification_file = request.FILES.get("verification_file")
 
         # Optional: Validate that the file is a PDF if a file was uploaded
-        if verification_file and not verification_file.name.lower().endswith('.pdf'):
+        if verification_file and not verification_file.name.lower().endswith(".pdf"):
             context["error_message"] = "Only PDF files are allowed."
             return render(request, "accounts/verify.html", context)
 
@@ -67,7 +67,9 @@ def verify(request):
                 },
             )
         else:
-            context["error_message"] = "Incorrect answer, verification failed. Please try again."
+            context["error_message"] = (
+                "Incorrect answer, verification failed. Please try again."
+            )
 
     return render(request, "accounts/verify.html", context)
 
