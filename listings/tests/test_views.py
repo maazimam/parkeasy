@@ -367,7 +367,6 @@ class EditListingViewTest(TestCase):
         self.assertTrue(found)
 
 
-
 # --- Tests for view_listings ---
 class ListingsFilterTest(TestCase):
     def setUp(self):
