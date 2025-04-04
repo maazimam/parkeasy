@@ -33,30 +33,22 @@ document.addEventListener("DOMContentLoaded", function () {
       marker = L.marker(e.latlng).addTo(map);
 
       // Verify the clicked point is within NYC bounds
-      if (
-        e.latlng.lat >= NYC_BOUNDS.min_lat &&
-        e.latlng.lat <= NYC_BOUNDS.max_lat &&
-        e.latlng.lng >= NYC_BOUNDS.min_lng &&
-        e.latlng.lng <= NYC_BOUNDS.max_lng
-      ) {
+      if (isWithinNYC(e.latlng.lat, e.latlng.lng)) {
         // Reverse geocode with Nominatim
-        fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`
-        )
-          .then((response) => response.json())
-          .then((data) => {
-            const address = data.display_name;
-            updateLocationField(address, e.latlng.lat, e.latlng.lng);
-            marker.bindPopup(address).openPopup();
-          })
-          .catch((error) => {
+        reverseGeocode(e.latlng.lat, e.latlng.lng, {
+          onSuccess: (result) => {
+            updateLocationField(result.displayName, e.latlng.lat, e.latlng.lng);
+            marker.bindPopup(result.displayName).openPopup();
+          },
+          onError: (error) => {
             console.error("Geocoding error:", error);
             updateLocationField(
               "Selected location",
               e.latlng.lat,
               e.latlng.lng
             );
-          });
+          },
+        });
       } else {
         map.removeLayer(marker);
         alert("Please select a location within New York City.");
@@ -91,66 +83,36 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       searchButton.addEventListener("click", (e) => {
         e.preventDefault();
-        searchLocation();
+        performLocationSearch();
       });
       searchInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
-          searchLocation();
+          performLocationSearch();
         }
       });
     }
 
     // Search function using Nominatim with NYC bounds
-    function searchLocation() {
+    function performLocationSearch() {
       console.log("Searching for location");
       const searchInput = document.getElementById("location-search");
       if (!searchInput) return;
       const query = searchInput.value;
-      if (!query) return;
 
-      // Use viewbox parameter to prioritize results within NYC
-      fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          query
-        )}&viewbox=${NYC_BOUNDS.min_lng},${NYC_BOUNDS.min_lat},${
-          NYC_BOUNDS.max_lng
-        },${NYC_BOUNDS.max_lat}&bounded=1`
-      )
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.length > 0) {
-            const location = data[0];
-            const lat = parseFloat(location.lat);
-            const lon = parseFloat(location.lon);
-
-            // Verify the location is within NYC bounds
-            if (
-              lat >= NYC_BOUNDS.min_lat &&
-              lat <= NYC_BOUNDS.max_lat &&
-              lon >= NYC_BOUNDS.min_lng &&
-              lon <= NYC_BOUNDS.max_lng
-            ) {
-              map.setView([lat, lon], 16);
-              if (marker) {
-                map.removeLayer(marker);
-              }
-              marker = L.marker([lat, lon]).addTo(map);
-              updateLocationField(location.display_name, lat, lon);
-              marker.bindPopup(location.display_name).openPopup();
-            } else {
-              alert(
-                "Location is outside of New York City. Please search for a location within NYC."
-              );
-            }
-          } else {
-            alert("Location not found. Please try a different search term.");
+      // Call the global searchLocation function from map_utils.js
+      searchLocation(query, {
+        restrictToNYC: true,
+        onSuccess: (result) => {
+          map.setView([result.lat, result.lng], 16);
+          if (marker) {
+            map.removeLayer(marker);
           }
-        })
-        .catch((error) => {
-          console.error("Search error:", error);
-          alert("Error searching for location. Please try again.");
-        });
+          marker = L.marker([result.lat, result.lng]).addTo(map);
+          updateLocationField(result.displayName, result.lat, result.lng);
+          marker.bindPopup(result.displayName).openPopup();
+        },
+      });
     }
 
     // Load existing location from hidden field if available

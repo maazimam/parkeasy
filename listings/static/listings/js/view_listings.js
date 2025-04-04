@@ -49,16 +49,11 @@ function onMapClick(e) {
   updateCoordinates(e.latlng.lat, e.latlng.lng);
 
   // Reverse geocode to get location name
-  fetch(
-    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`
-  )
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.display_name) {
-        document.getElementById("location-search").value = data.display_name;
-      }
-    })
-    .catch((error) => console.error("Error:", error));
+  reverseGeocode(e.latlng.lat, e.latlng.lng, {
+    onSuccess: (result) => {
+      document.getElementById("location-search").value = result.displayName;
+    },
+  });
 }
 
 function placeMarker(latlng) {
@@ -74,16 +69,12 @@ function placeMarker(latlng) {
     updateCoordinates(position.lat, position.lng);
 
     // Reverse geocode to get location name
-    fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.lat}&lon=${position.lng}`
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.display_name) {
-          document.getElementById("location-search").value = data.display_name;
-        }
-      })
-      .catch((error) => console.error("Error:", error));
+    reverseGeocode(position.lat, position.lng, {
+      onSuccess: (result) => {
+        document.getElementById("location-search").value = result.displayName;
+        marker.bindPopup(result.displayName);
+      },
+    });
 
     // Optional: Update map view to center on new position
     searchMap.setView(position, searchMap.getZoom());
@@ -543,16 +534,11 @@ document.addEventListener("DOMContentLoaded", function () {
     searchMap.setView(latlng, 15);
 
     // Get location name for the coordinates
-    fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${searchLat}&lon=${searchLng}`
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.display_name) {
-          document.getElementById("location-search").value = data.display_name;
-        }
-      })
-      .catch((error) => console.error("Error:", error));
+    reverseGeocode(parseFloat(searchLat), parseFloat(searchLng), {
+      onSuccess: (result) => {
+        document.getElementById("location-search").value = result.displayName;
+      },
+    });
 
     // Show map container and update toggle button state
     const mapContainer = document.getElementById("search-map-container");
@@ -591,66 +577,41 @@ function performSearch() {
 
   if (!query) return;
 
-  // Use viewbox parameter to prioritize results within NYC
-  fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-      query
-    )}&viewbox=${NYC_BOUNDS.min_lng},${NYC_BOUNDS.min_lat},${
-      NYC_BOUNDS.max_lng
-    },${NYC_BOUNDS.max_lat}&bounded=1`
-  )
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.length > 0) {
-        const location = data[0];
-        const lat = parseFloat(location.lat);
-        const lon = parseFloat(location.lon);
+  // Use the utility function
+  searchLocation(query, {
+    restrictToNYC: true,
+    onSuccess: (result) => {
+      const latlng = L.latLng(result.lat, result.lng);
 
-        // Check if the result is within NYC bounds
-        if (
-          lat >= NYC_BOUNDS.min_lat &&
-          lat <= NYC_BOUNDS.max_lat &&
-          lon >= NYC_BOUNDS.min_lng &&
-          lon <= NYC_BOUNDS.max_lng
-        ) {
-          const latlng = L.latLng(lat, lon);
-
-          // Show map when location is found
-          mapContainer.style.display = "block";
-          if (!mapInitialized) {
-            initializeMap();
-          }
-
-          searchMap.setView(latlng, 15);
-          placeMarker(latlng);
-
-          // Update the coordinate spans
-          document.getElementById("coordinates-display").style.display =
-            "block";
-          document.getElementById("lat-display").textContent = lat.toFixed(6);
-          document.getElementById("lng-display").textContent = lon.toFixed(6);
-
-          // Update hidden inputs
-          document.getElementById("search-lat").value = lat;
-          document.getElementById("search-lng").value = lon;
-
-          // Fix map rendering
-          setTimeout(() => {
-            searchMap.invalidateSize();
-          }, 100);
-
-          // Update toggle button state
-          const toggleMapBtn = document.getElementById("toggle-map");
-          toggleMapBtn.classList.remove("btn-outline-secondary");
-          toggleMapBtn.classList.add("btn-secondary");
-        } else {
-          alert(
-            "Location is outside of New York City. Please select a location within NYC."
-          );
-        }
-      } else {
-        alert("Location not found. Please try a different search term.");
+      // Show map when location is found
+      mapContainer.style.display = "block";
+      if (!mapInitialized) {
+        initializeMap();
       }
-    })
-    .catch((error) => console.error("Error:", error));
+
+      searchMap.setView(latlng, 15);
+      placeMarker(latlng);
+
+      // Update the coordinate spans
+      document.getElementById("coordinates-display").style.display = "block";
+      document.getElementById("lat-display").textContent =
+        result.lat.toFixed(6);
+      document.getElementById("lng-display").textContent =
+        result.lng.toFixed(6);
+
+      // Update hidden inputs
+      document.getElementById("search-lat").value = result.lat;
+      document.getElementById("search-lng").value = result.lng;
+
+      // Fix map rendering
+      setTimeout(() => {
+        searchMap.invalidateSize();
+      }, 100);
+
+      // Update toggle button state
+      const toggleMapBtn = document.getElementById("toggle-map");
+      toggleMapBtn.classList.remove("btn-outline-secondary");
+      toggleMapBtn.classList.add("btn-secondary");
+    },
+  });
 }
