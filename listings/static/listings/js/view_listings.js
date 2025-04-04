@@ -527,19 +527,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const searchLng = document.getElementById("search-lng").value;
 
   if (searchLat && searchLng && searchLat !== "None" && searchLng !== "None") {
-    // Initialize map and place marker
-    initializeMap();
-    const latlng = L.latLng(parseFloat(searchLat), parseFloat(searchLng));
-    placeMarker(latlng);
-    searchMap.setView(latlng, 15);
-
-    // Get location name for the coordinates
-    reverseGeocode(parseFloat(searchLat), parseFloat(searchLng), {
-      onSuccess: (result) => {
-        document.getElementById("location-search").value = result.displayName;
-      },
-    });
-
     // Show map container and update toggle button state
     const mapContainer = document.getElementById("search-map-container");
     const toggleMapBtn = document.getElementById("toggle-map");
@@ -547,10 +534,54 @@ document.addEventListener("DOMContentLoaded", function () {
     toggleMapBtn.classList.remove("btn-outline-secondary");
     toggleMapBtn.classList.add("btn-secondary");
 
-    // Fix map rendering
-    setTimeout(() => {
-      searchMap.invalidateSize();
-    }, 100);
+    // Initialize map and place marker
+    initializeMap();
+
+    // Ensure we have valid numbers
+    const lat = parseFloat(searchLat);
+    const lng = parseFloat(searchLng);
+
+    if (!isNaN(lat) && !isNaN(lng)) {
+      const latlng = L.latLng(lat, lng);
+
+      // Place marker and center map
+      placeMarker(latlng);
+      searchMap.setView(latlng, 15);
+
+      // Get location name for the coordinates
+      reverseGeocode(lat, lng, {
+        onSuccess: (result) => {
+          document.getElementById("location-search").value = result.displayName;
+
+          // Make sure the marker has a popup with the location name
+          if (searchMarker) {
+            searchMarker.bindPopup(result.displayName).openPopup();
+
+            // Also set a default popup in case reverse geocoding fails
+            searchMarker.setPopupContent(result.displayName);
+          }
+        },
+        onError: () => {
+          // If reverse geocoding fails, still show a popup with coordinates
+          if (searchMarker) {
+            const fallbackContent = `Location at ${lat.toFixed(
+              6
+            )}, ${lng.toFixed(6)}`;
+            searchMarker.bindPopup(fallbackContent).openPopup();
+          }
+        },
+      });
+
+      // Fix map rendering
+      setTimeout(() => {
+        searchMap.invalidateSize();
+
+        // Make sure marker is visible after map is properly rendered
+        if (searchMarker) {
+          searchMarker.openPopup();
+        }
+      }, 100);
+    }
   }
   initializeEvFilters(); // Use this instead of the shared utility
 });
