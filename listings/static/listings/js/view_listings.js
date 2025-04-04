@@ -35,11 +35,8 @@ let mapInitialized = false;
 // Map-related functions (outside DOMContentLoaded)
 function initializeMap() {
   if (!mapInitialized) {
-    searchMap = L.map("search-map").setView([40.69441, -73.98653], 13);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "© OpenStreetMap contributors",
-    }).addTo(searchMap);
+    // Use our NYC-bounded map initialization instead of the original code
+    searchMap = initializeNYCMap("search-map");
 
     // Add click event to map
     searchMap.on("click", onMapClick);
@@ -331,19 +328,16 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log("Error parsing location:", error);
       }
       return {
-        lat: 40.69441, // Default to NYU tandon
-        lng: -73.98653,
+        lat: NYC_CENTER[0], // Use NYC_CENTER from nyc-map-bounds.js
+        lng: NYC_CENTER[1],
         address: locationString || "Location not specified",
       };
     }
 
     function initMap() {
       if (!map) {
-        map = L.map("map-view").setView([40.69441, -73.98653], 13);
-        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          maxZoom: 19,
-          attribution: "© OpenStreetMap contributors",
-        }).addTo(map);
+        // Use our NYC-bounded map initialization
+        map = initializeNYCMap("map-view");
 
         // Add markers for all listings
         const listings = document.querySelectorAll(".card");
@@ -356,29 +350,37 @@ document.addEventListener("DOMContentLoaded", function () {
           const price = listing.dataset.price;
           const rating = parseFloat(listing.dataset.rating) || 0;
 
-          const marker = L.marker([location.lat, location.lng]).addTo(map);
-          bounds.push([location.lat, location.lng]);
+          // Only add markers within NYC bounds
+          if (
+            location.lat >= NYC_BOUNDS.min_lat &&
+            location.lat <= NYC_BOUNDS.max_lat &&
+            location.lng >= NYC_BOUNDS.min_lng &&
+            location.lng <= NYC_BOUNDS.max_lng
+          ) {
+            const marker = L.marker([location.lat, location.lng]).addTo(map);
+            bounds.push([location.lat, location.lng]);
 
-          // Create popup content
-          const ratingHtml = rating
-            ? `<br><strong>Rating:</strong> ${generateStarRating(
-                rating
-              )} (${rating.toFixed(1)})`
-            : `<br><span class="text-muted">No reviews yet ${generateStarRating(
-                0
-              )}</span>`;
+            // Create popup content
+            const ratingHtml = rating
+              ? `<br><strong>Rating:</strong> ${generateStarRating(
+                  rating
+                )} (${rating.toFixed(1)})`
+              : `<br><span class="text-muted">No reviews yet ${generateStarRating(
+                  0
+                )}</span>`;
 
-          const popupContent = `
-            <strong>${title}</strong><br>
-            ${locationName}<br>
-            $${price}/hour
-            ${ratingHtml}
-          `;
+            const popupContent = `
+              <strong>${title}</strong><br>
+              ${locationName}<br>
+              $${price}/hour
+              ${ratingHtml}
+            `;
 
-          marker.bindPopup(popupContent);
+            marker.bindPopup(popupContent);
+          }
         });
 
-        // Fit map to show all markers
+        // Fit map to show all markers, or use NYC center if no markers
         if (bounds.length > 0) {
           map.fitBounds(bounds);
         }
@@ -589,10 +591,13 @@ function performSearch() {
 
   if (!query) return;
 
+  // Use viewbox parameter to prioritize results within NYC
   fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
       query
-    )}`
+    )}&viewbox=${NYC_BOUNDS.min_lng},${NYC_BOUNDS.min_lat},${
+      NYC_BOUNDS.max_lng
+    },${NYC_BOUNDS.max_lat}&bounded=1`
   )
     .then((response) => response.json())
     .then((data) => {
@@ -600,35 +605,51 @@ function performSearch() {
         const location = data[0];
         const lat = parseFloat(location.lat);
         const lon = parseFloat(location.lon);
-        const latlng = L.latLng(lat, lon);
 
-        // Show map when location is found
-        mapContainer.style.display = "block";
-        if (!mapInitialized) {
-          initializeMap();
+        // Check if the result is within NYC bounds
+        if (
+          lat >= NYC_BOUNDS.min_lat &&
+          lat <= NYC_BOUNDS.max_lat &&
+          lon >= NYC_BOUNDS.min_lng &&
+          lon <= NYC_BOUNDS.max_lng
+        ) {
+          const latlng = L.latLng(lat, lon);
+
+          // Show map when location is found
+          mapContainer.style.display = "block";
+          if (!mapInitialized) {
+            initializeMap();
+          }
+
+          searchMap.setView(latlng, 15);
+          placeMarker(latlng);
+
+          // Update the coordinate spans
+          document.getElementById("coordinates-display").style.display =
+            "block";
+          document.getElementById("lat-display").textContent = lat.toFixed(6);
+          document.getElementById("lng-display").textContent = lon.toFixed(6);
+
+          // Update hidden inputs
+          document.getElementById("search-lat").value = lat;
+          document.getElementById("search-lng").value = lon;
+
+          // Fix map rendering
+          setTimeout(() => {
+            searchMap.invalidateSize();
+          }, 100);
+
+          // Update toggle button state
+          const toggleMapBtn = document.getElementById("toggle-map");
+          toggleMapBtn.classList.remove("btn-outline-secondary");
+          toggleMapBtn.classList.add("btn-secondary");
+        } else {
+          alert(
+            "Location is outside of New York City. Please select a location within NYC."
+          );
         }
-
-        searchMap.setView(latlng, 15);
-        placeMarker(latlng);
-
-        // Update the coordinate spans
-        document.getElementById("coordinates-display").style.display = "block";
-        document.getElementById("lat-display").textContent = lat.toFixed(6);
-        document.getElementById("lng-display").textContent = lon.toFixed(6);
-
-        // Update hidden inputs
-        document.getElementById("search-lat").value = lat;
-        document.getElementById("search-lng").value = lon;
-
-        // Fix map rendering
-        setTimeout(() => {
-          searchMap.invalidateSize();
-        }, 100);
-
-        // Update toggle button state
-        const toggleMapBtn = document.getElementById("toggle-map");
-        toggleMapBtn.classList.remove("btn-outline-secondary");
-        toggleMapBtn.classList.add("btn-secondary");
+      } else {
+        alert("Location not found. Please try a different search term.");
       }
     })
     .catch((error) => console.error("Error:", error));
