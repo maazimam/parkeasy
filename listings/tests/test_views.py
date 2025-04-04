@@ -339,23 +339,33 @@ class EditListingViewTest(TestCase):
         self.assertContains(response, "Your changes conflict with an active booking")
 
     def test_edit_listing_get_updates_ongoing_slot_initial(self):
-        current_dt = datetime.now()
+        # Set a fixed datetime between the slot's start and end.
+        fixed_now = datetime(2025, 6, 1, 11, 0)  # 11:00 AM on June 1, 2025
+        # Create an ongoing slot that starts at 10:00 and ends at 12:00.
         ongoing_slot = ListingSlot.objects.create(
             listing=self.listing,
-            start_date=current_dt.date(),
-            start_time=(current_dt - timedelta(hours=1)).strftime("%H:%M"),
-            end_date=current_dt.date(),
-            end_time=(current_dt + timedelta(hours=1)).strftime("%H:%M"),
+            start_date=fixed_now.date(),
+            start_time="10:00",
+            end_date=fixed_now.date(),
+            end_time="12:00",
         )
-        response = self.client.get(self.edit_url)
-        self.assertEqual(response.status_code, 200)
+        # Patch datetime.now() in the view so that current_dt == fixed_now.
+        with patch("listings.views.datetime") as mock_datetime:
+            mock_datetime.now.return_value = fixed_now
+            mock_datetime.combine = datetime.combine
+            mock_datetime.strptime = datetime.strptime
+            response = self.client.get(self.edit_url)
+        # In the view, the code sets form.initial["start_time"] for ongoing slots.
         formset = response.context["slot_formset"]
         found = False
         for form in formset.forms:
             if form.instance.id == ongoing_slot.id:
-                self.assertIn("start_time", form.initial)
+                # According to the view logic, if current_dt is 11:00 (minute=0),
+                # then new_minute becomes 30 and hour stays 11, so expected "11:30".
+                self.assertEqual(form.initial.get("start_time"), "11:30")
                 found = True
         self.assertTrue(found)
+
 
 
 # --- Tests for view_listings ---
