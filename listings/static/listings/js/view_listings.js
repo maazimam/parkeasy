@@ -592,6 +592,11 @@ function performSearch() {
       searchMap.setView(latlng, 15);
       placeMarker(latlng);
 
+      // Add the location name to the marker popup
+      if (searchMarker) {
+        searchMarker.bindPopup(result.displayName).openPopup();
+      }
+
       // Update the coordinate spans
       document.getElementById("coordinates-display").style.display = "block";
       document.getElementById("lat-display").textContent =
