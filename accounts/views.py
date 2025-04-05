@@ -45,8 +45,18 @@ def verify(request):
     context = {}
     if request.method == "POST":
         answer = request.POST.get("answer")
+        verification_file = request.FILES.get("verification_file")
+
+        # Optional: Validate that the file is a PDF if a file was uploaded
+        if verification_file and not verification_file.name.lower().endswith(".pdf"):
+            context["error_message"] = "Only PDF files are allowed."
+            return render(request, "accounts/verify.html", context)
+
+        # The verification remains based on the answer for now
         if answer == "ParkEasy":
             request.user.profile.is_verified = True
+            if verification_file:
+                request.user.profile.verification_file = verification_file
             request.user.profile.save()
             return render(
                 request,
@@ -61,7 +71,6 @@ def verify(request):
                 "Incorrect answer, verification failed. Please try again."
             )
 
-    # If GET or POST with errors, render the form as normal
     return render(request, "accounts/verify.html", context)
 
 
