@@ -874,9 +874,7 @@ class LocationSearchTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
-            password='testpass123'
+            username="testuser", email="test@example.com", password="testpass123"
         )
 
         # Create test listings with different locations
@@ -885,7 +883,7 @@ class LocationSearchTests(TestCase):
             title="NYC Parking",
             location="[40.7128,-74.0060]",  # New York City coordinates
             rent_per_hour=Decimal("25.00"),
-            description="Parking in NYC"
+            description="Parking in NYC",
         )
 
         self.listing2 = Listing.objects.create(
@@ -893,7 +891,7 @@ class LocationSearchTests(TestCase):
             title="Boston Parking",
             location="[42.3601,-71.0589]",  # Boston coordinates
             rent_per_hour=Decimal("20.00"),
-            description="Parking in Boston"
+            description="Parking in Boston",
         )
 
         self.listing3 = Listing.objects.create(
@@ -901,7 +899,7 @@ class LocationSearchTests(TestCase):
             title="Invalid Location",
             location="invalid",
             rent_per_hour=Decimal("15.00"),
-            description="Invalid location"
+            description="Invalid location",
         )
 
         # Add slots to make listings appear in searches
@@ -912,46 +910,54 @@ class LocationSearchTests(TestCase):
                 start_date=tomorrow,
                 start_time="09:00",
                 end_date=tomorrow,
-                end_time="17:00"
+                end_time="17:00",
             )
 
     def test_location_search_with_radius(self):
         """Test searching listings within a specific radius"""
         # Search near NYC with 100km radius
         response = self.client.get(
-            reverse('view_listings'),
-            {'lat': '40.7128', 'lng': '-74.0060', 'radius': '100', 'enable_radius': 'on'}
+            reverse("view_listings"),
+            {
+                "lat": "40.7128",
+                "lng": "-74.0060",
+                "radius": "100",
+                "enable_radius": "on",
+            },
         )
 
         self.assertEqual(response.status_code, 200)
-        listings = list(response.context['listings'])
+        listings = list(response.context["listings"])
 
         # Get listings with valid distances within radius
         valid_listings = []
         for listing in listings:
-            if hasattr(listing, 'distance') and listing.distance is not None:
+            if hasattr(listing, "distance") and listing.distance is not None:
                 if listing.distance <= 100:
                     valid_listings.append(listing)
 
         # Only NYC listing should be within 100km
         self.assertEqual(len(valid_listings), 1)
         self.assertEqual(valid_listings[0].title, "NYC Parking")
-        self.assertLess(valid_listings[0].distance, 1)  # NYC listing should be very close
+        self.assertLess(
+            valid_listings[0].distance, 1
+        )  # NYC listing should be very close
 
     def test_location_search_without_radius(self):
         """Test searching listings without radius (should sort by distance)"""
         response = self.client.get(
-            reverse('view_listings'),
-            {'lat': '40.7128', 'lng': '-74.0060'}
+            reverse("view_listings"), {"lat": "40.7128", "lng": "-74.0060"}
         )
 
         self.assertEqual(response.status_code, 200)
-        listings = list(response.context['listings'])
+        listings = list(response.context["listings"])
         # All listings should be included, but sorted by distance
         self.assertEqual(len(listings), 3)  # Including the invalid location listing
 
         # Check that listings with valid coordinates have distances
-        valid_listings = [l for l in listings if hasattr(l, 'distance') and l.distance is not None]
+        valid_listings = [
+            listing_item for listing_item in listings if hasattr(listing_item, "distance") and listing_item.distance is not None
+        ]
         self.assertEqual(len(valid_listings), 2)
 
         # NYC should be first among valid listings (closest)
@@ -960,16 +966,15 @@ class LocationSearchTests(TestCase):
     def test_distance_calculation(self):
         """Test that distances are correctly calculated and added to listings"""
         response = self.client.get(
-            reverse('view_listings'),
-            {'lat': '40.7128', 'lng': '-74.0060'}
+            reverse("view_listings"), {"lat": "40.7128", "lng": "-74.0060"}
         )
 
         self.assertEqual(response.status_code, 200)
-        listings = list(response.context['listings'])
-        nyc_listing = next(l for l in listings if l.title == "NYC Parking")
+        listings = list(response.context["listings"])
+        nyc_listing = next(listing_item for listing_item in listings if listing_item.title == "NYC Parking")
 
         # NYC listing should have distance close to 0
-        self.assertTrue(hasattr(nyc_listing, 'distance'))
+        self.assertTrue(hasattr(nyc_listing, "distance"))
         self.assertLess(nyc_listing.distance, 1)
 
     def test_coordinate_extraction(self):
@@ -986,19 +991,23 @@ class LocationSearchTests(TestCase):
     def test_listings_without_coordinates(self):
         """Test that listings with invalid coordinates are still included"""
         response = self.client.get(
-            reverse('view_listings'),
-            {'lat': '40.7128', 'lng': '-74.0060'}
+            reverse("view_listings"), {"lat": "40.7128", "lng": "-74.0060"}
         )
 
         self.assertEqual(response.status_code, 200)
         invalid_listing = next(
-            (listing for listing in response.context['listings']
-             if listing.title == "Invalid Location"),
-            None
+            (
+                listing
+                for listing in response.context["listings"]
+                if listing.title == "Invalid Location"
+            ),
+            None,
         )
         # Invalid listing should be included with None distance
         self.assertIsNotNone(invalid_listing)
         self.assertIsNone(invalid_listing.distance)
+
+
 # --- Tests for delete_listing and listing_reviews ---
 
 

@@ -7,8 +7,12 @@ from django.db import models
 from django.forms import inlineformset_factory
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import (ListingForm, ListingSlotForm, ListingSlotFormSet,
-                    validate_non_overlapping_slots)
+from .forms import (
+    ListingForm,
+    ListingSlotForm,
+    ListingSlotFormSet,
+    validate_non_overlapping_slots,
+)
 from .models import EV_CHARGER_LEVELS, EV_CONNECTOR_TYPES, Listing, ListingSlot
 from .utils import calculate_distance, extract_coordinates, has_active_filters
 
@@ -461,8 +465,7 @@ def view_listings(request):
 
                     # Calculate distance
                     distance = calculate_distance(
-                        search_lat, search_lng,
-                        listing_lat, listing_lng
+                        search_lat, search_lng, listing_lat, listing_lng
                     )
 
                     # Add distance to listing object
@@ -476,11 +479,15 @@ def view_listings(request):
                     else:
                         processed_listings.append(listing)
                 except ValueError:
-                    listing.distance = None  # Set distance to None if coordinates invalid
+                    listing.distance = (
+                        None  # Set distance to None if coordinates invalid
+                    )
                     processed_listings.append(listing)  # Still include the listing
         except ValueError:
             error_messages.append("Invalid coordinates provided")
-            processed_listings = list(all_listings)  # Use all listings if coordinates invalid
+            processed_listings = list(
+                all_listings
+            )  # Use all listings if coordinates invalid
     else:
         # If no location search, process listings normally
         for listing in all_listings:
@@ -489,15 +496,17 @@ def view_listings(request):
 
     # Sort by distance if we have coordinates
     if search_lat and search_lng:
-        processed_listings.sort(key=lambda x: x.distance if x.distance is not None else float('inf'))
+        processed_listings.sort(
+            key=lambda x: x.distance if x.distance is not None else float("inf")
+        )
 
     # Process availability info for all listings
     for listing in processed_listings:
         try:
-            earliest_slot = listing.slots.earliest('start_date', 'start_time')
+            earliest_slot = listing.slots.earliest("start_date", "start_time")
             listing.available_from = earliest_slot.start_date
             listing.available_time_from = earliest_slot.start_time
-            latest_slot = listing.slots.latest('end_date', 'end_time')
+            latest_slot = listing.slots.latest("end_date", "end_time")
             listing.available_until = latest_slot.end_date
             listing.available_time_until = latest_slot.end_time
         except listing.slots.model.DoesNotExist:
