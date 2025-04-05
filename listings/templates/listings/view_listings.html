@@ -70,7 +70,7 @@
             <i class="fas fa-search me-1"></i> Find Location
           </button>
           <button class="btn btn-outline-secondary" type="button" id="toggle-map">
-            <i class="fas fa-map me-1"></i> Toggle Map
+            <i class="fas fa-map me-1"></i> Toggle Map to Select Location
           </button>
         </div>
         <div class="mt-2 text-muted small" id="coordinates-display" {% if not search_lat or not search_lng %}style="display: none;"{% endif %}>
@@ -121,14 +121,16 @@
 
     <!-- Additional Filters Toggle -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <button class="btn btn-outline-secondary btn-sm" type="button" 
-              data-bs-toggle="collapse" 
-              data-bs-target="#additionalFilters"
-              {% if request.GET.max_price or request.GET.has_ev_charger or request.GET.charger_level or request.GET.connector_type or request.GET.filter_type %}
-              aria-expanded="true"
-              {% else %}
-              aria-expanded="false"
-              {% endif %}>
+      <button
+        class="btn btn-sm btn-outline-secondary"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#additionalFilters"
+        {% if has_active_filters %}
+        aria-expanded="true"
+        {% else %}
+        aria-expanded="false"
+        {% endif %}>
         <i class="fas fa-sliders-h me-1"></i> Additional Filters
       </button>
       <a href="{% url 'view_listings' %}" class="btn btn-outline-secondary btn-sm">
@@ -137,7 +139,7 @@
     </div>
 
     <!-- Collapsible Additional Filters -->
-    <div class="collapse {% if request.GET.max_price or request.GET.has_ev_charger or request.GET.charger_level or request.GET.connector_type or request.GET.filter_type %}show{% endif %}" 
+    <div class="collapse {% if has_active_filters %}show{% endif %}" 
          id="additionalFilters">
       <div class="card card-body mb-3">
         <!-- Price and EV Charger Row -->

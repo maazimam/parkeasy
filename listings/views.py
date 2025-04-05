@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from .forms import (ListingForm, ListingSlotForm, ListingSlotFormSet,
                     validate_non_overlapping_slots)
 from .models import EV_CHARGER_LEVELS, EV_CONNECTOR_TYPES, Listing, ListingSlot
-from .utils import calculate_distance, extract_coordinates
+from .utils import calculate_distance, extract_coordinates, has_active_filters
 
 # Define an inline formset for editing (extra=0)
 ListingSlotFormSetEdit = inlineformset_factory(
@@ -511,6 +511,7 @@ def view_listings(request):
     paginator = Paginator(processed_listings, 10)
     page_obj = paginator.get_page(page_number)
 
+    # Get filter context
     context = {
         "listings": page_obj,
         "half_hour_choices": HALF_HOUR_CHOICES,
@@ -536,6 +537,7 @@ def view_listings(request):
         "warning_messages": warning_messages,
         "charger_level_choices": EV_CHARGER_LEVELS,
         "connector_type_choices": EV_CONNECTOR_TYPES,
+        "has_active_filters": has_active_filters(request),
     }
 
     if request.GET.get("ajax") == "1":
