@@ -956,7 +956,9 @@ class LocationSearchTests(TestCase):
 
         # Check that listings with valid coordinates have distances
         valid_listings = [
-            listing_item for listing_item in listings if hasattr(listing_item, "distance") and listing_item.distance is not None
+            listing_item
+            for listing_item in listings
+            if hasattr(listing_item, "distance") and listing_item.distance is not None
         ]
         self.assertEqual(len(valid_listings), 2)
 
@@ -971,7 +973,11 @@ class LocationSearchTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         listings = list(response.context["listings"])
-        nyc_listing = next(listing_item for listing_item in listings if listing_item.title == "NYC Parking")
+        nyc_listing = next(
+            listing_item
+            for listing_item in listings
+            if listing_item.title == "NYC Parking"
+        )
 
         # NYC listing should have distance close to 0
         self.assertTrue(hasattr(nyc_listing, "distance"))
