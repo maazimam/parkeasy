@@ -161,6 +161,34 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  function initializeFilterTypeDropdown() {
+    const filterTypeSelect = document.getElementById('filter-type-select');
+    const singleFilter = document.getElementById('single-filter');
+    const recurringFilter = document.getElementById('recurring-filter');
+  
+    if (filterTypeSelect) {
+      // Set initial state
+      if (filterTypeSelect.value === 'single') {
+        singleFilter.style.display = "block";
+        recurringFilter.style.display = "none";
+      } else if (filterTypeSelect.value === 'recurring') {
+        singleFilter.style.display = "none";
+        recurringFilter.style.display = "block";
+      }
+  
+      // Add change event listener
+      filterTypeSelect.addEventListener('change', function() {
+        if (this.value === 'single') {
+          singleFilter.style.display = "block";
+          recurringFilter.style.display = "none";
+        } else if (this.value === 'recurring') {
+          singleFilter.style.display = "none";
+          recurringFilter.style.display = "block";
+        }
+      });
+    }
+  }
+
   // Recurring pattern toggle (daily/weekly)
   function initializeRecurringPatterns() {
     const patternDaily = document.getElementById("pattern_daily");
@@ -513,7 +541,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initialize all components
   initializeFilters();
+  initializeFilterTypeDropdown();
   initializeRecurringPatterns();
+  initializeDateRangeToggle();
   setMinDates();
   setupLoadMoreButton();
   setupMapView();
@@ -650,4 +680,44 @@ function performSearch() {
       toggleMapBtn.classList.add("btn-secondary");
     },
   });
+}
+
+function initializeDateRangeToggle() {
+  const enableDateRange = document.getElementById('enable_date_range');
+  const endDateContainer = document.getElementById('end-date-container');
+  const startDateInput = document.getElementById('single_start_date');
+  const endDateInput = document.getElementById('single_end_date');
+  
+  if (enableDateRange && endDateContainer && startDateInput && endDateInput) {
+    // Set initial state
+    if (enableDateRange.checked) {
+      endDateContainer.style.display = 'block';
+    } else {
+      endDateContainer.style.display = 'none';
+      endDateInput.value = startDateInput.value; // Default end date to start date
+    }
+    
+    // Add change event listeners
+    enableDateRange.addEventListener('change', function() {
+      if (this.checked) {
+        endDateContainer.style.display = 'block';
+        if (!endDateInput.value) {
+          endDateInput.value = startDateInput.value;
+        }
+      } else {
+        endDateContainer.style.display = 'none';
+        endDateInput.value = startDateInput.value; // Set end date equal to start date
+      }
+    });
+    
+    // Keep end date in sync with start date when range is disabled
+    startDateInput.addEventListener('change', function() {
+      if (!enableDateRange.checked) {
+        endDateInput.value = this.value;
+      } else if (endDateInput.value && new Date(endDateInput.value) < new Date(this.value)) {
+        // If end date is now before start date, update it
+        endDateInput.value = this.value;
+      }
+    });
+  }
 }
