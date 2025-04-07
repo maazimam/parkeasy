@@ -1,5 +1,9 @@
 from django.contrib.auth import login, logout, update_session_auth_hash
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm, PasswordChangeForm
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    UserCreationForm,
+    PasswordChangeForm,
+)
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -81,49 +85,53 @@ def profile_view(request):
     # Render the user's profile page
     return render(request, "accounts/profile.html", {"user": request.user})
 
+
 @login_required
 def change_password(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             user = form.save()
             # Important: prevents user from being logged out
             update_session_auth_hash(request, user)
-            return redirect('password_change_done')
+            return redirect("password_change_done")
     else:
         form = PasswordChangeForm(request.user)
-    return render(request, 'accounts/password_change.html', {'form': form})
+    return render(request, "accounts/password_change.html", {"form": form})
+
 
 @login_required
 def password_change_done(request):
     messages.success(request, "Password changed successfully!")
-    return redirect('profile')
+    return redirect("profile")
+
 
 @login_required
 def change_email(request):
     # Fix the logic to correctly detect empty emails
     is_adding_email = request.user.email == "" or request.user.email is None
-    
-    if request.method == 'POST':
+
+    if request.method == "POST":
         # Pass user to form for validation
         form = EmailChangeForm(request.POST, user=request.user)
         if form.is_valid():
-            request.user.email = form.cleaned_data['email']
+            request.user.email = form.cleaned_data["email"]
             request.user.save()
-            
+
             # Customize message based on action
             if is_adding_email:
                 messages.success(request, "Email added successfully!")
             else:
                 messages.success(request, "Email updated successfully!")
-                
-            return redirect('profile')
+
+            return redirect("profile")
     else:
         # Also pass user to form when initially rendering
         form = EmailChangeForm(user=request.user)
-    
+
     # Pass context to differentiate between add/change
-    return render(request, 'accounts/change_email.html', {
-        'form': form,
-        'is_adding_email': is_adding_email
-    })
+    return render(
+        request,
+        "accounts/change_email.html",
+        {"form": form, "is_adding_email": is_adding_email},
+    )
