@@ -57,9 +57,11 @@
   <!-- Keep the card wrapper -->
   <div class="card shadow-sm mb-4">
     <div class="card-body p-4">
-      <!-- Header with clear button -->
+      <!-- Modify the header with filter title and clear button -->
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filter Spots</h5>
+        <div class="d-flex align-items-center">
+          <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filter Spots</h5>
+        </div>
         <a href="{% url 'view_listings' %}" class="btn btn-outline-danger btn-sm">
           <i class="fas fa-times me-1"></i> Clear Filters
         </a>
@@ -70,6 +72,15 @@
         <div class="col-md-8">
           <label class="form-label">
             <i class="fas fa-map-marker-alt me-1"></i> Location
+            <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
+                    data-bs-toggle="popover" 
+                    data-bs-placement="top"
+                    data-bs-html="true"
+                    data-bs-trigger="hover focus"
+                    title="Location Help"
+                    data-bs-content="Search by address or pick on map.">
+              <i class="fas fa-info-circle small"></i>
+            </button>
           </label>
           
           <!-- Improved search input with buttons -->
@@ -102,6 +113,15 @@
         <div class="col-md-4">
           <label class="form-label">
             <i class="fas fa-circle-notch me-1"></i> Distance
+            <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
+                    data-bs-toggle="popover" 
+                    data-bs-placement="top"
+                    data-bs-html="true"
+                    data-bs-trigger="hover focus"
+                    title="Distance Help"
+                    data-bs-content="Set a radius (in km) to limit search results to a specific area around your chosen location.">
+              <i class="fas fa-info-circle small"></i>
+            </button>
           </label>
           <div class="form-check mb-2">
             <input class="form-check-input" 
@@ -145,6 +165,15 @@
         <div class="col-md-4">
           <label for="max_price" class="form-label">
             <i class="fas fa-tag me-1"></i> Max Price ($/hr)
+            <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
+                    data-bs-toggle="popover" 
+                    data-bs-placement="top"
+                    data-bs-html="true"
+                    data-bs-trigger="hover focus"
+                    title="Price Help"
+                    data-bs-content="Set a maximum price per hour to filter results by cost.">
+              <i class="fas fa-info-circle small"></i>
+            </button>
           </label>
           <input type="number" 
                 step="0.01" 
@@ -159,6 +188,15 @@
         <div class="col-md-4">
           <label class="form-label">
             <i class="fas fa-calendar me-1"></i> Booking Type
+            <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
+                    data-bs-toggle="popover" 
+                    data-bs-placement="top"
+                    data-bs-html="true"
+                    data-bs-trigger="hover focus"
+                    title="Booking Type Help"
+                    data-bs-content="<strong>Single Booking:</strong> Search for listings on a specific date or a continuous listing that spans multiple days.<br><br><strong>Recurring Booking:</strong> Search for a repeating time slot (daily or weekly).">
+              <i class="fas fa-info-circle small"></i>
+            </button>
           </label>
           <select class="form-select" id="filter-type-select" name="filter_type">
             <option value="single" {% if filter_type == "single" or not filter_type %}selected{% endif %}>Single Booking</option>
@@ -170,6 +208,15 @@
         <div class="col-md-4">
           <label class="form-label">
             <i class="fas fa-charging-station me-1"></i> EV Charging
+            <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
+                    data-bs-toggle="popover" 
+                    data-bs-placement="top"
+                    data-bs-html="true"
+                    data-bs-trigger="hover focus"
+                    title="EV Charging Help"
+                    data-bs-content="Filter by spots with EV charging. Select charger level and connector type if needed.">
+              <i class="fas fa-info-circle small"></i>
+            </button>
           </label>
           <div class="form-check">
             <input class="form-check-input" type="checkbox" id="ev_charger" name="has_ev_charger" 
@@ -216,6 +263,15 @@
           <div class="col-md-6">
             <label class="form-label">
               <i class="fas fa-calendar-day me-1"></i> Date
+              <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
+                      data-bs-toggle="popover" 
+                      data-bs-placement="top"
+                      data-bs-html="true"
+                      data-bs-trigger="hover focus"
+                      title="Date Help"
+                      data-bs-content="Select a single date or enable 'Multiple days' to search for a continuous period spanning multiple days. <br><br>If 'Multiple days' is selected, the start time will be on the first day and the end time on the last day.">
+                <i class="fas fa-info-circle small"></i>
+              </button>
             </label>
             <div class="mb-2">
               <input type="date" class="form-control" name="start_date" id="single_start_date" value="{{ start_date }}">
@@ -301,6 +357,15 @@
                     {% if request.GET.recurring_overnight %}checked{% endif %}>
               <label class="form-check-label" for="recurring_overnight">
                 <i class="fas fa-moon me-1"></i> Overnight booking
+                <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
+                        data-bs-toggle="popover" 
+                        data-bs-placement="top"
+                        data-bs-html="true"
+                        data-bs-trigger="hover focus"
+                        title="Overnight Help"
+                        data-bs-content="Check this box when looking for spots from evening to morning of the next day (when end time is earlier than start time).">
+                  <i class="fas fa-info-circle small"></i>
+                </button>
               </label>
             </div>
           </div>
@@ -312,6 +377,15 @@
             <div class="d-flex align-items-center flex-wrap">
               <label class="form-label me-3 mb-0">
                 <i class="fas fa-repeat me-1"></i> Pattern:
+                <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
+                        data-bs-toggle="popover" 
+                        data-bs-placement="top"
+                        data-bs-html="true"
+                        data-bs-trigger="hover focus"
+                        title="Pattern Help"
+                        data-bs-content="<strong>Daily:</strong> Filter for the same time slot every day until the end date.<br><br><strong>Weekly:</strong> Filter for the same day of week for a specified number of weeks.">
+                  <i class="fas fa-info-circle small"></i>
+                </button>
               </label>
               
               <div class="form-check form-check-inline me-2">

@@ -614,6 +614,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
   initializeEvFilters(); // Use this instead of the shared utility
+
+  // Initialize all popovers
+  var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+  var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+    return new bootstrap.Popover(popoverTriggerEl)
+  });
 });
 
 function setupSearch() {
