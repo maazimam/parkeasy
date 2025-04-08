@@ -69,7 +69,9 @@ class BookingSlotForm(forms.ModelForm):
                 self.fields["end_date"].widget.attrs["max"] = max_date_str
 
         # If a start date exists, filter the time choices based on the listing's slots.
-        start_date_str = self.data.get(self.add_prefix("start_date")) or self.initial.get("start_date")
+        start_date_str = self.data.get(
+            self.add_prefix("start_date")
+        ) or self.initial.get("start_date")
         if start_date_str and self.listing:
             try:
                 start_date = dt.datetime.strptime(start_date_str, "%Y-%m-%d").date()
@@ -96,7 +98,9 @@ class BookingSlotForm(forms.ModelForm):
                     if start_date == slot.end_date:
                         end_dt = dt.datetime.combine(start_date, slot.end_time)
                     else:
-                        end_dt = dt.datetime.combine(start_date, dt.time(0, 0)) + dt.timedelta(days=1)
+                        end_dt = dt.datetime.combine(
+                            start_date, dt.time(0, 0)
+                        ) + dt.timedelta(days=1)
                 while current_dt <= end_dt:
                     valid_times.add(current_dt.strftime("%H:%M"))
                     current_dt += dt.timedelta(minutes=30)

@@ -20,6 +20,7 @@ from .utils import (
     generate_booking_slots,
 )
 
+
 @login_required
 def available_times(request):
     listing_id = request.GET.get("listing_id")
@@ -67,7 +68,9 @@ def available_times(request):
             if booking_date == slot.end_date:
                 end_dt = dt.datetime.combine(booking_date, slot.end_time)
             else:
-                end_dt = dt.datetime.combine(booking_date, dt.time(0, 0)) + dt.timedelta(days=1)
+                end_dt = dt.datetime.combine(
+                    booking_date, dt.time(0, 0)
+                ) + dt.timedelta(days=1)
         while current_dt <= end_dt:
             valid_times.add(current_dt.strftime("%H:%M"))
             current_dt += dt.timedelta(minutes=30)
@@ -76,8 +79,18 @@ def available_times(request):
         times = [t for t in times if t <= max_time_str]
     if min_time_str:
         times = [t for t in times if t >= min_time_str]
-    print("Returning times for listing", listing_id, "on", booking_date, "ref_date=", ref_date_str, ":", times)
+    print(
+        "Returning times for listing",
+        listing_id,
+        "on",
+        booking_date,
+        "ref_date=",
+        ref_date_str,
+        ":",
+        times,
+    )
     return JsonResponse({"times": times})
+
 
 @login_required
 def book_listing(request, listing_id):
@@ -116,36 +129,60 @@ def book_listing(request, listing_id):
                         if slot_formset.is_valid():
                             slot_formset.save()
 
-                            # NEW CHECK: Ensure that the combined booking range is within a single availability slot.
                             if booking.slots.exists():
                                 tz = timezone.get_current_timezone()
+
                                 def combine_slot(date, time):
                                     dt_obj = dt.datetime.combine(date, time)
                                     return timezone.make_aware(dt_obj, tz)
-                                overall_start = min(combine_slot(s.start_date, s.start_time) for s in booking.slots.all())
-                                overall_end = max(combine_slot(s.end_date, s.end_time) for s in booking.slots.all())
+
+                                overall_start = min(
+                                    combine_slot(s.start_date, s.start_time)
+                                    for s in booking.slots.all()
+                                )
+                                overall_end = max(
+                                    combine_slot(s.end_date, s.end_time)
+                                    for s in booking.slots.all()
+                                )
                                 valid = False
                                 for avail in listing.slots.all():
-                                    avail_start = combine_slot(avail.start_date, avail.start_time)
-                                    avail_end = combine_slot(avail.end_date, avail.end_time)
-                                    if overall_start >= avail_start and overall_end <= avail_end:
+                                    avail_start = combine_slot(
+                                        avail.start_date, avail.start_time
+                                    )
+                                    avail_end = combine_slot(
+                                        avail.end_date, avail.end_time
+                                    )
+                                    if (
+                                        overall_start >= avail_start
+                                        and overall_end <= avail_end
+                                    ):
                                         valid = True
                                         break
                                 if not valid:
-                                    raise ValueError("Booking must be within a single availability slot.")
+                                    raise ValueError(
+                                        "Booking must be within a single availability slot."
+                                    )
 
                             total_hours = 0
                             for slot in booking.slots.all():
-                                start_dt = dt.datetime.combine(slot.start_date, slot.start_time)
-                                end_dt = dt.datetime.combine(slot.end_date, slot.end_time)
+                                start_dt = dt.datetime.combine(
+                                    slot.start_date, slot.start_time
+                                )
+                                end_dt = dt.datetime.combine(
+                                    slot.end_date, slot.end_time
+                                )
                                 duration = (end_dt - start_dt).total_seconds() / 3600.0
                                 total_hours += duration
-                            booking.total_price = total_hours * float(listing.rent_per_hour)
+                            booking.total_price = total_hours * float(
+                                listing.rent_per_hour
+                            )
                             booking.save()
                             success_messages.append("Booking request created!")
                             return redirect("my_bookings")
                         else:
-                            raise ValueError("Please fix the errors in the booking form.")
+                            raise ValueError(
+                                "Please fix the errors in the booking form."
+                            )
                     else:
                         # Handle recurring booking
                         start_date = request.POST.get("recurring-start_date")
@@ -157,44 +194,74 @@ def book_listing(request, listing_id):
                         if pattern == "daily":
                             end_date = request.POST.get("recurring-end_date")
                             if not all([start_date, start_time, end_time, end_date]):
-                                raise ValueError("Start date, end date, start time, and end time are required for daily recurring bookings.")
-                            start_date = dt.datetime.strptime(start_date, "%Y-%m-%d").date()
-                            start_time = dt.datetime.strptime(start_time, "%H:%M").time()
+                                raise ValueError(
+                                    "Start date, end date, start time, end time required for recurring bookings."
+                                )
+                            start_date = dt.datetime.strptime(
+                                start_date, "%Y-%m-%d"
+                            ).date()
+                            start_time = dt.datetime.strptime(
+                                start_time, "%H:%M"
+                            ).time()
                             end_time = dt.datetime.strptime(end_time, "%H:%M").time()
                             end_date = dt.datetime.strptime(end_date, "%Y-%m-%d").date()
                             if end_date < start_date:
-                                raise ValueError("End date must be on or after start date.")
-                            dates = generate_recurring_dates(start_date, "daily", end_date=end_date)
+                                raise ValueError(
+                                    "End date must be on or after start date."
+                                )
+                            dates = generate_recurring_dates(
+                                start_date, "daily", end_date=end_date
+                            )
                         elif pattern == "weekly":
                             if not all([start_date, start_time, end_time]):
-                                raise ValueError("Start date, start time, and end time are required for weekly recurring bookings.")
-                            start_date = dt.datetime.strptime(start_date, "%Y-%m-%d").date()
-                            start_time = dt.datetime.strptime(start_time, "%H:%M").time()
+                                raise ValueError(
+                                    "Start date, start time, end time required for recurring bookings."
+                                )
+                            start_date = dt.datetime.strptime(
+                                start_date, "%Y-%m-%d"
+                            ).date()
+                            start_time = dt.datetime.strptime(
+                                start_time, "%H:%M"
+                            ).time()
                             end_time = dt.datetime.strptime(end_time, "%H:%M").time()
                             weeks_str = request.POST.get("recurring-weeks")
                             if not weeks_str:
-                                raise ValueError("Number of weeks is required for weekly recurring pattern.")
+                                raise ValueError(
+                                    "Number of weeks is required for weekly recurring pattern."
+                                )
                             weeks = int(weeks_str)
                             if weeks <= 0 or weeks > 52:
-                                raise ValueError("Number of weeks must be between 1 and 52.")
-                            dates = generate_recurring_dates(start_date, "weekly", weeks=weeks)
+                                raise ValueError(
+                                    "Number of weeks must be between 1 and 52."
+                                )
+                            dates = generate_recurring_dates(
+                                start_date, "weekly", weeks=weeks
+                            )
 
                         if start_time >= end_time and not is_overnight:
-                            raise ValueError("Start time must be before end time unless overnight booking is selected.")
+                            raise ValueError(
+                                "Start time must be before end time unless overnight booking is selected."
+                            )
 
-                        booking_slots = generate_booking_slots(dates, start_time, end_time, is_overnight)
+                        booking_slots = generate_booking_slots(
+                            dates, start_time, end_time, is_overnight
+                        )
 
                         unavailable_dates = []
                         for slot in booking_slots:
-                            start_dt = dt.datetime.combine(slot["start_date"], slot["start_time"])
-                            end_dt = dt.datetime.combine(slot["end_date"], slot["end_time"])
+                            start_dt = dt.datetime.combine(
+                                slot["start_date"], slot["start_time"]
+                            )
+                            end_dt = dt.datetime.combine(
+                                slot["end_date"], slot["end_time"]
+                            )
                             start_dt = timezone.make_aware(start_dt)
                             end_dt = timezone.make_aware(end_dt)
                             if not listing.is_available_for_range(start_dt, end_dt):
                                 date_str = slot["start_date"].strftime("%Y-%m-%d")
                                 unavailable_dates.append(date_str)
                         if unavailable_dates:
-                            error_msg = "Sorry, some of those times are not available. Please review the available times and try again."
+                            error_msg = "Some of those times unavailable. Please review timeslots and try again."
                             raise ValueError(error_msg)
 
                         booking = booking_form.save(commit=False)
@@ -213,21 +280,31 @@ def book_listing(request, listing_id):
                                 end_time=slot_data["end_time"],
                             )
                             slot.save()
-                            start_dt = dt.datetime.combine(slot_data["start_date"], slot_data["start_time"])
-                            end_dt = dt.datetime.combine(slot_data["end_date"], slot_data["end_time"])
+                            start_dt = dt.datetime.combine(
+                                slot_data["start_date"], slot_data["start_time"]
+                            )
+                            end_dt = dt.datetime.combine(
+                                slot_data["end_date"], slot_data["end_time"]
+                            )
                             duration = (end_dt - start_dt).total_seconds() / 3600.0
                             total_hours += duration
                         booking.total_price = total_hours * float(listing.rent_per_hour)
                         booking.save()
-                        success_messages.append(f"Recurring booking created successfully for {len(booking_slots)} dates!")
+                        success_messages.append(
+                            f"Recurring booking created successfully for {len(booking_slots)} dates!"
+                        )
                         return redirect("my_bookings")
 
             except ValueError as e:
                 error_messages.append(str(e))
-                slot_formset = BookingSlotFormSet(form_kwargs={"listing": listing}, prefix="form")
+                slot_formset = BookingSlotFormSet(
+                    form_kwargs={"listing": listing}, prefix="form"
+                )
             except Exception as e:
                 error_messages.append(f"An error occurred: {str(e)}")
-                slot_formset = BookingSlotFormSet(form_kwargs={"listing": listing}, prefix="form")
+                slot_formset = BookingSlotFormSet(
+                    form_kwargs={"listing": listing}, prefix="form"
+                )
         else:
             slot_formset = BookingSlotFormSet(
                 request.POST, form_kwargs={"listing": listing}, prefix="form"
@@ -235,7 +312,9 @@ def book_listing(request, listing_id):
             error_messages.append("Please fix the errors below.")
     else:
         booking_form = BookingForm()
-        slot_formset = BookingSlotFormSet(form_kwargs={"listing": listing}, prefix="form")
+        slot_formset = BookingSlotFormSet(
+            form_kwargs={"listing": listing}, prefix="form"
+        )
 
     recurring_form = BookingSlotForm(prefix="recurring", listing=listing)
 
