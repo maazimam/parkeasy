@@ -616,7 +616,7 @@ class RecurringBookingTests(TestCase):
         self.assertIn("error_messages", response.context)
         self.assertTrue(
             any(
-                "not available" in msg.lower()
+                "unavailable" in msg.lower()
                 for msg in response.context["error_messages"]
             )
         )
@@ -694,7 +694,7 @@ class RecurringBookingTests(TestCase):
         self.assertIn("error_messages", response.context)
         self.assertTrue(
             any(
-                "not available" in msg.lower()
+                "unavailable" in msg.lower()
                 for msg in response.context["error_messages"]
             )
         )
@@ -757,7 +757,7 @@ class RecurringBookingTests(TestCase):
         self.assertIn("error_messages", response.context)
         self.assertTrue(
             any(
-                "not available" in msg.lower()
+                "unavailable" in msg.lower()
                 for msg in response.context["error_messages"]
             )
         )
@@ -870,7 +870,7 @@ class RecurringBookingTests(TestCase):
         self.assertIn("error_messages", response.context)
         self.assertTrue(
             any(
-                "not available" in msg.lower()
+                "unavailable" in msg.lower()
                 for msg in response.context["error_messages"]
             )
         )

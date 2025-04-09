@@ -29,6 +29,50 @@ HALF_HOUR_CHOICES = [
 ]
 
 
+def merge_listing_slots(listing):
+    """
+    Merge continuous or overlapping availability slots for the given listing.
+    Two slots are merged if the end datetime of one equals or overlaps
+    the start datetime of the next. The merged slot will span from the earliest
+    start to the latest end among continuous/overlapping slots.
+    """
+    slots = list(listing.slots.all())
+    if not slots:
+        return
+
+    # Convert each slot to a (start_datetime, end_datetime) tuple.
+    intervals = []
+    for slot in slots:
+        start_dt = datetime.combine(slot.start_date, slot.start_time)
+        end_dt = datetime.combine(slot.end_date, slot.end_time)
+        intervals.append((start_dt, end_dt))
+
+    # Sort intervals by start time.
+    intervals.sort(key=lambda iv: iv[0])
+    merged = []
+    for interval in intervals:
+        if not merged:
+            merged.append(interval)
+        else:
+            last_start, last_end = merged[-1]
+            # If the intervals overlap or are continuous (i.e. adjacent), merge them.
+            if interval[0] <= last_end:
+                merged[-1] = (last_start, max(last_end, interval[1]))
+            else:
+                merged.append(interval)
+
+    # Update ListingSlot records: delete all current slots and create new ones.
+    listing.slots.all().delete()
+    for start_dt, end_dt in merged:
+        ListingSlot.objects.create(
+            listing=listing,
+            start_date=start_dt.date(),
+            start_time=start_dt.time(),
+            end_date=end_dt.date(),
+            end_time=end_dt.time(),
+        )
+
+
 @login_required
 def create_listing(request):
     alert_message = ""
@@ -54,6 +98,8 @@ def create_listing(request):
             new_listing.save()
             slot_formset.instance = new_listing
             slot_formset.save()
+            # Merge continuous slots if they are present.
+            merge_listing_slots(new_listing)
             messages.success(request, "Listing created successfully!")
             return redirect("view_listings")
         else:
@@ -187,7 +233,6 @@ def edit_listing(request, listing_id):
                                 },
                             )
 
-            # Save the changes.
             listing_form.save()
             slot_formset.save()
 
@@ -196,6 +241,9 @@ def edit_listing(request, listing_id):
                 slot_end = datetime.combine(slot.end_date, slot.end_time)
                 if slot_end <= datetime.now():
                     slot.delete()
+
+            # Merge continuous slots if needed.
+            merge_listing_slots(listing)
 
             messages.success(request, "Listing updated successfully!")
             return redirect("manage_listings")
@@ -460,18 +508,11 @@ def view_listings(request):
 
             for listing in all_listings:
                 try:
-                    # Extract listing coordinates
                     listing_lat, listing_lng = extract_coordinates(listing.location)
-
-                    # Calculate distance
                     distance = calculate_distance(
                         search_lat, search_lng, listing_lat, listing_lng
                     )
-
-                    # Add distance to listing object
                     listing.distance = distance
-
-                    # Only apply radius filter if specified
                     if radius:
                         radius = float(radius)
                         if distance <= radius:
@@ -479,28 +520,21 @@ def view_listings(request):
                     else:
                         processed_listings.append(listing)
                 except ValueError:
-                    listing.distance = (
-                        None  # Set distance to None if coordinates invalid
-                    )
-                    processed_listings.append(listing)  # Still include the listing
+                    listing.distance = None
+                    processed_listings.append(listing)
         except ValueError:
             error_messages.append("Invalid coordinates provided")
-            processed_listings = list(
-                all_listings
-            )  # Use all listings if coordinates invalid
+            processed_listings = list(all_listings)
     else:
-        # If no location search, process listings normally
         for listing in all_listings:
-            listing.distance = None  # Set distance to None when no search location
+            listing.distance = None
             processed_listings.append(listing)
 
-    # Sort by distance if we have coordinates
     if search_lat and search_lng:
         processed_listings.sort(
             key=lambda x: x.distance if x.distance is not None else float("inf")
         )
 
-    # Process availability info for all listings
     for listing in processed_listings:
         try:
             earliest_slot = listing.slots.earliest("start_date", "start_time")
@@ -515,12 +549,10 @@ def view_listings(request):
             listing.available_until = None
             listing.available_time_until = None
 
-    # Pagination logic
     page_number = request.GET.get("page", 1)
     paginator = Paginator(processed_listings, 10)
     page_obj = paginator.get_page(page_number)
 
-    # Get filter context
     context = {
         "listings": page_obj,
         "half_hour_choices": HALF_HOUR_CHOICES,
