@@ -6,7 +6,6 @@ from django.contrib.auth.forms import (
 )
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages
 from .forms import EmailChangeForm
 
 
@@ -82,8 +81,20 @@ def verify(request):
 
 @login_required
 def profile_view(request):
-    # Render the user's profile page
-    return render(request, "accounts/profile.html", {"user": request.user})
+    # Get messages from session if present
+    success_message = request.session.pop("success_message", None)
+    error_message = request.session.pop("error_message", None)
+
+    # Render the user's profile page with message context
+    return render(
+        request,
+        "accounts/profile.html",
+        {
+            "user": request.user,
+            "success_message": success_message,
+            "error_message": error_message,
+        },
+    )
 
 
 @login_required
@@ -102,7 +113,7 @@ def change_password(request):
 
 @login_required
 def password_change_done(request):
-    messages.success(request, "Password changed successfully!")
+    request.session["success_message"] = "Password changed successfully!"
     return redirect("profile")
 
 
@@ -118,11 +129,11 @@ def change_email(request):
             request.user.email = form.cleaned_data["email"]
             request.user.save()
 
-            # Customize message based on action
+            # Store message in session for retrieval after redirect
             if is_adding_email:
-                messages.success(request, "Email added successfully!")
+                request.session["success_message"] = "Email added successfully!"
             else:
-                messages.success(request, "Email updated successfully!")
+                request.session["success_message"] = "Email updated successfully!"
 
             return redirect("profile")
     else:
