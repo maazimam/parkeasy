@@ -11,435 +11,579 @@
 />
 <!-- Custom CSS -->
 <link rel="stylesheet" href="{% static 'listings/css/view_listings.css' %}" />
-<!-- Font Awesome link removed from here - now in base.html -->
+
+<style>
+  /* Three-pane layout styles */
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+  
+  #main-content {
+    display: flex;
+    height: calc(100vh - 56px); /* Subtract navbar height */
+    overflow: hidden;
+    position: absolute;
+    top: 56px; /* Match navbar height */
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+  
+  #left-panel {
+    width: 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #dee2e6;
+  }
+  
+  #filter-panel {
+    height: 50%;
+    overflow-y: auto;
+    padding: 15px;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  #list-panel {
+    height: 50%;
+    overflow: hidden; /* Changed from overflow-y: auto to prevent outer scrolling */
+    padding: 0; /* Remove padding to allow header to span full width */
+  }
+  
+  #list-view-container {
+    padding: 15px;
+    padding-top: 0; /* No padding at top to keep close to header */
+  }
+  
+  #map-panel {
+    width: 50%;
+    height: 100%;
+  }
+  
+  #map-view {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 0;
+  }
+  
+  /* Override existing styles */
+  .container {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .filter-box {
+    padding: 0;
+    margin: 0;
+  }
+  
+  .filter-box .card {
+    border: none;
+    box-shadow: none;
+    margin-bottom: 0;
+  }
+  
+  .view-container.active-view {
+    display: block;
+  }
+  
+  .view-container {
+    display: none;
+  }
+  
+  /* Make navbar fixed */
+  .navbar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    height: 56px;
+  }
+
+  /* Remove rounded corners from cards within the filter panel */
+  #filter-panel .card {
+    border-radius: 0;
+  }
+
+  /* Remove padding from list view */
+  #list-view {
+    padding: 0 !important;
+    border: none !important;
+  }
+
+  /* Utility for resizing panels */
+  .resize-handle {
+    height: 6px;
+    background-color: #f0f0f0;
+    cursor: row-resize;
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+  }
+
+  /* Map control style overrides */
+  .leaflet-control-zoom {
+    margin: 10px !important;
+  }
+
+  /* Hide toggle buttons as they're no longer needed */
+  .view-toggle {
+    display: none;
+  }
+
+  /* Custom title bar for each panel */
+  .panel-header {
+    background-color: #f8f9fa;
+    padding: 8px 15px;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 500;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  
+  /* Listing card hover effect */
+  #list-panel .card {
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+  }
+  
+  #list-panel .card:hover {
+    transform: translateX(5px);
+    border-left: 3px solid #007bff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  
+  /* Highlighted card */
+  #list-panel .card.border-primary {
+    border-left-width: 3px !important;
+    background-color: rgba(0, 123, 255, 0.05);
+  }
+  
+  /* Map marker popup styles */
+  .map-popup {
+    min-width: 200px;
+  }
+  
+  /* Search marker styles */
+  .search-marker-icon {
+    z-index: 1000 !important;
+  }
+
+  /* Mobile responsiveness */
+  @media (max-width: 991px) {
+    #main-content {
+      flex-direction: column;
+    }
+    
+    #left-panel, #map-panel {
+      width: 100%;
+      height: auto;
+    }
+    
+    #filter-panel {
+      height: auto;
+      max-height: 50vh;
+    }
+    
+    #list-panel {
+      height: auto;
+      max-height: 50vh;
+    }
+    
+    #map-panel {
+      height: 50vh;
+    }
+  }
+</style>
 {% endblock %}
 
 {% block title %}All Listings{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-  <div class="position-relative mb-4">
-    <h2 class="text-center">Available Parking Spots</h2>
-    <div class="position-absolute top-0 end-0">
-      <a href="{% url 'create_listing' %}" class="btn btn-accent">
-        <i class="fas fa-plus me-1"></i> Create a new listing
-      </a>
-    </div>
-  </div>
+<!-- Navbar is already fixed via the added CSS -->
 
-  <!-- Add this where you want to display messages -->
-  {% if error_messages %}
-      {% for message in error_messages %}
-          <div class="alert alert-danger">{{ message }}</div>
-      {% endfor %}
-  {% endif %}
-
-  {% if warning_messages %}
-      {% for message in warning_messages %}
-          <div class="alert alert-warning">{{ message }}</div>
-      {% endfor %}
-  {% endif %}
-
-  <!-- View Toggle Buttons -->
-  <div class="view-toggle text-center mb-4">
-    <div class="btn-group" role="group">
-      <button class="btn btn-primary active" id="list-view-btn">
-        List View
-      </button>
-      <button class="btn btn-outline-primary" id="map-view-btn">
-        Map View
-      </button>
-    </div>
-  </div>
-
-  <!-- Replace the form section with this -->
-<form method="GET" action="{% url 'view_listings' %}" class="filter-box">
-  <!-- Keep the card wrapper -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-body p-4">
-      <!-- Modify the header with filter title and clear button -->
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div class="d-flex align-items-center">
-          <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filter Spots</h5>
-        </div>
-        <a href="{% url 'view_listings' %}" class="btn btn-outline-danger btn-sm">
-          <i class="fas fa-times me-1"></i> Clear Filters
+<!-- Main content area divided into panels -->
+<div id="main-content">
+  <!-- Left side with filters and list view -->
+  <div id="left-panel">
+    <!-- Top left: Filter panel -->
+    <div id="filter-panel">
+      <div class="panel-header">
+        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filter Spots</h5>
+        <a href="{% url 'create_listing' %}" class="btn btn-accent btn-sm">
+          <i class="fas fa-plus me-1"></i> Create a new listing
         </a>
       </div>
 
-      <!-- Improved Location Search Section -->
-      <div class="row mb-3">
-        <div class="col-md-8">
-          <label class="form-label">
-            <i class="fas fa-map-marker-alt me-1"></i> Location
-            <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
-                    data-bs-toggle="popover" 
-                    data-bs-placement="top"
-                    data-bs-html="true"
-                    data-bs-trigger="hover focus"
-                    title="Location Help"
-                    data-bs-content="Search by address or pick on map.">
-              <i class="fas fa-info-circle small"></i>
-            </button>
-          </label>
-          
-          <!-- Improved search input with buttons -->
-          <div id="location-search-container">
-            <input type="text" 
-                  id="location-search" 
-                  class="form-control mb-2" 
-                  placeholder="Enter an address or landmark"
-                  value="{{ request.GET.location|default:'' }}"/>
-                  
-            <div class="d-flex gap-2">
-              <button class="btn btn-outline-secondary flex-grow-1" id="search-location" type="button">
-                <i class="fas fa-search me-1"></i> Find Address
-              </button>
-              <button class="btn btn-outline-secondary flex-grow-1" type="button" id="toggle-map">
-                <i class="fas fa-map me-1"></i> <span id="toggle-map-text">Pick on Map</span>
-              </button>
-            </div>
-          </div>
-          
-          <!-- Coordinates display (unchanged) -->
-          <div class="mt-2 text-muted small" id="coordinates-display" {% if not search_lat or not search_lng %}style="display: none;"{% endif %}>
-            <i class="fas fa-crosshairs me-1"></i>
-            Selected: <span id="lat-display">{{ search_lat|default:'-' }}</span>, <span id="lng-display">{{ search_lng|default:'-' }}</span>
-          </div>
-          <input type="hidden" name="lat" id="search-lat" value="{{ search_lat|default:'' }}">
-          <input type="hidden" name="lng" id="search-lng" value="{{ search_lng|default:'' }}">
-        </div>
+      <!-- Messages section -->
+      {% if error_messages %}
+          {% for message in error_messages %}
+              <div class="alert alert-danger">{{ message }}</div>
+          {% endfor %}
+      {% endif %}
 
-        <div class="col-md-4">
-          <label class="form-label">
-            <i class="fas fa-circle-notch me-1"></i> Distance
-            <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
-                    data-bs-toggle="popover" 
-                    data-bs-placement="top"
-                    data-bs-html="true"
-                    data-bs-trigger="hover focus"
-                    title="Distance Help"
-                    data-bs-content="Set a radius (in km) to limit search results to a specific area around your chosen location.">
-              <i class="fas fa-info-circle small"></i>
-            </button>
-          </label>
-          <div class="form-check mb-2">
-            <input class="form-check-input" 
-                  type="checkbox" 
-                  id="enable-radius" 
-                  {% if radius %}checked{% endif %}>
-            <label class="form-check-label" for="enable-radius">
-              Filter listings within a range
-            </label>
-          </div>
-          <div id="radius-input-group" 
-              class="input-group" 
-              {% if not radius %}style="display: none;"{% endif %}>
-            <input type="number" 
-                  name="radius" 
-                  id="radius-input"
-                  class="form-control" 
-                  value="{{ radius|default:'' }}" 
-                  placeholder="Enter radius"
-                  min="1" max="100">
-            <span class="input-group-text">km</span>
-          </div>
-          <small class="text-muted" 
-                id="radius-hint" 
-                {% if radius %}style="display: none;"{% endif %}>
-            Results will be sorted by distance
-          </small>
-        </div>
-      </div>
+      {% if warning_messages %}
+          {% for message in warning_messages %}
+              <div class="alert alert-warning">{{ message }}</div>
+          {% endfor %}
+      {% endif %}
 
-      <!-- Map Container (unchanged) -->
-      <div class="map-container mb-4" id="search-map-container" style="display: none;">
-        <div id="search-map" style="height: 300px;"></div>
-      </div>
-
-      <hr class="my-4">
-      
-      <!-- Price, EV Charger, Booking Type in one row -->
-      <div class="row g-3 mb-4">
-        <!-- Max Price -->
-        <div class="col-md-4">
-          <label for="max_price" class="form-label">
-            <i class="fas fa-tag me-1"></i> Max Price ($/hr)
-            <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
-                    data-bs-toggle="popover" 
-                    data-bs-placement="top"
-                    data-bs-html="true"
-                    data-bs-trigger="hover focus"
-                    title="Price Help"
-                    data-bs-content="Set a maximum price per hour to filter results by cost.">
-              <i class="fas fa-info-circle small"></i>
-            </button>
-          </label>
-          <input type="number" 
-                step="0.01" 
-                class="form-control" 
-                id="max_price" 
-                name="max_price"
-                value="{{ request.GET.max_price|default_if_none:'' }}" 
-                placeholder="Any price">
-        </div>
-
-        <!-- Booking Type - Dropdown -->
-        <div class="col-md-4">
-          <label class="form-label">
-            <i class="fas fa-calendar me-1"></i> Booking Type
-            <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
-                    data-bs-toggle="popover" 
-                    data-bs-placement="top"
-                    data-bs-html="true"
-                    data-bs-trigger="hover focus"
-                    title="Booking Type Help"
-                    data-bs-content="<strong>Single Booking:</strong> Search for listings on a specific date or a continuous listing that spans multiple days.<br><br><strong>Recurring Booking:</strong> Search for a repeating time slot (daily or weekly).">
-              <i class="fas fa-info-circle small"></i>
-            </button>
-          </label>
-          <select class="form-select" id="filter-type-select" name="filter_type">
-            <option value="single" {% if filter_type == "single" or not filter_type %}selected{% endif %}>Single Booking</option>
-            <option value="recurring" {% if filter_type == "recurring" %}selected{% endif %}>Recurring Booking</option>
-          </select>
-        </div>
-
-        <!-- EV Charger Checkbox -->
-        <div class="col-md-4">
-          <label class="form-label">
-            <i class="fas fa-charging-station me-1"></i> EV Charging
-            <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
-                    data-bs-toggle="popover" 
-                    data-bs-placement="top"
-                    data-bs-html="true"
-                    data-bs-trigger="hover focus"
-                    title="EV Charging Help"
-                    data-bs-content="Filter by spots with EV charging. Select charger level and connector type if needed.">
-              <i class="fas fa-info-circle small"></i>
-            </button>
-          </label>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="ev_charger" name="has_ev_charger" 
-                  {% if request.GET.has_ev_charger == 'on' %}checked{% endif %}>
-            <label class="form-check-label" for="ev_charger">
-              Has EV Charger
-            </label>
-          </div>
-        </div>
-      </div>
-      
-      <!-- EV charger options -->
-      <div class="row g-3 mb-4">
-        <!-- Charger Level -->
-        <div class="col-md-6 ev-charger-container">
-          <label class="form-label">
-            <i class="fas fa-bolt me-1"></i> Charger Level
-          </label>
-          <select class="form-select" name="charger_level" id="charger_level">
-            <option value="">Any Level</option>
-            {% for value, label in charger_level_choices %}
-              <option value="{{ value }}" {% if request.GET.charger_level == value %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <!-- Connector Type -->
-        <div class="col-md-6 ev-charger-container">
-          <label class="form-label">
-            <i class="fas fa-plug me-1"></i> Connector Type
-          </label>
-          <select class="form-select" name="connector_type" id="connector_type">
-            <option value="">Any Type</option>
-            {% for value, label in connector_type_choices %}
-              <option value="{{ value }}" {% if request.GET.connector_type == value %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-
-      <!-- Single Booking Options section with the checkbox inside -->
-      <div id="single-filter" class="booking-options mb-4" {% if filter_type != "single" %}style="display:none;"{% endif %}>
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">
-              <i class="fas fa-calendar-day me-1"></i> Date
-              <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
-                      data-bs-toggle="popover" 
-                      data-bs-placement="top"
-                      data-bs-html="true"
-                      data-bs-trigger="hover focus"
-                      title="Date Help"
-                      data-bs-content="Select a single date or enable 'Multiple days' to search for a continuous period spanning multiple days. <br><br>If 'Multiple days' is selected, the start time will be on the first day and the end time on the last day.">
-                <i class="fas fa-info-circle small"></i>
-              </button>
-            </label>
-            <div class="mb-2">
-              <input type="date" class="form-control" name="start_date" id="single_start_date" value="{{ start_date }}">
-            </div>
-            <!-- Move checkbox here inside single booking section -->
-            <div class="form-check mt-2 mb-2">
-              <input class="form-check-input" type="checkbox" id="enable_date_range" 
-                     {% if end_date and end_date != start_date %}checked{% endif %}>
-              <label class="form-check-label" for="enable_date_range">
-                <i class="fas fa-calendar-week me-1"></i> Multiple days
-              </label>
-            </div>
-            <div id="end-date-container" class="mt-2" {% if not end_date or end_date == start_date %}style="display:none;"{% endif %}>
-              <div class="input-group">
-                <span class="input-group-text">Until</span>
-                <input type="date" class="form-control" name="end_date" id="single_end_date" value="{{ end_date|default:start_date }}">
+      <!-- Filter form -->
+      <form method="GET" action="{% url 'view_listings' %}" class="filter-box">
+        <div class="card">
+          <div class="card-body p-3">
+            <!-- Modify the header with filter title and clear button -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div class="d-flex align-items-center">
+                <h6 class="mb-0">Set your criteria</h6>
               </div>
+              <a href="{% url 'view_listings' %}" class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-times me-1"></i> Clear Filters
+              </a>
             </div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">
-              <i class="fas fa-clock me-1"></i> Time Range
-            </label>
-            <div class="input-group">
-              <select class="form-select" name="start_time">
-                <option value="">Start Time</option>
-                {% for value, label in half_hour_choices %}
-                  <option value="{{ value }}" {% if start_time == value %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-              </select>
-              <span class="input-group-text">to</span>
-              <select class="form-select" name="end_time">
-                <option value="">End Time</option>
-                {% for value, label in half_hour_choices %}
-                  <option value="{{ value }}" {% if end_time == value %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Recurring Options - keep existing logic and IDs -->
-      <div id="recurring-filter" class="booking-options mb-4" {% if filter_type != "recurring" %}style="display:none;"{% endif %}>
-        <!-- Keep the same structure, just added some spacers and icons -->
-        <div class="row g-3 mb-3">
-          <div class="col-md-3">
-            <label for="recurring_start_date" class="form-label">
-              <i class="fas fa-calendar-alt me-1"></i> Start Date*
-            </label>
-            <input type="date" class="form-control" id="recurring_start_date" name="recurring_start_date" 
-                  value="{{ request.GET.recurring_start_date|default_if_none:'' }}" required>
-          </div>
-          
-          <div class="col-md-3">
-            <label for="recurring_start_time" class="form-label">
-              <i class="fas fa-clock me-1"></i> Start Time*
-            </label>
-            <select class="form-select" id="recurring_start_time" name="recurring_start_time" required>
-              <option value="">Select time</option>
-              {% for value, label in half_hour_choices %}
-                <option value="{{ value }}" {% if request.GET.recurring_start_time == value %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          
-          <div class="col-md-3">
-            <label for="recurring_end_time" class="form-label">
-              <i class="fas fa-clock me-1"></i> End Time*
-            </label>
-            <select class="form-select" id="recurring_end_time" name="recurring_end_time" required>
-              <option value="">Select time</option>
-              {% for value, label in half_hour_choices %}
-                <option value="{{ value }}" {% if request.GET.recurring_end_time == value %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          
-          <div class="col-md-3">
-            <label class="form-label d-block">&nbsp;</label>
-            <div class="form-check mt-2">
-              <input class="form-check-input" type="checkbox" id="recurring_overnight" name="recurring_overnight" 
-                    {% if request.GET.recurring_overnight %}checked{% endif %}>
-              <label class="form-check-label" for="recurring_overnight">
-                <i class="fas fa-moon me-1"></i> Overnight booking
-                <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
-                        data-bs-toggle="popover" 
-                        data-bs-placement="top"
-                        data-bs-html="true"
-                        data-bs-trigger="hover focus"
-                        title="Overnight Help"
-                        data-bs-content="Check this box when looking for spots from evening to morning of the next day (when end time is earlier than start time).">
-                  <i class="fas fa-info-circle small"></i>
-                </button>
-              </label>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Pattern selection row -->
-        <div class="row">
-          <div class="col-12">
-            <div class="d-flex align-items-center flex-wrap">
-              <label class="form-label me-3 mb-0">
-                <i class="fas fa-repeat me-1"></i> Pattern:
-                <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
-                        data-bs-toggle="popover" 
-                        data-bs-placement="top"
-                        data-bs-html="true"
-                        data-bs-trigger="hover focus"
-                        title="Pattern Help"
-                        data-bs-content="<strong>Daily:</strong> Filter for the same time slot every day until the end date.<br><br><strong>Weekly:</strong> Filter for the same day of week for a specified number of weeks.">
-                  <i class="fas fa-info-circle small"></i>
-                </button>
-              </label>
-              
-              <div class="form-check form-check-inline me-2">
-                <input class="form-check-input" type="radio" name="recurring_pattern" id="pattern_daily" value="daily" 
-                      {% if request.GET.recurring_pattern == "daily" or not request.GET.recurring_pattern %}checked{% endif %}>
-                <label class="form-check-label" for="pattern_daily">Daily</label>
-              </div>
-              
-              <div id="daily-pattern-fields" class="me-4" {% if request.GET.recurring_pattern == "weekly" %}style="display:none;"{% endif %}>
-                <div class="input-group input-group-sm">
-                  <span class="input-group-text">Until</span>
-                  <input type="date" class="form-control" id="recurring_end_date" name="recurring_end_date"
-                        value="{{ request.GET.recurring_end_date|default_if_none:'' }}" required>
+            <!-- Improved Location Search Section -->
+            <div class="row mb-3">
+              <div class="col-md-8">
+                <label class="form-label">
+                  <i class="fas fa-map-marker-alt me-1"></i> Location
+                  <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
+                          data-bs-toggle="popover" 
+                          data-bs-placement="top"
+                          data-bs-html="true"
+                          data-bs-trigger="hover focus"
+                          title="Location Help"
+                          data-bs-content="Search by address or pick on map.">
+                    <i class="fas fa-info-circle small"></i>
+                  </button>
+                </label>
+                
+                <!-- Improved search input with buttons -->
+                <div id="location-search-container">
+                  <input type="text" 
+                        id="location-search" 
+                        class="form-control mb-2" 
+                        placeholder="Enter an address or landmark"
+                        value="{{ request.GET.location|default:'' }}"/>
+                        
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary flex-grow-1" id="search-location" type="button">
+                      <i class="fas fa-search me-1"></i> Find Address
+                    </button>
+                    <button class="btn btn-outline-secondary flex-grow-1" type="button" id="toggle-map">
+                      <i class="fas fa-map me-1"></i> <span id="toggle-map-text">Pick on Map</span>
+                    </button>
+                  </div>
                 </div>
+                
+                <!-- Coordinates display (unchanged) -->
+                <div class="mt-2 text-muted small" id="coordinates-display" {% if not search_lat or not search_lng %}style="display: none;"{% endif %}>
+                  <i class="fas fa-crosshairs me-1"></i>
+                  Selected: <span id="lat-display">{{ search_lat|default:'-' }}</span>, <span id="lng-display">{{ search_lng|default:'-' }}</span>
+                </div>
+                <input type="hidden" name="lat" id="search-lat" value="{{ search_lat|default:'' }}">
+                <input type="hidden" name="lng" id="search-lng" value="{{ search_lng|default:'' }}">
               </div>
-              
-              <div class="form-check form-check-inline me-2">
-                <input class="form-check-input" type="radio" name="recurring_pattern" id="pattern_weekly" value="weekly"
-                      {% if request.GET.recurring_pattern == "weekly" %}checked{% endif %}>
-                <label class="form-check-label" for="pattern_weekly">Weekly</label>
+
+              <div class="col-md-4">
+                <label class="form-label">
+                  <i class="fas fa-circle-notch me-1"></i> Distance
+                  <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
+                          data-bs-toggle="popover" 
+                          data-bs-placement="top"
+                          data-bs-html="true"
+                          data-bs-trigger="hover focus"
+                          title="Distance Help"
+                          data-bs-content="Set a radius (in km) to limit search results to a specific area around your chosen location.">
+                    <i class="fas fa-info-circle small"></i>
+                  </button>
+                </label>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" 
+                        type="checkbox" 
+                        id="enable-radius" 
+                        {% if radius %}checked{% endif %}>
+                  <label class="form-check-label" for="enable-radius">
+                    Filter listings within a range
+                  </label>
+                </div>
+                <div id="radius-input-group" 
+                    class="input-group" 
+                    {% if not radius %}style="display: none;"{% endif %}>
+                  <input type="number" 
+                        name="radius" 
+                        id="radius-input"
+                        class="form-control" 
+                        value="{{ radius|default:'' }}" 
+                        placeholder="Enter radius"
+                        min="1" max="100">
+                  <span class="input-group-text">km</span>
+                </div>
+                <small class="text-muted" 
+                      id="radius-hint" 
+                      {% if radius %}style="display: none;"{% endif %}>
+                  Results will be sorted by distance
+                </small>
               </div>
-              
-              <div id="weekly-pattern-fields" {% if request.GET.recurring_pattern != "weekly" %}style="display:none;"{% endif %}>
-                <div class="input-group input-group-sm">
-                  <span class="input-group-text">For</span>
-                  <input type="number" class="form-control" id="recurring_weeks" name="recurring_weeks" min="1" max="52"
-                        value="{{ request.GET.recurring_weeks|default:'4' }}" required style="width: 70px;">
-                  <span class="input-group-text">weeks</span>
+            </div>
+
+            <!-- Search map is now moved to the map panel -->
+            <div id="search-map-container" style="display: none;">
+              <!-- This container is kept for compatibility but not used -->
+            </div>
+
+            <hr class="my-3">
+            
+            <!-- Price, EV Charger, Booking Type in one row -->
+            <div class="row g-3 mb-3">
+              <!-- Max Price -->
+              <div class="col-md-4">
+                <label for="max_price" class="form-label">
+                  <i class="fas fa-tag me-1"></i> Max Price ($/hr)
+                </label>
+                <input type="number" 
+                      step="0.01" 
+                      class="form-control" 
+                      id="max_price" 
+                      name="max_price"
+                      value="{{ request.GET.max_price|default_if_none:'' }}" 
+                      placeholder="Any price">
+              </div>
+
+              <!-- Booking Type - Dropdown -->
+              <div class="col-md-4">
+                <label class="form-label">
+                  <i class="fas fa-calendar me-1"></i> Booking Type
+                </label>
+                <select class="form-select" id="filter-type-select" name="filter_type">
+                  <option value="single" {% if filter_type == "single" or not filter_type %}selected{% endif %}>Single Booking</option>
+                  <option value="recurring" {% if filter_type == "recurring" %}selected{% endif %}>Recurring Booking</option>
+                </select>
+              </div>
+
+              <!-- EV Charger Checkbox -->
+              <div class="col-md-4">
+                <label class="form-label">
+                  <i class="fas fa-charging-station me-1"></i> EV Charging
+                </label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="ev_charger" name="has_ev_charger" 
+                        {% if request.GET.has_ev_charger == 'on' %}checked{% endif %}>
+                  <label class="form-check-label" for="ev_charger">
+                    Has EV Charger
+                  </label>
                 </div>
               </div>
             </div>
+            
+            <!-- EV charger options -->
+            <div class="row g-3 mb-3">
+              <!-- Charger Level -->
+              <div class="col-md-6 ev-charger-container">
+                <label class="form-label">
+                  <i class="fas fa-bolt me-1"></i> Charger Level
+                </label>
+                <select class="form-select" name="charger_level" id="charger_level">
+                  <option value="">Any Level</option>
+                  {% for value, label in charger_level_choices %}
+                    <option value="{{ value }}" {% if request.GET.charger_level == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Connector Type -->
+              <div class="col-md-6 ev-charger-container">
+                <label class="form-label">
+                  <i class="fas fa-plug me-1"></i> Connector Type
+                </label>
+                <select class="form-select" name="connector_type" id="connector_type">
+                  <option value="">Any Type</option>
+                  {% for value, label in connector_type_choices %}
+                    <option value="{{ value }}" {% if request.GET.connector_type == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <!-- Single Booking Options section -->
+            <div id="single-filter" class="booking-options mb-3" {% if filter_type != "single" %}style="display:none;"{% endif %}>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">
+                    <i class="fas fa-calendar-day me-1"></i> Date
+                  </label>
+                  <div class="mb-2">
+                    <input type="date" class="form-control" name="start_date" id="single_start_date" value="{{ start_date }}">
+                  </div>
+                  <!-- Move checkbox here inside single booking section -->
+                  <div class="form-check mt-2 mb-2">
+                    <input class="form-check-input" type="checkbox" id="enable_date_range" 
+                          {% if end_date and end_date != start_date %}checked{% endif %}>
+                    <label class="form-check-label" for="enable_date_range">
+                      <i class="fas fa-calendar-week me-1"></i> Multiple days
+                    </label>
+                  </div>
+                  <div id="end-date-container" class="mt-2" {% if not end_date or end_date == start_date %}style="display:none;"{% endif %}>
+                    <div class="input-group">
+                      <span class="input-group-text">Until</span>
+                      <input type="date" class="form-control" name="end_date" id="single_end_date" value="{{ end_date|default:start_date }}">
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">
+                    <i class="fas fa-clock me-1"></i> Time Range
+                  </label>
+                  <div class="input-group">
+                    <select class="form-select" name="start_time">
+                      <option value="">Start Time</option>
+                      {% for value, label in half_hour_choices %}
+                        <option value="{{ value }}" {% if start_time == value %}selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                    <span class="input-group-text">to</span>
+                    <select class="form-select" name="end_time">
+                      <option value="">End Time</option>
+                      {% for value, label in half_hour_choices %}
+                        <option value="{{ value }}" {% if end_time == value %}selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recurring Options -->
+            <div id="recurring-filter" class="booking-options mb-3" {% if filter_type != "recurring" %}style="display:none;"{% endif %}>
+              <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                  <label for="recurring_start_date" class="form-label">
+                    <i class="fas fa-calendar-alt me-1"></i> Start Date*
+                  </label>
+                  <input type="date" class="form-control" id="recurring_start_date" name="recurring_start_date" 
+                        value="{{ request.GET.recurring_start_date|default_if_none:'' }}" required>
+                </div>
+                
+                <div class="col-md-3">
+                  <label for="recurring_start_time" class="form-label">
+                    <i class="fas fa-clock me-1"></i> Start Time*
+                  </label>
+                  <select class="form-select" id="recurring_start_time" name="recurring_start_time" required>
+                    <option value="">Select time</option>
+                    {% for value, label in half_hour_choices %}
+                      <option value="{{ value }}" {% if request.GET.recurring_start_time == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                
+                <div class="col-md-3">
+                  <label for="recurring_end_time" class="form-label">
+                    <i class="fas fa-clock me-1"></i> End Time*
+                  </label>
+                  <select class="form-select" id="recurring_end_time" name="recurring_end_time" required>
+                    <option value="">Select time</option>
+                    {% for value, label in half_hour_choices %}
+                      <option value="{{ value }}" {% if request.GET.recurring_end_time == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                
+                <div class="col-md-3">
+                  <label class="form-label d-block">&nbsp;</label>
+                  <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="recurring_overnight" name="recurring_overnight" 
+                          {% if request.GET.recurring_overnight %}checked{% endif %}>
+                    <label class="form-check-label" for="recurring_overnight">
+                      <i class="fas fa-moon me-1"></i> Overnight booking
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Pattern selection row -->
+              <div class="row">
+                <div class="col-12">
+                  <div class="d-flex align-items-center flex-wrap">
+                    <label class="form-label me-3 mb-0">
+                      <i class="fas fa-repeat me-1"></i> Pattern:
+                    </label>
+                    
+                    <div class="form-check form-check-inline me-2">
+                      <input class="form-check-input" type="radio" name="recurring_pattern" id="pattern_daily" value="daily" 
+                            {% if request.GET.recurring_pattern == "daily" or not request.GET.recurring_pattern %}checked{% endif %}>
+                      <label class="form-check-label" for="pattern_daily">Daily</label>
+                    </div>
+                    
+                    <div id="daily-pattern-fields" class="me-4" {% if request.GET.recurring_pattern == "weekly" %}style="display:none;"{% endif %}>
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text">Until</span>
+                        <input type="date" class="form-control" id="recurring_end_date" name="recurring_end_date"
+                              value="{{ request.GET.recurring_end_date|default_if_none:'' }}" required>
+                      </div>
+                    </div>
+                    
+                    <div class="form-check form-check-inline me-2">
+                      <input class="form-check-input" type="radio" name="recurring_pattern" id="pattern_weekly" value="weekly"
+                            {% if request.GET.recurring_pattern == "weekly" %}checked{% endif %}>
+                      <label class="form-check-label" for="pattern_weekly">Weekly</label>
+                    </div>
+                    
+                    <div id="weekly-pattern-fields" {% if request.GET.recurring_pattern != "weekly" %}style="display:none;"{% endif %}>
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text">For</span>
+                        <input type="number" class="form-control" id="recurring_weeks" name="recurring_weeks" min="1" max="52"
+                              value="{{ request.GET.recurring_weeks|default:'4' }}" required style="width: 70px;">
+                        <span class="input-group-text">weeks</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Search button -->
+            <div class="d-flex justify-content-end mt-3">
+              <button type="submit" class="btn btn-primary px-4">
+                <i class="fas fa-search me-2"></i> Search Parking Spots
+              </button>
+            </div>
           </div>
         </div>
+      </form>
+    </div>
+
+    <!-- Resize handle -->
+    <div class="resize-handle" id="resize-handle"></div>
+    
+    <!-- Bottom left: List view panel -->
+    <div id="list-panel">
+      <div class="panel-header position-sticky" style="top: 0; z-index: 10; background-color: #f8f9fa;">
+        <h5 class="mb-0">Available Parking Spots</h5>
+        <span class="badge bg-primary">{{ listings_count|default:"0" }} spots found</span>
       </div>
       
-      <!-- Move search button to the bottom -->
-      <div class="d-flex justify-content-end mt-4">
-        <button type="submit" class="btn btn-primary px-5 py-2">
-          <i class="fas fa-search me-2"></i> Search Parking Spots
-        </button>
+      <div id="list-view-container" style="height: calc(100% - 41px); overflow-y: auto;">
+        <div id="list-view" class="view-container listings-container active-view">
+          {% include "listings/partials/listing_cards.html" with listing=listing %}
+        </div>
       </div>
     </div>
   </div>
-</form>
-
-  <!-- List View -->
-  <div id="list-view" class="view-container listings-container p-3 border rounded active-view">
-    {% include "listings/partials/listing_cards.html" with listing=listing %}
+  
+  <!-- Right side: Map panel -->
+  <div id="map-panel">
+    <div id="map-view" class="view-container active-view">
+      <!-- The map will be initialized here -->
+    </div>
   </div>
-  <!-- Map View -->
-  <div id="map-view" class="view-container border rounded">
-    <!-- The map will be initialized here -->
-  </div>
-
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -452,4 +596,120 @@
 <!-- NYC Map Bounds -->
 <script src="{% static 'listings/js/map_utils.js' %}"></script>
 <script src="{% static 'listings/js/view_listings.js' %}"></script>
+
+<script>
+  // Additional JavaScript for the three-pane layout
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize both views to be active simultaneously
+    const listView = document.getElementById('list-view');
+    const mapView = document.getElementById('map-view');
+    listView.classList.add('active-view');
+    mapView.classList.add('active-view');
+    
+    // Resize functionality between filter and list panels
+    const resizeHandle = document.getElementById('resize-handle');
+    const filterPanel = document.getElementById('filter-panel');
+    const listPanel = document.getElementById('list-panel');
+    
+    let isResizing = false;
+    
+    resizeHandle.addEventListener('mousedown', function(e) {
+      isResizing = true;
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', function() {
+        isResizing = false;
+        document.removeEventListener('mousemove', handleMouseMove);
+      });
+    });
+    
+          function handleMouseMove(e) {
+      if (!isResizing) return;
+      
+      const leftPanel = document.getElementById('left-panel');
+      const rect = leftPanel.getBoundingClientRect();
+      const topPercentage = ((e.clientY - rect.top) / rect.height) * 100;
+      
+      // Limit the resizing range between 20% and 80%
+      const limitedPercentage = Math.max(20, Math.min(80, topPercentage));
+      
+      filterPanel.style.height = `${limitedPercentage}%`;
+      listPanel.style.height = `${100 - limitedPercentage}%`;
+      
+      // Update the list-view-container height to reflect panel size change
+      const listViewContainer = document.getElementById('list-view-container');
+      if (listViewContainer) {
+        listViewContainer.style.height = 'calc(100% - 41px)'; // 41px is the header height
+      }
+      
+      // Trigger resize event for map
+      window.dispatchEvent(new Event('resize'));
+      if (searchMap) searchMap.invalidateSize(true);
+    }
+    
+    // Modify search map functionality to display in the main map panel
+    const originalInitializeMap = window.initializeMap;
+    
+    if (typeof originalInitializeMap === 'function') {
+      window.initializeMap = function() {
+        if (!mapInitialized) {
+          // Use the main map panel for search
+          searchMap = initializeNYCMap("map-view");
+          
+          // Add click event to map
+          searchMap.on("click", onMapClick);
+          mapInitialized = true;
+        }
+      };
+    }
+    
+    // Override toggle map button to directly show the map (it's always shown in this layout)
+    const toggleMapBtn = document.getElementById('toggle-map');
+    if (toggleMapBtn) {
+      toggleMapBtn.addEventListener('click', function() {
+        // Initialize map if not already done
+        if (!mapInitialized) {
+          initializeMap();
+        }
+        
+        // Update the button state
+        this.classList.remove('btn-outline-secondary');
+        this.classList.add('btn-secondary');
+        
+        // Make sure the map is refreshed
+        setTimeout(() => {
+          if (searchMap) {
+            searchMap.invalidateSize(true);
+          }
+        }, 100);
+      });
+    }
+    
+    // Initialize map directly since it's always visible
+    initializeMap();
+    
+    // Force map resize immediately AND after a short delay
+    setTimeout(() => {
+      if (searchMap) {
+        searchMap.invalidateSize(true);
+      }
+      
+      // Fix any initial spacing issues with the layout
+      const mainContent = document.getElementById('main-content');
+      if (mainContent) {
+        mainContent.style.position = 'absolute';
+        mainContent.style.top = '56px';  // Match navbar height
+        mainContent.style.left = '0';
+        mainContent.style.right = '0';
+        mainContent.style.bottom = '0';
+      }
+    }, 100);
+    
+    // Add window resize handler to ensure map fills space correctly
+    window.addEventListener('resize', function() {
+      if (searchMap) {
+        searchMap.invalidateSize(true);
+      }
+    });
+  });
+</script>
 {% endblock %}
