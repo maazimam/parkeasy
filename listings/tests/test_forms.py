@@ -24,6 +24,7 @@ class ListingFormTests(TestCase):
             "has_ev_charger": False,
             "charger_level": "L2",
             "connector_type": "J1772",
+            "parking_spot_size": "STANDARD",
         }
 
     def test_new_listing_form_valid(self):
@@ -75,6 +76,7 @@ class ListingSlotFormTests(TestCase):
             rent_per_hour="15.00",
             description="Test slot form",
             has_ev_charger=False,
+            parking_spot_size="STANDARD",
         )
         # Use a future date so that the "start time not in past" rule is not triggered by default.
         self.future_date = date.today() + timedelta(days=1)

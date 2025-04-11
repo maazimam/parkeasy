@@ -84,6 +84,7 @@ class CreateListingViewTest(TestCase):
             "has_ev_charger": False,
             "charger_level": "",
             "connector_type": "",
+            "parking_spot_size": "STANDARD",
         }
         slot_data = {
             "form-0-start_date": "2025-05-01",
@@ -114,6 +115,7 @@ class CreateListingViewTest(TestCase):
             "has_ev_charger": False,
             "charger_level": "",
             "connector_type": "",
+            "parking_spot_size": "STANDARD",
         }
         post_data = {**listing_data, **build_slot_formset_data(prefix="form", count=1)}
         response = self.client.post(self.create_url, post_data)
@@ -130,6 +132,7 @@ class CreateListingViewTest(TestCase):
             "has_ev_charger": False,
             "charger_level": "",
             "connector_type": "",
+            "parking_spot_size": "STANDARD",
         }
         # Two slots that overlap.
         slot_data = {
@@ -168,6 +171,7 @@ class EditListingViewTest(TestCase):
             rent_per_hour=Decimal("10.00"),
             description="Editable",
             has_ev_charger=False,
+            parking_spot_size="STANDARD",
         )
         self.original_slot = ListingSlot.objects.create(
             listing=self.listing,
@@ -219,6 +223,7 @@ class EditListingViewTest(TestCase):
             "has_ev_charger": False,
             "charger_level": "",
             "connector_type": "",
+            "parking_spot_size": "STANDARD",
         }
         slot_data = {
             "form-0-id": str(self.original_slot.id),
@@ -249,6 +254,7 @@ class EditListingViewTest(TestCase):
             "has_ev_charger": False,
             "charger_level": "",
             "connector_type": "",
+            "parking_spot_size": "STANDARD",
         }
         slot_data = {
             "form-TOTAL_FORMS": "2",
@@ -286,6 +292,7 @@ class EditListingViewTest(TestCase):
             "has_ev_charger": False,
             "charger_level": "",
             "connector_type": "",
+            "parking_spot_size": "STANDARD",
         }
         slot_data = self._build_edit_slot_data(prefix="form", count=1)
         post_data = {**listing_data, **slot_data}
@@ -324,6 +331,7 @@ class EditListingViewTest(TestCase):
             "has_ev_charger": False,
             "charger_level": "",
             "connector_type": "",
+            "parking_spot_size": "STANDARD",
         }
         slot_data = {
             "form-TOTAL_FORMS": "1",
@@ -384,6 +392,7 @@ class ListingsFilterTest(TestCase):
             location="Future Location",
             rent_per_hour=10.00,
             description="Should be included",
+            parking_spot_size="STANDARD",
         )
         ListingSlot.objects.create(
             listing=self.future_listing,
@@ -399,6 +408,7 @@ class ListingsFilterTest(TestCase):
             location="Today Location",
             rent_per_hour=10.00,
             description="Should be included",
+            parking_spot_size="STANDARD",
         )
         ListingSlot.objects.create(
             listing=self.today_future,
@@ -414,6 +424,7 @@ class ListingsFilterTest(TestCase):
             location="Past Location",
             rent_per_hour=10.00,
             description="Should be excluded",
+            parking_spot_size="STANDARD",
         )
         ListingSlot.objects.create(
             listing=self.today_past,
@@ -446,6 +457,7 @@ class ListingsFilterTest(TestCase):
             location="999 Rich St",
             rent_per_hour=50.00,
             description="Expensive",
+            parking_spot_size="STANDARD",
         )
         url = reverse("view_listings")
         response = self.client.get(url, {"max_price": "20"})
@@ -482,6 +494,7 @@ class ListingsFilterTest(TestCase):
             location="Multi Location",
             rent_per_hour=15.00,
             description="Multiple intervals",
+            parking_spot_size="STANDARD",
         )
         ListingSlot.objects.create(
             listing=multi_listing,
@@ -643,6 +656,7 @@ class ListingsFilterTest(TestCase):
             rent_per_hour=25.00,
             description="Available weekly",
             has_ev_charger=False,
+            parking_spot_size="STANDARD",
         )
         start_date = datetime.strptime("2025-04-14", "%Y-%m-%d").date()  # Monday
         for week_offset in range(3):
@@ -683,6 +697,7 @@ class ManageListingsTest(TestCase):
             location="Loc 1",
             rent_per_hour=10.00,
             description="Desc 1",
+            parking_spot_size="STANDARD",
         )
         self.listing2 = Listing.objects.create(
             user=self.owner,
@@ -690,6 +705,7 @@ class ManageListingsTest(TestCase):
             location="Loc 2",
             rent_per_hour=12.00,
             description="Desc 2",
+            parking_spot_size="STANDARD",
         )
         Booking.objects.create(
             user=self.owner,
@@ -728,6 +744,7 @@ class ListingOwnerBookingTest(TestCase):
             rent_per_hour=10.00,
             description="Owner description",
             has_ev_charger=False,
+            parking_spot_size="STANDARD",
         )
         ListingSlot.objects.create(
             listing=self.listing,
@@ -772,6 +789,7 @@ class EVChargerViewTest(TestCase):
             rent_per_hour=Decimal("10.00"),
             description="No EV charger",
             has_ev_charger=False,
+            parking_spot_size="STANDARD",
         )
         self.l2 = Listing.objects.create(
             user=self.user,
@@ -782,6 +800,7 @@ class EVChargerViewTest(TestCase):
             has_ev_charger=True,
             charger_level="L2",
             connector_type="J1772",
+            parking_spot_size="STANDARD",
         )
         self.l3 = Listing.objects.create(
             user=self.user,
@@ -792,6 +811,7 @@ class EVChargerViewTest(TestCase):
             has_ev_charger=True,
             charger_level="L3",
             connector_type="TESLA",
+            parking_spot_size="STANDARD",
         )
         tomorrow = (datetime.now() + timedelta(days=1)).date()
         for listing in [self.non_ev, self.l2, self.l3]:
@@ -842,6 +862,7 @@ class EVChargerViewTest(TestCase):
             has_ev_charger=True,
             charger_level="L3",
             connector_type="J1772",
+            parking_spot_size="STANDARD",
         )
         tomorrow = (datetime.now() + timedelta(days=1)).date()
         ListingSlot.objects.create(
@@ -884,6 +905,7 @@ class LocationSearchTests(TestCase):
             location="[40.7128,-74.0060]",  # New York City coordinates
             rent_per_hour=Decimal("25.00"),
             description="Parking in NYC",
+            parking_spot_size="STANDARD",
         )
 
         self.listing2 = Listing.objects.create(
@@ -892,6 +914,7 @@ class LocationSearchTests(TestCase):
             location="[42.3601,-71.0589]",  # Boston coordinates
             rent_per_hour=Decimal("20.00"),
             description="Parking in Boston",
+            parking_spot_size="STANDARD",
         )
 
         self.listing3 = Listing.objects.create(
@@ -900,6 +923,7 @@ class LocationSearchTests(TestCase):
             location="invalid",
             rent_per_hour=Decimal("15.00"),
             description="Invalid location",
+            parking_spot_size="STANDARD",
         )
 
         # Add slots to make listings appear in searches
@@ -1029,6 +1053,7 @@ class DeleteListingViewTest(TestCase):
             rent_per_hour=Decimal("10.00"),
             description="To be deleted",
             has_ev_charger=False,
+            parking_spot_size="STANDARD",
         )
         self.delete_url = reverse("delete_listing", args=[self.listing.id])
 
@@ -1068,6 +1093,7 @@ class ListingReviewsViewTest(TestCase):
             rent_per_hour=Decimal("10.00"),
             description="Review test",
             has_ev_charger=False,
+            parking_spot_size="STANDARD",
         )
         from booking.models import Booking
 
@@ -1109,6 +1135,7 @@ class ViewListingsContextTest(TestCase):
             rent_per_hour=Decimal("10.00"),
             description="Test context",
             has_ev_charger=False,
+            parking_spot_size="STANDARD",
         )
         ListingSlot.objects.create(
             listing=self.listing,

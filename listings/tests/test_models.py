@@ -19,6 +19,7 @@ class ListingModelTests(TestCase):
             location=location,
             rent_per_hour="10.00",
             description="Test description",
+            parking_spot_size="STANDARD",
         )
         # location_name should be simplified using the utility.
         self.assertEqual(listing.location_name, simplify_location(location))
@@ -30,6 +31,7 @@ class ListingModelTests(TestCase):
             location="123 Main St",
             rent_per_hour="10.00",
             description="Test description",
+            parking_spot_size="STANDARD",
         )
         # When there are no reviews, avg_rating is None and count is 0.
         self.assertIsNone(listing.avg_rating)
@@ -69,6 +71,7 @@ class ListingModelTests(TestCase):
             location="123 Main St",
             rent_per_hour="10.00",
             description="Test description",
+            parking_spot_size="STANDARD",
         )
         self.assertEqual(str(listing), "Test Listing - 123 Main St")
 
@@ -79,6 +82,7 @@ class ListingModelTests(TestCase):
             location="123 Main St",
             rent_per_hour="10.00",
             description="Test description",
+            parking_spot_size="STANDARD",
         )
         day = dt.date(2025, 1, 1)
         # Create a slot from 05:00 to 09:00.
@@ -110,6 +114,7 @@ class ListingModelTests(TestCase):
             location="123 Main St",
             rent_per_hour="10.00",
             description="Test description",
+            parking_spot_size="STANDARD",
         )
         day = dt.date(2025, 1, 1)
         # Create two contiguous slots: 05:00-07:00 and 07:00-09:00.
@@ -144,6 +149,7 @@ class ListingModelTests(TestCase):
             location="123 Main St",
             rent_per_hour="10.00",
             description="Test description",
+            parking_spot_size="STANDARD",
         )
         day = dt.date(2025, 1, 1)
         slot1 = ListingSlot.objects.create(
@@ -177,6 +183,7 @@ class ListingSlotModelTests(TestCase):
             location="456 Main St",
             rent_per_hour="15.00",
             description="Slot test description",
+            parking_spot_size="STANDARD",
         )
         self.day = dt.date(2025, 1, 2)
 
@@ -203,6 +210,7 @@ class ReviewModelTests(TestCase):
             location="789 Main St",
             rent_per_hour="20.00",
             description="Review test description",
+            parking_spot_size="STANDARD",
         )
         from booking.models import Booking
 
