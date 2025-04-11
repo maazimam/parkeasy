@@ -163,3 +163,8 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = "smi6079@nyu.edu"
 EMAIL_HOST_PASSWORD = "test"
 DEFAULT_FROM_EMAIL = "smi6079@nyu.edu"
+
+
+#Save and access verification files
+MEDIA_URL = '/verification_documents/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'verification_documents')
