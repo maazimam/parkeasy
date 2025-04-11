@@ -173,6 +173,30 @@ class ListingModelTests(TestCase):
         self.assertEqual(listing.earliest_start_datetime, expected_earliest)
         self.assertEqual(listing.latest_end_datetime, expected_latest)
 
+    def test_spot_size_default_and_display(self):
+        """Test that parking spot size defaults to STANDARD and display name is correct"""
+        # Create listing without specifying parking_spot_size
+        listing = Listing.objects.create(
+            user=self.user,
+            title="Test Default Spot Size",
+            location="123 Main St",
+            rent_per_hour="10.00",
+            description="Test description",
+        )
+        # Check default value
+        self.assertEqual(listing.parking_spot_size, "STANDARD")
+        # Check display name - update this to match actual value
+        self.assertEqual(listing.get_parking_spot_size_display(), "Standard Size")
+
+        # Test other sizes
+        listing.parking_spot_size = "COMPACT"
+        listing.save()
+        self.assertEqual(listing.get_parking_spot_size_display(), "Compact")
+
+        listing.parking_spot_size = "OVERSIZE"
+        listing.save()
+        self.assertEqual(listing.get_parking_spot_size_display(), "Large/Oversize")
+
 
 class ListingSlotModelTests(TestCase):
     def setUp(self):

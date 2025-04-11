@@ -1162,6 +1162,109 @@ class ViewListingsContextTest(TestCase):
         self.assertTemplateUsed(response, "listings/partials/listing_cards.html")
 
 
+class SpotSizeFilterTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="spotuser", password="pass")
+        self.client.login(username="spotuser", password="pass")
+
+        # Create listings with different spot sizes
+        self.standard_listing = Listing.objects.create(
+            user=self.user,
+            title="Standard Spot",
+            location="Standard Location",
+            rent_per_hour=10.00,
+            description="Standard size spot",
+            parking_spot_size="STANDARD",
+        )
+
+        self.compact_listing = Listing.objects.create(
+            user=self.user,
+            title="Compact Spot",
+            location="Compact Location",
+            rent_per_hour=8.00,
+            description="Compact size spot",
+            parking_spot_size="COMPACT",
+        )
+
+        self.oversize_listing = Listing.objects.create(
+            user=self.user,
+            title="Oversize Spot",
+            location="Oversize Location",
+            rent_per_hour=15.00,
+            description="Oversize spot",
+            parking_spot_size="OVERSIZE",
+        )
+
+        self.commercial_listing = Listing.objects.create(
+            user=self.user,
+            title="Commercial Spot",
+            location="Commercial Location",
+            rent_per_hour=20.00,
+            description="Commercial spot",
+            parking_spot_size="COMMERCIAL",
+        )
+
+        # Add slots to make listings appear in searches
+        tomorrow = (datetime.now() + timedelta(days=1)).date()
+        for listing in [
+            self.standard_listing,
+            self.compact_listing,
+            self.oversize_listing,
+            self.commercial_listing,
+        ]:
+            ListingSlot.objects.create(
+                listing=listing,
+                start_date=tomorrow,
+                start_time="09:00",
+                end_date=tomorrow,
+                end_time="17:00",
+            )
+
+    def test_filter_by_parking_spot_size(self):
+        """Test filtering listings by parking spot size"""
+        # Test compact filter
+        response = self.client.get(
+            reverse("view_listings"), {"parking_spot_size": "COMPACT"}
+        )
+        listings = response.context["listings"]
+        self.assertEqual(len(listings), 1)
+        self.assertEqual(listings[0].id, self.compact_listing.id)
+
+        # Test commercial filter
+        response = self.client.get(
+            reverse("view_listings"), {"parking_spot_size": "COMMERCIAL"}
+        )
+        listings = response.context["listings"]
+        self.assertEqual(len(listings), 1)
+        self.assertEqual(listings[0].id, self.commercial_listing.id)
+
+        # Test standard filter
+        response = self.client.get(
+            reverse("view_listings"), {"parking_spot_size": "STANDARD"}
+        )
+        listings = response.context["listings"]
+        self.assertEqual(len(listings), 1)
+        self.assertEqual(listings[0].id, self.standard_listing.id)
+
+    def test_spot_size_display_in_template(self):
+        """Test that parking spot size badges appear correctly in templates"""
+        response = self.client.get(reverse("view_listings"))
+
+        # Test that Standard Size spots don't get badges (more specific test)
+        self.assertNotContains(response, "Standard Size</span>")
+
+        # Test that we DO see badges for non-standard sizes with correct colors
+        self.assertContains(response, "bg-info")  # Compact badge color
+        self.assertContains(response, "Compact")  # Compact text
+
+        self.assertContains(response, "bg-primary")  # Oversize badge color
+        self.assertContains(response, "Large/Oversize")  # Oversize text
+
+        self.assertContains(response, "bg-danger")  # Commercial badge color
+        self.assertContains(response, "Truck/Commercial")  # Commercial text
+
+
 #############################
 # End of tests.
 #############################

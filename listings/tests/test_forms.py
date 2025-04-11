@@ -65,6 +65,24 @@ class ListingFormTests(TestCase):
         self.assertEqual(listing.charger_level, "")
         self.assertEqual(listing.connector_type, "")
 
+    def test_valid_parking_spot_sizes(self):
+        """Test that different valid parking spot sizes are accepted"""
+        valid_sizes = ["STANDARD", "COMPACT", "OVERSIZE", "COMMERCIAL"]
+
+        for size in valid_sizes:
+            data = self.valid_data.copy()
+            data["parking_spot_size"] = size
+            form = ListingForm(data=data)
+            self.assertTrue(form.is_valid(), f"Form should be valid with size {size}")
+
+    def test_invalid_parking_spot_size(self):
+        """Test that invalid parking spot sizes are rejected"""
+        data = self.valid_data.copy()
+        data["parking_spot_size"] = "INVALID_SIZE"
+        form = ListingForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("parking_spot_size", form.errors)
+
 
 class ListingSlotFormTests(TestCase):
     def setUp(self):

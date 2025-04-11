@@ -13,7 +13,13 @@ from .forms import (
     ListingSlotFormSet,
     validate_non_overlapping_slots,
 )
-from .models import EV_CHARGER_LEVELS, EV_CONNECTOR_TYPES, PARKING_SPOT_SIZES, Listing, ListingSlot
+from .models import (
+    EV_CHARGER_LEVELS,
+    EV_CONNECTOR_TYPES,
+    PARKING_SPOT_SIZES,
+    Listing,
+    ListingSlot,
+)
 from .utils import calculate_distance, extract_coordinates, has_active_filters
 
 # Define an inline formset for editing (extra=0)
@@ -491,8 +497,10 @@ def view_listings(request):
             all_listings = all_listings.filter(connector_type=connector_type)
 
     # Add filter for parking spot size
-    if 'parking_spot_size' in request.GET and request.GET['parking_spot_size']:
-        all_listings = all_listings.filter(parking_spot_size=request.GET['parking_spot_size'])
+    if "parking_spot_size" in request.GET and request.GET["parking_spot_size"]:
+        all_listings = all_listings.filter(
+            parking_spot_size=request.GET["parking_spot_size"]
+        )
 
     if isinstance(all_listings, list):
         all_listings.sort(key=lambda x: x.id, reverse=True)

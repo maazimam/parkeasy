@@ -1,7 +1,12 @@
 from django import forms
 from django.forms import inlineformset_factory
 from datetime import datetime
-from .models import Listing, ListingSlot, Review, PARKING_SPOT_SIZES  # Import the constant
+from .models import (
+    Listing,
+    ListingSlot,
+    Review,
+    PARKING_SPOT_SIZES,
+)  # Import the constant
 
 HALF_HOUR_CHOICES = [
     (f"{hour:02d}:{minute:02d}", f"{hour:02d}:{minute:02d}")
@@ -16,8 +21,8 @@ class ListingForm(forms.ModelForm):
     parking_spot_size = forms.ChoiceField(
         choices=PARKING_SPOT_SIZES,
         initial="STANDARD",
-        widget=forms.Select(attrs={'class': 'form-select'}),
-        help_text="Select the type of vehicle your parking spot can accommodate"
+        widget=forms.Select(attrs={"class": "form-select"}),
+        help_text="Select the type of vehicle your parking spot can accommodate",
     )
 
     class Meta:
@@ -46,14 +51,22 @@ class ListingForm(forms.ModelForm):
             and "connector_type" in self.fields
         ):
             # Make charger_level and connector_type dependent on has_ev_charger
-            self.fields["charger_level"].widget.attrs["class"] = "ev-charger-option form-select"
-            self.fields["connector_type"].widget.attrs["class"] = "ev-charger-option form-select"
+            self.fields["charger_level"].widget.attrs[
+                "class"
+            ] = "ev-charger-option form-select"
+            self.fields["connector_type"].widget.attrs[
+                "class"
+            ] = "ev-charger-option form-select"
 
             # Don't disable fields - just visually disable them
             # This ensures their values are preserved when submitted
             if not self.initial.get("has_ev_charger", False):
-                self.fields["charger_level"].widget.attrs["style"] = "opacity: 0.6; pointer-events: none;"
-                self.fields["connector_type"].widget.attrs["style"] = "opacity: 0.6; pointer-events: none;"
+                self.fields["charger_level"].widget.attrs[
+                    "style"
+                ] = "opacity: 0.6; pointer-events: none;"
+                self.fields["connector_type"].widget.attrs[
+                    "style"
+                ] = "opacity: 0.6; pointer-events: none;"
 
     def clean(self):
         cleaned_data = super().clean()

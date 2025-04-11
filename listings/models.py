@@ -158,7 +158,7 @@ class Listing(models.Model):
         max_length=15,
         choices=PARKING_SPOT_SIZES,
         default="STANDARD",  # Default to standard size
-        verbose_name="Parking Spot Size"
+        verbose_name="Parking Spot Size",
     )
 
 
