@@ -15,13 +15,19 @@
           <div class="d-flex align-items-center mb-2">
             <h3 class="card-title fw-bold mb-0 me-2">{{ listing.title }}</h3>
             {% if user == listing.user %}
-            <span class="badge bg-secondary"
-              ><i class="fas fa-user-check me-1"></i> Your listing</span
-            >
+            <!-- For own listings: link to personal profile -->
+            <a href="{% url 'profile' %}" class="text-decoration-none">
+              <span class="badge bg-secondary">
+                <i class="fas fa-user-check me-1"></i> Your listing
+              </span>
+            </a>
             {% else %}
-            <span class="badge bg-light text-dark border"
-              ><i class="fas fa-user me-1"></i> {{ listing.user.username}}</span
-            >
+            <!-- For others' listings: link to public profile -->
+            <a href="{% url 'public_profile' listing.user.username %}" class="text-decoration-none">
+              <span class="badge bg-light text-dark border">
+                <i class="fas fa-user me-1"></i> {{ listing.user.username }}
+              </span>
+            </a>
             {% endif %}
           </div>
 
