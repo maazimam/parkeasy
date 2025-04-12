@@ -147,3 +147,117 @@ function updateCoordinates(lat, lng) {
     document.getElementById("lng-display").textContent = lng.toFixed(6);
   }
 }
+
+  // Additional JavaScript for the three-pane layout
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize both views to be active simultaneously
+    const listView = document.getElementById('list-view');
+    const mapView = document.getElementById('map-view');
+    listView.classList.add('active-view');
+    mapView.classList.add('active-view');
+    
+    // Resize functionality between filter and list panels
+    const resizeHandle = document.getElementById('resize-handle');
+    const filterPanel = document.getElementById('filter-panel');
+    const listPanel = document.getElementById('list-panel');
+    
+    let isResizing = false;
+    
+    resizeHandle.addEventListener('mousedown', function(e) {
+      isResizing = true;
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', function() {
+        isResizing = false;
+        document.removeEventListener('mousemove', handleMouseMove);
+      });
+    });
+    
+          function handleMouseMove(e) {
+      if (!isResizing) return;
+      
+      const leftPanel = document.getElementById('left-panel');
+      const rect = leftPanel.getBoundingClientRect();
+      const topPercentage = ((e.clientY - rect.top) / rect.height) * 100;
+      
+      // Limit the resizing range between 20% and 80%
+      const limitedPercentage = Math.max(20, Math.min(80, topPercentage));
+      
+      filterPanel.style.height = `${limitedPercentage}%`;
+      listPanel.style.height = `${100 - limitedPercentage}%`;
+      
+      // Update the list-view-container height to reflect panel size change
+      const listViewContainer = document.getElementById('list-view-container');
+      if (listViewContainer) {
+        listViewContainer.style.height = 'calc(100% - 41px)'; // 41px is the header height
+      }
+      
+      // Trigger resize event for map
+      window.dispatchEvent(new Event('resize'));
+      if (searchMap) searchMap.invalidateSize(true);
+    }
+    
+    // Modify search map functionality to display in the main map panel
+    const originalInitializeMap = window.initializeMap;
+    
+    if (typeof originalInitializeMap === 'function') {
+      window.initializeMap = function() {
+        if (!mapInitialized) {
+          // Use the main map panel for search
+          searchMap = initializeNYCMap("map-view");
+          
+          // Add click event to map
+          searchMap.on("click", onMapClick);
+          mapInitialized = true;
+        }
+      };
+    }
+    
+    // Override toggle map button to directly show the map (it's always shown in this layout)
+    const toggleMapBtn = document.getElementById('toggle-map');
+    if (toggleMapBtn) {
+      toggleMapBtn.addEventListener('click', function() {
+        // Initialize map if not already done
+        if (!mapInitialized) {
+          initializeMap();
+        }
+        
+        // Update the button state
+        this.classList.remove('btn-outline-secondary');
+        this.classList.add('btn-secondary');
+        
+        // Make sure the map is refreshed
+        setTimeout(() => {
+          if (searchMap) {
+            searchMap.invalidateSize(true);
+          }
+        }, 100);
+      });
+    }
+    
+    // Initialize map directly since it's always visible
+    initializeMap();
+    
+    // Force map resize immediately AND after a short delay
+    setTimeout(() => {
+      if (searchMap) {
+        searchMap.invalidateSize(true);
+      }
+      
+      // Fix any initial spacing issues with the layout
+      const mainContent = document.getElementById('main-content');
+      if (mainContent) {
+        mainContent.style.position = 'absolute';
+        mainContent.style.top = '56px';  // Match navbar height
+        mainContent.style.left = '0';
+        mainContent.style.right = '0';
+        mainContent.style.bottom = '0';
+      }
+    }, 100);
+    
+    // Add window resize handler to ensure map fills space correctly
+    window.addEventListener('resize', function() {
+      if (searchMap) {
+        searchMap.invalidateSize(true);
+      }
+    });
+  });
