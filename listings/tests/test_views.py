@@ -624,8 +624,9 @@ class ListingsFilterTest(TestCase):
             description="Available daily",
             has_ev_charger=False,
         )
-        start_date_slot = datetime.strptime("2025-04-10", "%Y-%m-%d").date()
-        end_date_slot = datetime.strptime("2025-04-20", "%Y-%m-%d").date()
+        # make start_date_slot now
+        start_date_slot = datetime.now().date()
+        end_date_slot = start_date_slot + timedelta(days=10)
         ListingSlot.objects.create(
             listing=valid_listing,
             start_date=start_date_slot,
@@ -633,12 +634,17 @@ class ListingsFilterTest(TestCase):
             end_date=end_date_slot,
             end_time="20:00",
         )
+        recurring_start_date = (start_date_slot + timedelta(days=2)).strftime(
+            "%Y-%m-%d"
+        )
+        recurring_end_date = (start_date_slot + timedelta(days=4)).strftime("%Y-%m-%d")
+
         url = reverse("view_listings")
         params = {
             "filter_type": "recurring",
             "recurring_pattern": "daily",
-            "recurring_start_date": "2025-04-12",
-            "recurring_end_date": "2025-04-14",
+            "recurring_start_date": recurring_start_date,
+            "recurring_end_date": recurring_end_date,
             "recurring_start_time": "09:00",
             "recurring_end_time": "10:00",
         }
