@@ -13,7 +13,13 @@ from .forms import (
     ListingSlotFormSet,
     validate_non_overlapping_slots,
 )
-from .models import EV_CHARGER_LEVELS, EV_CONNECTOR_TYPES, Listing, ListingSlot
+from .models import (
+    EV_CHARGER_LEVELS,
+    EV_CONNECTOR_TYPES,
+    PARKING_SPOT_SIZES,
+    Listing,
+    ListingSlot,
+)
 from .utils import calculate_distance, extract_coordinates, has_active_filters
 
 # Define an inline formset for editing (extra=0)
@@ -315,6 +321,13 @@ def view_listings(request):
 
     error_messages = []
     warning_messages = []
+    success_messages = []
+
+    # Add this after initializing the message lists:
+    # Get success message from session if it exists
+    success_message = request.session.pop("success_message", None)
+    if success_message:
+        success_messages.append(success_message)
 
     if filter_type == "single":
         start_date = request.GET.get("start_date")
@@ -490,6 +503,12 @@ def view_listings(request):
         if connector_type:
             all_listings = all_listings.filter(connector_type=connector_type)
 
+    # Add filter for parking spot size
+    if "parking_spot_size" in request.GET and request.GET["parking_spot_size"]:
+        all_listings = all_listings.filter(
+            parking_spot_size=request.GET["parking_spot_size"]
+        )
+
     if isinstance(all_listings, list):
         all_listings.sort(key=lambda x: x.id, reverse=True)
     else:
@@ -576,8 +595,10 @@ def view_listings(request):
         "next_page": int(page_number) + 1 if page_obj.has_next() else None,
         "error_messages": error_messages,
         "warning_messages": warning_messages,
+        "success_messages": success_messages,  # Add this line
         "charger_level_choices": EV_CHARGER_LEVELS,
         "connector_type_choices": EV_CONNECTOR_TYPES,
+        "parking_spot_sizes": PARKING_SPOT_SIZES,
         "has_active_filters": has_active_filters(request),
     }
 

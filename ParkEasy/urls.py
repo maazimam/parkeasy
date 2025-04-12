@@ -29,5 +29,10 @@ urlpatterns = [
     path("booking/", include("booking.urls")),
     path("messaging/", include("messaging.urls")),
     # This pattern will serve media files from MEDIA_ROOT
-    path('verification_documents/<path:path>', serve, {'document_root': settings.MEDIA_ROOT}),
+    path(
+        "verification_documents/<path:path>",
+        serve,
+        {"document_root": settings.MEDIA_ROOT},
+    ),
+    path("reports/", include("reports.urls")),
 ]
