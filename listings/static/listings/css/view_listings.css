@@ -23,13 +23,18 @@
     display: flex;
     flex-direction: column;
     border-right: 1px solid #dee2e6;
+    background-color: white;
+    overflow: hidden;
   }
   
   #filter-panel {
     flex-shrink: 0;
-    border-bottom: 1px solid #dee2e6;
     transition: height 0.3s ease;
     overflow: hidden;
+    background-color: white;
+    z-index: 10;
+    position: relative;
+    border-bottom: none;
   }
   
   #filter-panel.collapsed {
@@ -44,6 +49,8 @@
   
   .filter-header {
     cursor: pointer;
+    z-index: 15;
+    position: relative;
   }
   
   .filter-content {
@@ -58,7 +65,11 @@
   #list-panel {
     flex-grow: 1;
     overflow: hidden;
-    padding: 0;
+    background-color: white;
+    margin-top: -1px;
+    position: relative;
+    z-index: 5;
+    border-top: none;
   }
   
   #list-view-container {
@@ -146,13 +157,22 @@
   /* Custom title bar for each panel */
   .panel-header {
     background-color: #f8f9fa;
-    padding: 8px 15px;
+    padding: 15px;
     border-bottom: 1px solid #dee2e6;
-    font-weight: 500;
+    margin: 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  
+  /* Ensure filter header elements are aligned horizontally */
+  .filter-header h5 {
+    margin: 0;
+    display: inline-block;
+  }
+  
+  .filter-header button {
+    margin-left: auto;
   }
   
   /* Listing card hover effect */
@@ -223,4 +243,26 @@
     #map-panel {
       height: 50vh;
     }
+  }
+
+  /* Fix the list panel header layout */
+  #list-panel .panel-header {
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  #list-panel .panel-header h5 {
+    margin: 0;
+  }
+  
+  #list-panel .panel-header a {
+    margin-left: auto;
+  }
+
+  /* Make sure there's no unexpected spacing */
+  #left-panel > div {
+    margin: 0;
+    box-sizing: border-box; /* Ensure padding doesn't add to width/height */
   }
