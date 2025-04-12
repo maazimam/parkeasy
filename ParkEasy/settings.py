@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "widget_tweaks",
     "messaging",
     "storages",
+    "reports",
 ]
 
 MIDDLEWARE = [
@@ -165,6 +166,6 @@ EMAIL_HOST_PASSWORD = "test"
 DEFAULT_FROM_EMAIL = "smi6079@nyu.edu"
 
 
-#Save and access verification files
-MEDIA_URL = '/verification_documents/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'verification_documents')
+# Save and access verification files
+MEDIA_URL = "/verification_documents/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "verification_documents")

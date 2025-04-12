@@ -7,6 +7,7 @@ from django.contrib.auth.forms import (
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
 from .forms import EmailChangeForm
+from django.contrib import messages
 
 # Import the messaging model and User to send admin notifications.
 from messaging.models import Message
@@ -84,17 +85,19 @@ def verify(request):
                     recipient=admin,
                     subject="Verification Request",
                     body=f"User {request.user.username} has requested verification. "
-                         f"Please review their profile here: {profile_link}"
+                    f"Please review their profile here: {profile_link}",
                 )
 
             # Inform the user that the verification request has been sent.
             messages.info(
                 request,
-                "Your verification request has been sent for review. You will be notified once it is approved."
+                "Your verification request has been sent for review. You will be notified once it is approved.",
             )
             return render(request, "accounts/verify.html", {"success": True})
         else:
-            context["error_message"] = "Incorrect answer, verification failed. Please try again."
+            context["error_message"] = (
+                "Incorrect answer, verification failed. Please try again."
+            )
 
     return render(request, "accounts/verify.html", context)
 
@@ -115,7 +118,6 @@ def profile_view(request):
             "error_message": error_message,
         },
     )
-
 
 
 @login_required

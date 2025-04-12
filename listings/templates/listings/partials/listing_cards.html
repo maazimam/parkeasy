@@ -38,6 +38,15 @@
               {{ listing.description|truncatechars:120 }}
             </p>
 
+            <!-- Add the report link here, only for listings that don't belong to the user -->
+            {% if user != listing.user %}
+            <p class="card-text small mb-2">
+              <a href="{% url 'report_item' 'listing' listing.id %}" class="text-danger">
+                <i class="fas fa-flag me-1"></i> Report this listing
+              </a>
+            </p>
+            {% endif %}
+
             <!-- Distance (if available) -->
             {% if listing.distance is not None %}
             <p class="card-text small text-muted mb-1">
