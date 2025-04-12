@@ -24,39 +24,139 @@
   <!-- Left side with filters and list view -->
   <div id="left-panel">
     <!-- Top left: Filter panel -->
-    <div id="filter-panel">
-      <div class="panel-header">
-        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filter Spots</h5>
-          <button type="submit" class="btn btn-primary px-4">
-          <i class="fas fa-search me-2"></i> Search
+    <div id="filter-panel" class="collapsed">
+      <div class="panel-header filter-header">
+        <h5 class="mb-0" id="filter-title"><i class="fas fa-filter me-2"></i>Filter Spots</h5>
+        <button id="toggle-filters" class="btn btn-sm btn-outline-secondary">
+          <i class="fas fa-chevron-down" id="filter-chevron"></i>
         </button>
       </div>
+      
+      <div class="filter-content">
+        <!-- Modified filter form that only includes basic filters -->
+        <form method="GET" action="{% url 'view_listings' %}" class="filter-box" id="filter-form">
+          <div class="card border-0">
+            <div class="card-body p-3">
+              <!-- Messages section -->
+              {% if error_messages %}
+                  {% for message in error_messages %}
+                      <div class="alert alert-danger">{{ message }}</div>
+                  {% endfor %}
+              {% endif %}
 
-      <!-- Messages section -->
-      {% if error_messages %}
-          {% for message in error_messages %}
-              <div class="alert alert-danger">{{ message }}</div>
-          {% endfor %}
-      {% endif %}
-
-      {% if warning_messages %}
-          {% for message in warning_messages %}
-              <div class="alert alert-warning">{{ message }}</div>
-          {% endfor %}
-      {% endif %}
-
-      <!-- Include the filter form inside the filter panel, not after it -->
-      {% include "listings/partials/filter_form.html" %}
+              {% if warning_messages %}
+                  {% for message in warning_messages %}
+                      <div class="alert alert-warning">{{ message }}</div>
+                  {% endfor %}
+              {% endif %}
+              
+              <!-- Essential Filters Section -->
+              <div class="essential-filters">
+                <!-- Location Search -->
+                <div class="filter-group mb-3">
+                  <label class="form-label">
+                    <i class="fas fa-map-marker-alt me-1"></i> Location
+                  </label>
+                  <div class="input-group">
+                    <input type="text" 
+                          id="location-search" 
+                          class="form-control" 
+                          placeholder="Enter an address or landmark"
+                          value="{{ request.GET.location|default:'' }}"/>
+                    <button class="btn btn-outline-primary" type="button" id="toggle-map">
+                      <i class="fas fa-map-pin"></i>
+                    </button>
+                  </div>
+                  <!-- Hidden coordinates inputs -->
+                  <input type="hidden" name="lat" id="search-lat" value="{{ search_lat|default:'' }}">
+                  <input type="hidden" name="lng" id="search-lng" value="{{ search_lng|default:'' }}">
+                  <div class="mt-2 text-muted small" id="coordinates-display" {% if not search_lat or not search_lng %}style="display: none;"{% endif %}>
+                    <i class="fas fa-crosshairs me-1"></i>
+                    Selected: <span id="lat-display">{{ search_lat|default:'-' }}</span>, <span id="lng-display">{{ search_lng|default:'-' }}</span>
+                  </div>
+                </div>
+                
+                <!-- Distance/Radius -->
+                <div class="filter-group mb-3">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <label class="form-label mb-0">
+                      <i class="fas fa-circle-notch me-1"></i> Distance
+                    </label>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="enable-radius" name="enable_radius" {% if radius %}checked{% endif %}>
+                      <label class="form-check-label small" for="enable-radius">Filter by radius</label>
+                    </div>
+                  </div>
+                  
+                  <div id="radius-input-group" class="input-group mt-2" {% if not radius %}style="display: none;"{% endif %}>
+                    <input type="number" 
+                          name="radius" 
+                          id="radius-input"
+                          class="form-control" 
+                          value="{{ radius|default:'' }}" 
+                          placeholder="Enter radius"
+                          min="1" max="100">
+                    <span class="input-group-text">km</span>
+                  </div>
+                  <small class="text-muted" id="radius-hint" {% if radius %}style="display: none;"{% endif %}>
+                    Results will be sorted by distance from selected location
+                  </small>
+                </div>
+                
+                <!-- Max Price (Simple Number Input) -->
+                <div class="filter-group mb-3">
+                  <label for="max_price" class="form-label">
+                    <i class="fas fa-tag me-1"></i> Max Price ($/hr)
+                  </label>
+                  <input type="number" 
+                        step="0.01" 
+                        class="form-control" 
+                        id="max_price" 
+                        name="max_price"
+                        value="{{ request.GET.max_price|default_if_none:'' }}" 
+                        placeholder="Any price">
+                </div>
+              </div>
+              
+              <!-- Hidden fields to store advanced filter values -->
+              <input type="hidden" id="filter_type_hidden" name="filter_type" value="{{ filter_type|default:'single' }}">
+              <input type="hidden" id="has_ev_charger_hidden" name="has_ev_charger" value="{{ request.GET.has_ev_charger|default:'' }}">
+              <input type="hidden" id="charger_level_hidden" name="charger_level" value="{{ request.GET.charger_level|default:'' }}">
+              <input type="hidden" id="connector_type_hidden" name="connector_type" value="{{ request.GET.connector_type|default:'' }}">
+              <input type="hidden" id="recurring_pattern_hidden" name="recurring_pattern" value="{{ request.GET.recurring_pattern|default:'' }}">
+              
+              <!-- Date and time fields for both single and recurring bookings -->
+              <input type="hidden" id="start_date_hidden" name="start_date" value="{{ start_date|default:'' }}">
+              <input type="hidden" id="end_date_hidden" name="end_date" value="{{ end_date|default:'' }}">
+              <input type="hidden" id="start_time_hidden" name="start_time" value="{{ start_time|default:'' }}">
+              <input type="hidden" id="end_time_hidden" name="end_time" value="{{ end_time|default:'' }}">
+              <input type="hidden" id="recurring_start_date_hidden" name="recurring_start_date" value="{{ request.GET.recurring_start_date|default:'' }}">
+              <input type="hidden" id="recurring_end_date_hidden" name="recurring_end_date" value="{{ request.GET.recurring_end_date|default:'' }}">
+              <input type="hidden" id="recurring_start_time_hidden" name="recurring_start_time" value="{{ request.GET.recurring_start_time|default:'' }}">
+              <input type="hidden" id="recurring_end_time_hidden" name="recurring_end_time" value="{{ request.GET.recurring_end_time|default:'' }}">
+              <input type="hidden" id="recurring_weeks_hidden" name="recurring_weeks" value="{{ request.GET.recurring_weeks|default:'' }}">
+              <input type="hidden" id="recurring_overnight_hidden" name="recurring_overnight" value="{{ request.GET.recurring_overnight|default:'' }}">
+              
+              <!-- Footer with Advanced Button and Search -->
+              <div class="d-grid gap-2">
+                <button type="button" id="advanced-filters-btn" class="btn btn-outline-secondary">
+                  <i class="fas fa-sliders-h me-2"></i>Advanced Filters
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-search me-2"></i> Search
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
-
-    <!-- Resize handle -->
-    <div class="resize-handle" id="resize-handle"></div>
-    
+  
     <!-- Bottom left: List view panel -->
     <div id="list-panel">
       <div class="panel-header position-sticky" style="top: 0; z-index: 10; background-color: #f8f9fa;">
         <h5 class="mb-0">Available Parking Spots</h5>
-          <a href="{% url 'create_listing' %}" class="btn btn-accent btn-sm">
+        <a href="{% url 'create_listing' %}" class="btn btn-accent btn-sm">
           <i class="fas fa-plus me-1"></i> Create a new listing
         </a>
       </div>
@@ -73,6 +173,185 @@
   <div id="map-panel">
     <div id="map-view" class="view-container active-view">
       <!-- The map will be initialized here -->
+    </div>
+  </div>
+</div>
+
+<!-- Advanced Filters Modal -->
+<div class="modal fade" id="advanced-filters-modal" tabindex="-1" aria-labelledby="advancedFiltersModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="advancedFiltersModalLabel">Advanced Filters</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Booking Type Selector -->
+        <div class="filter-group mb-3">
+          <label class="form-label fw-bold">Booking Type</label>
+          <div class="btn-group w-100" role="group">
+            <input type="radio" class="btn-check" name="filter_type_modal" id="filter_single" 
+                  value="single" {% if filter_type == "single" or not filter_type %}checked{% endif %}>
+            <label class="btn btn-outline-secondary" for="filter_single">
+              <i class="fas fa-calendar-day me-1"></i> Single Booking
+            </label>
+            
+            <input type="radio" class="btn-check" name="filter_type_modal" id="filter_recurring" 
+                  value="recurring" {% if filter_type == "recurring" %}checked{% endif %}>
+            <label class="btn btn-outline-secondary" for="filter_recurring">
+              <i class="fas fa-calendar-alt me-1"></i> Recurring
+            </label>
+          </div>
+        </div>
+        
+        <!-- EV Charger Options -->
+        <div class="filter-group mb-3">
+          <label class="form-label fw-bold">EV Charging</label>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="ev_charger" name="has_ev_charger_modal" 
+                  {% if request.GET.has_ev_charger == 'on' %}checked{% endif %}>
+            <label class="form-check-label" for="ev_charger">
+              <i class="fas fa-charging-station me-1"></i> Has EV Charger
+            </label>
+          </div>
+          
+          <div id="ev-options-container" {% if request.GET.has_ev_charger != 'on' %}style="display: none;"{% endif %}>
+            <div class="row g-2">
+              <div class="col-md-6">
+                <select class="form-select" name="charger_level_modal" id="charger_level">
+                  <option value="">Any Charger Level</option>
+                  {% for value, label in charger_level_choices %}
+                    <option value="{{ value }}" {% if request.GET.charger_level == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <select class="form-select" name="connector_type_modal" id="connector_type">
+                  <option value="">Any Connector Type</option>
+                  {% for value, label in connector_type_choices %}
+                    <option value="{{ value }}" {% if request.GET.connector_type == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Date Selection (Single) -->
+        <div class="filter-group mb-3" id="single-filter" {% if filter_type == "recurring" %}style="display:none;"{% endif %}>
+          <label class="form-label fw-bold">Date and Time</label>
+          <div class="input-group mb-2">
+            <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+            <input type="date" class="form-control" name="start_date_modal" id="single_start_date" value="{{ start_date }}">
+            <button class="btn btn-outline-secondary" type="button" id="date-range-toggle">
+              <i class="fas fa-calendar-week"></i>
+            </button>
+          </div>
+          <!-- Date range (initially hidden) -->
+          <div id="end-date-container" class="mt-2 mb-2" {% if not end_date or end_date == start_date %}style="display:none;"{% endif %}>
+            <div class="input-group">
+              <span class="input-group-text">Until</span>
+              <input type="date" class="form-control" name="end_date_modal" id="single_end_date" value="{{ end_date|default:start_date }}">
+            </div>
+          </div>
+          
+          <label class="form-label">Time Range</label>
+          <div class="input-group">
+            <select class="form-select" name="start_time_modal" id="start_time_select">
+              <option value="">Start Time</option>
+              {% for value, label in half_hour_choices %}
+                <option value="{{ value }}" {% if start_time == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <span class="input-group-text">to</span>
+            <select class="form-select" name="end_time_modal" id="end_time_select">
+              <option value="">End Time</option>
+              {% for value, label in half_hour_choices %}
+                <option value="{{ value }}" {% if end_time == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        
+        <!-- Recurring Booking Options -->
+        <div id="recurring-filter" {% if filter_type != "recurring" %}style="display:none;"{% endif %}>
+          <div class="filter-group mb-3">
+            <label class="form-label fw-bold">Recurring Booking Details</label>
+            
+            <!-- Start date, Start time, End time -->
+            <div class="row g-2 mb-2">
+              <div class="col-md-4">
+                <label class="form-label small">Start Date*</label>
+                <input type="date" class="form-control" id="recurring_start_date" name="recurring_start_date_modal" 
+                      value="{{ request.GET.recurring_start_date|default_if_none:'' }}">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">Start Time*</label>
+                <select class="form-select" id="recurring_start_time" name="recurring_start_time_modal">
+                  <option value="">Select time</option>
+                  {% for value, label in half_hour_choices %}
+                    <option value="{{ value }}" {% if request.GET.recurring_start_time == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">End Time*</label>
+                <select class="form-select" id="recurring_end_time" name="recurring_end_time_modal">
+                  <option value="">Select time</option>
+                  {% for value, label in half_hour_choices %}
+                    <option value="{{ value }}" {% if request.GET.recurring_end_time == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            
+            <!-- Pattern options with improved layout -->
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+              <label class="form-label mb-0 me-2">Pattern:</label>
+              
+              <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" name="recurring_pattern_modal" id="pattern_daily" value="daily" 
+                      {% if request.GET.recurring_pattern == "daily" or not request.GET.recurring_pattern %}checked{% endif %}>
+                <label class="btn btn-outline-secondary" for="pattern_daily">Daily</label>
+                
+                <input type="radio" class="btn-check" name="recurring_pattern_modal" id="pattern_weekly" value="weekly"
+                      {% if request.GET.recurring_pattern == "weekly" %}checked{% endif %}>
+                <label class="btn btn-outline-secondary" for="pattern_weekly">Weekly</label>
+              </div>
+              
+              <div id="daily-pattern-fields" class="ms-2" {% if request.GET.recurring_pattern == "weekly" %}style="display:none;"{% endif %}>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">Until</span>
+                  <input type="date" class="form-control" id="recurring_end_date" name="recurring_end_date_modal"
+                        value="{{ request.GET.recurring_end_date|default_if_none:'' }}">
+                </div>
+              </div>
+              
+              <div id="weekly-pattern-fields" class="ms-2" {% if request.GET.recurring_pattern != "weekly" %}style="display:none;"{% endif %}>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">For</span>
+                  <input type="number" class="form-control" id="recurring_weeks" name="recurring_weeks_modal" min="1" max="52"
+                        value="{{ request.GET.recurring_weeks|default:'4' }}" style="width: 70px;">
+                  <span class="input-group-text">weeks</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Overnight option -->
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="recurring_overnight" name="recurring_overnight_modal" 
+                    {% if request.GET.recurring_overnight %}checked{% endif %}>
+              <label class="form-check-label" for="recurring_overnight">
+                <i class="fas fa-moon me-1"></i> Overnight booking
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="apply-advanced-filters">Apply Filters</button>
+      </div>
     </div>
   </div>
 </div>

@@ -26,16 +26,39 @@
   }
   
   #filter-panel {
-    height: 50%;
-    overflow-y: auto;
-    padding: 15px;
+    flex-shrink: 0;
     border-bottom: 1px solid #dee2e6;
+    transition: height 0.3s ease;
+    overflow: hidden;
+  }
+  
+  #filter-panel.collapsed {
+    height: 56px; /* Just enough for the header */
+  }
+  
+  #filter-panel.expanded {
+    height: auto;
+    max-height: 70%;
+    overflow-y: auto;
+  }
+  
+  .filter-header {
+    cursor: pointer;
+  }
+  
+  .filter-content {
+    padding: 0;
+    display: none;
+  }
+  
+  #filter-panel.expanded .filter-content {
+    display: block;
   }
   
   #list-panel {
-    height: 50%;
-    overflow: hidden; /* Changed from overflow-y: auto to prevent outer scrolling */
-    padding: 0; /* Remove padding to allow header to span full width */
+    flex-grow: 1;
+    overflow: hidden;
+    padding: 0;
   }
   
   #list-view-container {
@@ -106,7 +129,6 @@
   .resize-handle {
     height: 6px;
     background-color: #f0f0f0;
-    cursor: row-resize;
     border-top: 1px solid #ddd;
     border-bottom: 1px solid #ddd;
   }
@@ -161,6 +183,22 @@
     z-index: 1000 !important;
   }
 
+  /* Update the chevron rotation */
+  #filter-panel.collapsed #filter-chevron {
+    transform: rotate(0deg);
+    transition: transform 0.3s ease;
+  }
+  
+  #filter-panel.expanded #filter-chevron {
+    transform: rotate(180deg);
+    transition: transform 0.3s ease;
+  }
+
+  /* Improve button spacing in filter panel */
+  #filter-panel .d-grid {
+    margin-top: 1rem;
+  }
+
   /* Mobile responsiveness */
   @media (max-width: 991px) {
     #main-content {
@@ -172,14 +210,14 @@
       height: auto;
     }
     
-    #filter-panel {
-      height: auto;
-      max-height: 50vh;
+    #filter-panel.expanded {
+      max-height: 80vh;
+      overflow-y: auto;
     }
     
     #list-panel {
       height: auto;
-      max-height: 50vh;
+      min-height: 40vh;
     }
     
     #map-panel {
