@@ -154,14 +154,14 @@ def public_profile_view(request, username):
     """View for seeing another user's profile (read-only)"""
     # Get the user whose profile is being viewed
     profile_user = get_object_or_404(User, username=username)
-    
+
     # Check if this is the user's own profile
     is_own_profile = request.user.username == username
-    
+
     # If it's their own profile, redirect to the editable version
     if is_own_profile:
-        return redirect('profile')
-        
+        return redirect("profile")
+
     # Otherwise show the public view
     return render(
         request,
