@@ -162,8 +162,6 @@ class ComposeMessagingTests(TestCase):
         # Should redirect to inbox
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse("inbox"))
-        
-        # Fix the message string to match EXACTLY what's in the view
         self.assertEqual(
             response.wsgi_request.session["error_message"],
             """You don't have any users to message yet. You need to either book
