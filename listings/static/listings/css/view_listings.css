@@ -27,41 +27,6 @@
     overflow: hidden;
   }
   
-  #filter-panel {
-    flex-shrink: 0;
-    transition: height 0.3s ease;
-    overflow: hidden;
-    background-color: white;
-    z-index: 10;
-    position: relative;
-    border-bottom: none;
-  }
-  
-  #filter-panel.collapsed {
-    height: 56px; /* Just enough for the header */
-  }
-  
-  #filter-panel.expanded {
-    height: auto;
-    max-height: 70%;
-    overflow-y: auto;
-  }
-  
-  .filter-header {
-    cursor: pointer;
-    z-index: 15;
-    position: relative;
-  }
-  
-  .filter-content {
-    padding: 0;
-    display: none;
-  }
-  
-  #filter-panel.expanded .filter-content {
-    display: block;
-  }
-  
   #list-panel {
     flex-grow: 1;
     overflow: hidden;
@@ -96,17 +61,6 @@
     margin: 0;
   }
   
-  .filter-box {
-    padding: 0;
-    margin: 0;
-  }
-  
-  .filter-box .card {
-    border: none;
-    box-shadow: none;
-    margin-bottom: 0;
-  }
-  
   .view-container.active-view {
     display: block;
   }
@@ -123,11 +77,6 @@
     right: 0;
     z-index: 1030;
     height: 56px;
-  }
-
-  /* Remove rounded corners from cards within the filter panel */
-  #filter-panel .card {
-    border-radius: 0;
   }
 
   /* Remove padding from list view */
@@ -165,16 +114,6 @@
     align-items: center;
   }
   
-  /* Ensure filter header elements are aligned horizontally */
-  .filter-header h5 {
-    margin: 0;
-    display: inline-block;
-  }
-  
-  .filter-header button {
-    margin-left: auto;
-  }
-  
   /* Listing card hover effect */
   #list-panel .card {
     transition: all 0.2s ease;
@@ -203,22 +142,6 @@
     z-index: 1000 !important;
   }
 
-  /* Update the chevron rotation */
-  #filter-panel.collapsed #filter-chevron {
-    transform: rotate(0deg);
-    transition: transform 0.3s ease;
-  }
-  
-  #filter-panel.expanded #filter-chevron {
-    transform: rotate(180deg);
-    transition: transform 0.3s ease;
-  }
-
-  /* Improve button spacing in filter panel */
-  #filter-panel .d-grid {
-    margin-top: 1rem;
-  }
-
   /* Mobile responsiveness */
   @media (max-width: 991px) {
     #main-content {
@@ -228,11 +151,6 @@
     #left-panel, #map-panel {
       width: 100%;
       height: auto;
-    }
-    
-    #filter-panel.expanded {
-      max-height: 80vh;
-      overflow-y: auto;
     }
     
     #list-panel {
