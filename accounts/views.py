@@ -4,9 +4,10 @@ from django.contrib.auth.forms import (
     UserCreationForm,
     PasswordChangeForm,
 )
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .forms import EmailChangeForm
+from django.contrib.auth.models import User
 
 
 def home(request):
@@ -145,4 +146,27 @@ def change_email(request):
         request,
         "accounts/change_email.html",
         {"form": form, "is_adding_email": is_adding_email},
+    )
+
+
+@login_required
+def public_profile_view(request, username):
+    """View for seeing another user's profile (read-only)"""
+    # Get the user whose profile is being viewed
+    profile_user = get_object_or_404(User, username=username)
+
+    # Check if this is the user's own profile
+    is_own_profile = request.user.username == username
+
+    # If it's their own profile, redirect to the editable version
+    if is_own_profile:
+        return redirect("profile")
+
+    # Otherwise show the public view
+    return render(
+        request,
+        "accounts/public_profile.html",  # New template for public profiles
+        {
+            "profile_user": profile_user,  # The user whose profile is being viewed
+        },
     )
