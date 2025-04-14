@@ -71,11 +71,14 @@
                     Results will be sorted by distance from selected location
                   </small>
                 </div>
-                
-                <!-- Max Price (Simple Number Input) -->
+
+                <!-- Add these fields after the Max Price field -->
                 <div class="filter-group mb-3">
+                  <div class="row g-2">
+
+                    <div class="col-md-3">
                   <label for="max_price" class="form-label">
-                    <i class="fas fa-tag me-1"></i> Max Price ($/hr)
+                     Max Price ($/hr)
                   </label>
                   <input type="number" 
                         step="0.01" 
@@ -84,28 +87,43 @@
                         name="max_price"
                         value="{{ request.GET.max_price|default_if_none:'' }}" 
                         placeholder="Any price">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">
+                        <i class="fas fa-calendar me-1"></i> Date
+                      </label>
+                      <input type="date" 
+                             class="form-control" 
+                             id="start_date" 
+                             name="start_date"
+                             value="{{ start_date|default:'' }}" 
+                             placeholder="Select date">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">
+                        <i class="fas fa-clock me-1"></i> Start Time
+                      </label>
+                      <select class="form-select" name="start_time" id="start_time">
+                        <option value="">Any time</option>
+                        {% for value, label in half_hour_choices %}
+                          <option value="{{ value }}" {% if start_time == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">
+                        <i class="fas fa-hourglass-end me-1"></i> End Time
+                      </label>
+                      <select class="form-select" name="end_time" id="end_time">
+                        <option value="">Any time</option>
+                        {% for value, label in half_hour_choices %}
+                          <option value="{{ value }}" {% if end_time == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  </div>
                 </div>
               </div>
-              
-              <!-- Hidden fields to store advanced filter values -->
-              <input type="hidden" id="filter_type_hidden" name="filter_type" value="{{ filter_type|default:'single' }}">
-              <input type="hidden" id="has_ev_charger_hidden" name="has_ev_charger" value="{{ request.GET.has_ev_charger|default:'' }}">
-              <input type="hidden" id="charger_level_hidden" name="charger_level" value="{{ request.GET.charger_level|default:'' }}">
-              <input type="hidden" id="connector_type_hidden" name="connector_type" value="{{ request.GET.connector_type|default:'' }}">
-              <input type="hidden" id="recurring_pattern_hidden" name="recurring_pattern" value="{{ request.GET.recurring_pattern|default:'' }}">
-              
-              <!-- Date and time fields for both single and recurring bookings -->
-              <input type="hidden" id="start_date_hidden" name="start_date" value="{{ start_date|default:'' }}">
-              <input type="hidden" id="end_date_hidden" name="end_date" value="{{ end_date|default:'' }}">
-              <input type="hidden" id="start_time_hidden" name="start_time" value="{{ start_time|default:'' }}">
-              <input type="hidden" id="end_time_hidden" name="end_time" value="{{ end_time|default:'' }}">
-              <input type="hidden" id="recurring_start_date_hidden" name="recurring_start_date" value="{{ request.GET.recurring_start_date|default:'' }}">
-              <input type="hidden" id="recurring_end_date_hidden" name="recurring_end_date" value="{{ request.GET.recurring_end_date|default:'' }}">
-              <input type="hidden" id="recurring_start_time_hidden" name="recurring_start_time" value="{{ request.GET.recurring_start_time|default:'' }}">
-              <input type="hidden" id="recurring_end_time_hidden" name="recurring_end_time" value="{{ request.GET.recurring_end_time|default:'' }}">
-              <input type="hidden" id="recurring_weeks_hidden" name="recurring_weeks" value="{{ request.GET.recurring_weeks|default:'' }}">
-              <input type="hidden" id="recurring_overnight_hidden" name="recurring_overnight" value="{{ request.GET.recurring_overnight|default:'' }}">
-              
               <!-- Footer with Advanced Button and Search -->
               <div class="d-grid gap-2">
                 <button type="button" id="advanced-filters-btn" class="btn btn-outline-secondary">

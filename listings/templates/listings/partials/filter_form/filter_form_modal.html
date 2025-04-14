@@ -7,24 +7,6 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <!-- Booking Type Selector -->
-        <div class="filter-group mb-3">
-          <label class="form-label fw-bold">Booking Type</label>
-          <div class="btn-group w-100" role="group">
-            <input type="radio" class="btn-check" name="filter_type_modal" id="filter_single" 
-                  value="single" {% if filter_type == "single" or not filter_type %}checked{% endif %}>
-            <label class="btn btn-outline-secondary" for="filter_single">
-              <i class="fas fa-calendar-day me-1"></i> Single Booking
-            </label>
-            
-            <input type="radio" class="btn-check" name="filter_type_modal" id="filter_recurring" 
-                  value="recurring" {% if filter_type == "recurring" %}checked{% endif %}>
-            <label class="btn btn-outline-secondary" for="filter_recurring">
-              <i class="fas fa-calendar-alt me-1"></i> Recurring
-            </label>
-          </div>
-        </div>
-        
         <!-- EV Charger Options -->
         <div class="filter-group mb-3">
           <label class="form-label fw-bold">EV Charging</label>
@@ -58,44 +40,8 @@
           </div>
         </div>
         
-        <!-- Date Selection (Single) -->
-        <div class="filter-group mb-3" id="single-filter" {% if filter_type == "recurring" %}style="display:none;"{% endif %}>
-          <label class="form-label fw-bold">Date and Time</label>
-          <div class="input-group mb-2">
-            <span class="input-group-text"><i class="fas fa-calendar"></i></span>
-            <input type="date" class="form-control" name="start_date_modal" id="single_start_date" value="{{ start_date }}">
-            <button class="btn btn-outline-secondary" type="button" id="date-range-toggle">
-              <i class="fas fa-calendar-week"></i>
-            </button>
-          </div>
-          <!-- Date range (initially hidden) -->
-          <div id="end-date-container" class="mt-2 mb-2" {% if not end_date or end_date == start_date %}style="display:none;"{% endif %}>
-            <div class="input-group">
-              <span class="input-group-text">Until</span>
-              <input type="date" class="form-control" name="end_date_modal" id="single_end_date" value="{{ end_date|default:start_date }}">
-            </div>
-          </div>
-          
-          <label class="form-label">Time Range</label>
-          <div class="input-group">
-            <select class="form-select" name="start_time_modal" id="start_time_select">
-              <option value="">Start Time</option>
-              {% for value, label in half_hour_choices %}
-                <option value="{{ value }}" {% if start_time == value %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-            <span class="input-group-text">to</span>
-            <select class="form-select" name="end_time_modal" id="end_time_select">
-              <option value="">End Time</option>
-              {% for value, label in half_hour_choices %}
-                <option value="{{ value }}" {% if end_time == value %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-        
         <!-- Recurring Booking Options -->
-        <div id="recurring-filter" {% if filter_type != "recurring" %}style="display:none;"{% endif %}>
+        <div id="recurring-filter">
           <div class="filter-group mb-3">
             <label class="form-label fw-bold">Recurring Booking Details</label>
             
