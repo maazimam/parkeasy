@@ -373,7 +373,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         console.log("Initializing map view...");
 
                         // Create map centered on NYC
-                        map = L.map("map-view").setView([40.7128, -74.0060], 12);
+                        map = L.map("map-view").setView([40.7128, -74.0060], 18);
                         currentMap = map;
 
                         // Create layer groups
@@ -391,25 +391,27 @@ document.addEventListener("DOMContentLoaded", function() {
                         const garageIcon = L.divIcon({
                             html: `<div style="
                                 background-color: #2c3e50; 
-                                width: 28px; 
-                                height: 28px; 
-                                border-radius: 6px;
+                                width: 22px;   /* Reduced from 28px */
+                                height: 22px;  /* Reduced from 28px */
+                                border-radius: 5px;
                                 display: flex; 
                                 justify-content: center; 
                                 align-items: center; 
-                                border: 2px solid white; 
-                                box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                                border: 1px solid white; /* Thinner border */
+                                box-shadow: 0 1px 3px rgba(0,0,0,0.4);
                             ">
                                 <i class="fas fa-car" style="
                                     color: white; 
-                                    font-size: 14px;
+                                    font-size: 11px;  /* Reduced from 14px */
                                     transform: rotate(-45deg);
                                 "></i>
                             </div>`,
                             className: 'garage-marker',
-                            iconSize: [28, 28],
-                            iconAnchor: [14, 28],
-                            popupAnchor: [0, -28]
+                            iconSize: [22, 22],
+                            /* Reduced from [28, 28] */
+                            iconAnchor: [11, 22],
+                            /* Adjusted for new size */
+                            popupAnchor: [0, -22] /* Adjusted for new size */
                         });
 
                         // Fetch garages from NYC Open Data API
@@ -449,7 +451,8 @@ document.addEventListener("DOMContentLoaded", function() {
                                                         // Create marker and add to LAYER GROUP instead of map
                                                         const marker = L.marker([lat, lng], {
                                                             icon: garageIcon,
-                                                            title: garage.business_name
+                                                            title: garage.business_name,
+                                                            zIndexOffset: 100 // Lower z-index to ensure garages stay behind listings
                                                         });
 
                                                         garageLayerGroup.addLayer(marker);
@@ -533,7 +536,9 @@ document.addEventListener("DOMContentLoaded", function() {
                         console.log(`Adding listing: ${title} at ${location.lat}, ${location.lng}`);
 
                         // Create the marker but add it to the layer group instead of the map
-                        const marker = L.marker([location.lat, location.lng]);
+                        const marker = L.marker([location.lat, location.lng], {
+                            zIndexOffset: 1000  // Higher z-index to appear above garage markers
+                        });
                         listingLayerGroup.addLayer(marker);
                         bounds.push([location.lat, location.lng]);
 
@@ -559,9 +564,26 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                 });
 
-                // Fit map to show all markers
+                // Add this after all markers are added, before the bounds check
+                console.log("Fitting map to include all listings and garages");
+
+                // Make sure we include garages in the initial bounds
+                if (garageLayerGroup) {
+                    // Add all garage locations to the bounds
+                    garageLayerGroup.eachLayer(function(layer) {
+                        if (layer.getLatLng) {
+                            bounds.push([layer.getLatLng().lat, layer.getLatLng().lng]);
+                        }
+                    });
+                }
+
+                // Fit map to show all markers with padding
                 if (bounds.length > 0) {
-                    map.fitBounds(bounds);
+                    map.fitBounds(bounds, {
+                        padding: [5, 5],  // Minimal padding
+                        maxZoom: 18,      // Maximum practical zoom
+                        minZoom: 17       // Enforce very high zoom level
+                    });
                 }
                 
                 // Make sure the map renders properly
@@ -597,13 +619,48 @@ document.addEventListener("DOMContentLoaded", function() {
             console.log("Showing map view");
 
             // Initialize map if not already done
-                    initMap();
+            initMap();
 
             // Force map to render properly
-                    if (map) {
+            if (map) {
                 console.log("Forcing map to resize");
                 setTimeout(() => {
                     map.invalidateSize();
+                    
+                    // After invalidating size, make sure we're still showing all markers
+                    const allBounds = [];
+                    
+                    // Add all listings to bounds
+                    if (listingLayerGroup) {
+                        listingLayerGroup.eachLayer(function(layer) {
+                            if (layer.getLatLng) {
+                                allBounds.push([layer.getLatLng().lat, layer.getLatLng().lng]);
+                            }
+                        });
+                    }
+                    
+                    // Add all garages to bounds
+                    if (garageLayerGroup) {
+                        garageLayerGroup.eachLayer(function(layer) {
+                            if (layer.getLatLng) {
+                                allBounds.push([layer.getLatLng().lat, layer.getLatLng().lng]);
+                            }
+                        });
+                    }
+                    
+                    // If we have markers, fit to bounds
+                    if (allBounds.length > 0) {
+                        map.fitBounds(allBounds, {
+                            padding: [5, 5],  // Minimal padding 
+                            maxZoom: 18,      // Maximum practical zoom
+                            minZoom: 17       // Enforce very high zoom level
+                        });
+                        console.log("Fit map to include all markers with maximum practical zoom");
+                    } else {
+                        // Default to maximum practical zoom for NYC
+                        map.setView([40.7128, -74.0060], 18);
+                    }
+                    
                     console.log("Map has been resized");
                 }, 500);
             } else {
@@ -933,25 +990,25 @@ function addGaragesDirectly(map) {
     const garageIcon = L.divIcon({
         html: `<div style="
             background-color: #2c3e50; 
-            width: 28px; 
-            height: 28px; 
-            border-radius: 6px;
+            width: 22px;   /* Reduced from 28px */
+            height: 22px;  /* Reduced from 28px */
+            border-radius: 5px;
             display: flex; 
             justify-content: center; 
             align-items: center; 
-            border: 2px solid white; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            border: 1px solid white; /* Thinner border */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
         ">
             <i class="fas fa-car" style="
                 color: white; 
-                font-size: 14px;
+                font-size: 11px;  /* Reduced from 14px */
                 transform: rotate(-45deg);
             "></i>
         </div>`,
         className: 'garage-marker',
-        iconSize: [28, 28],
-        iconAnchor: [14, 28],
-        popupAnchor: [0, -28]
+        iconSize: [22, 22],     /* Reduced from [28, 28] */
+        iconAnchor: [11, 22],   /* Adjusted for new size */
+        popupAnchor: [0, -22]   /* Adjusted for new size */
     });
 
     // Create backup markers to use if API fails
@@ -986,7 +1043,8 @@ function addGaragesDirectly(map) {
                 // Create marker and add to LAYER GROUP instead of map
                 const marker = L.marker([garage.lat, garage.lng], {
                     icon: garageIcon,
-                    title: garage.name
+                    title: garage.name,
+                    zIndexOffset: 100  // Lower z-index to ensure garages stay behind listings
                 });
                 
                 garageLayerGroup.addLayer(marker);
@@ -1058,7 +1116,8 @@ function addGaragesDirectly(map) {
                         // Create marker and add to LAYER GROUP instead of map
                         const marker = L.marker([lat, lng], {
                             icon: garageIcon,
-                            title: garage.business_name
+                            title: garage.business_name,
+                            zIndexOffset: 100  // Lower z-index to ensure garages stay behind listings
                         });
                         
                         garageLayerGroup.addLayer(marker);
