@@ -17,14 +17,14 @@
             {% if user == listing.user %}
             <!-- For own listings: link to personal profile -->
             <a href="{% url 'profile' %}" class="text-decoration-none">
-              <span class="badge bg-secondary">
+              <span class="badge bg-secondary outline-badge">
                 <i class="fas fa-user-check me-1"></i> Your listing
               </span>
             </a>
             {% else %}
             <!-- For others' listings: link to public profile -->
             <a href="{% url 'public_profile' listing.user.username %}" class="text-decoration-none">
-              <span class="badge bg-light text-dark border">
+              <span class="badge bg-light text-dark border outline-badge">
                 <i class="fas fa-user me-1"></i> {{ listing.user.username }}
               </span>
             </a>

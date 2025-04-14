@@ -151,8 +151,8 @@ def change_email(request):
 
 @login_required
 def public_profile_view(request, username):
-    """View for seeing another user's profile (read-only)"""
     # Get the user whose profile is being viewed
+
     profile_user = get_object_or_404(User, username=username)
 
     # Check if this is the user's own profile
@@ -162,11 +162,38 @@ def public_profile_view(request, username):
     if is_own_profile:
         return redirect("profile")
 
-    # Otherwise show the public view
+    # Get verification status from profile
+    is_verified = hasattr(profile_user, "profile") and profile_user.profile.is_verified
+
+    # Calculate average rating across all listings
+    from django.db.models import Avg
+    from listings.models import Listing, Review
+
+    # Get all listings by this user
+    user_listings = Listing.objects.filter(user=profile_user)
+    listing_count = user_listings.count()
+
+    # Calculate the overall rating across all reviews from all listings
+    average_rating = None
+    total_reviews = 0
+
+    if listing_count > 0 and is_verified:
+        # Get all reviews for all listings by this user
+        all_reviews = Review.objects.filter(listing__user=profile_user)
+        total_reviews = all_reviews.count()
+
+        if total_reviews > 0:
+            # Calculate average rating across all reviews
+            average_rating = all_reviews.aggregate(avg=Avg("rating"))["avg"]
+
     return render(
         request,
-        "accounts/public_profile.html",  # New template for public profiles
+        "accounts/public_profile.html",
         {
-            "profile_user": profile_user,  # The user whose profile is being viewed
+            "profile_user": profile_user,
+            "is_verified": is_verified,
+            "average_rating": average_rating,
+            "listing_count": listing_count,
+            "review_count": total_reviews,
         },
     )
