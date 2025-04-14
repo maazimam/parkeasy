@@ -21,55 +21,60 @@
               
               <!-- Essential Filters Section -->
               <div class="essential-filters">
-                <!-- Location Search -->
+                <!-- Location and Distance in the same row -->
                 <div class="filter-group mb-3">
-                  <label class="form-label">
-                    <i class="fas fa-map-marker-alt me-1"></i> Location
-                  </label>
-                  <div class="input-group">
-                    <input type="text" 
-                          id="location-search" 
-                          class="form-control" 
-                          placeholder="Enter an address or landmark"
-                          value="{{ request.GET.location|default:'' }}"/>
-                    <button class="btn btn-outline-primary" type="button" id="toggle-map">
-                      <i class="fas fa-map-pin"></i>
-                    </button>
-                  </div>
-                  <!-- Hidden coordinates inputs -->
-                  <input type="hidden" name="lat" id="search-lat" value="{{ search_lat|default:'' }}">
-                  <input type="hidden" name="lng" id="search-lng" value="{{ search_lng|default:'' }}">
-                  <div class="mt-2 text-muted small" id="coordinates-display" {% if not search_lat or not search_lng %}style="display: none;"{% endif %}>
-                    <i class="fas fa-crosshairs me-1"></i>
-                    Selected: <span id="lat-display">{{ search_lat|default:'-' }}</span>, <span id="lng-display">{{ search_lng|default:'-' }}</span>
-                  </div>
-                </div>
-                
-                <!-- Distance/Radius -->
-                <div class="filter-group mb-3">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <label class="form-label mb-0">
-                      <i class="fas fa-circle-notch me-1"></i> Distance
-                    </label>
-                    <div class="form-check form-switch">
-                      <input class="form-check-input" type="checkbox" id="enable-radius" name="enable_radius" {% if radius %}checked{% endif %}>
-                      <label class="form-check-label small" for="enable-radius">Filter by radius</label>
+                  <div class="row g-2">
+                    <!-- Location Search -->
+                    <div class="col-md-6">
+                      <label class="form-label">
+                        <i class="fas fa-map-marker-alt me-1"></i> Location
+                      </label>
+                      <div class="input-group">
+                        <input type="text" 
+                              id="location-search" 
+                              class="form-control" 
+                              placeholder="Enter an address or landmark"
+                              value="{{ request.GET.location|default:'' }}"/>
+                        <button class="btn btn-outline-primary" type="button" id="toggle-map">
+                          <i class="fas fa-map-pin"></i>
+                        </button>
+                      </div>
+                      <!-- Hidden coordinates inputs -->
+                      <input type="hidden" name="lat" id="search-lat" value="{{ search_lat|default:'' }}">
+                      <input type="hidden" name="lng" id="search-lng" value="{{ search_lng|default:'' }}">
+                      <div class="mt-2 text-muted small" id="coordinates-display" {% if not search_lat or not search_lng %}style="display: none;"{% endif %}>
+                        <i class="fas fa-crosshairs me-1"></i>
+                        Selected: <span id="lat-display">{{ search_lat|default:'-' }}</span>, <span id="lng-display">{{ search_lng|default:'-' }}</span>
+                      </div>
+                    </div>
+                    
+                    <!-- Distance/Radius -->
+                    <div class="col-md-6">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <label class="form-label mb-0">
+                          <i class="fas fa-circle-notch me-1"></i> Distance
+                        </label>
+                        <div class="form-check form-switch">
+                          <input class="form-check-input" type="checkbox" id="enable-radius" name="enable_radius" {% if radius %}checked{% endif %}>
+                          <label class="form-check-label small" for="enable-radius">Filter by radius</label>
+                        </div>
+                      </div>
+                      
+                      <div id="radius-input-group" class="input-group mt-2" {% if not radius %}style="display: none;"{% endif %}>
+                        <input type="number" 
+                              name="radius" 
+                              id="radius-input"
+                              class="form-control" 
+                              value="{{ radius|default:'' }}" 
+                              placeholder="Enter radius"
+                              min="1" max="100">
+                        <span class="input-group-text">km</span>
+                      </div>
+                      <small class="text-muted" id="radius-hint" {% if radius %}style="display: none;"{% endif %}>
+                        Results will be sorted by distance from selected location
+                      </small>
                     </div>
                   </div>
-                  
-                  <div id="radius-input-group" class="input-group mt-2" {% if not radius %}style="display: none;"{% endif %}>
-                    <input type="number" 
-                          name="radius" 
-                          id="radius-input"
-                          class="form-control" 
-                          value="{{ radius|default:'' }}" 
-                          placeholder="Enter radius"
-                          min="1" max="100">
-                    <span class="input-group-text">km</span>
-                  </div>
-                  <small class="text-muted" id="radius-hint" {% if radius %}style="display: none;"{% endif %}>
-                    Results will be sorted by distance from selected location
-                  </small>
                 </div>
 
                 <!-- Add these fields after the Max Price field -->
