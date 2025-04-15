@@ -563,8 +563,14 @@ def view_listings(request):
             listing.available_until = None
             listing.available_time_until = None
 
-    page_number = request.GET.get("page", 1)
+    # Process the listings before pagination
+    for listing in processed_listings:
+        # Explicitly mark listings as available in the main listings view
+        listing.user_profile_available = True
+
+    # Continue with pagination
     paginator = Paginator(processed_listings, 10)
+    page_number = request.GET.get("page", 1)
     page_obj = paginator.get_page(page_number)
 
     context = {
