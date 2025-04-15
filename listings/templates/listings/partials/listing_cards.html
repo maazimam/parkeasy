@@ -107,29 +107,25 @@
             <!-- User Info and Buttons -->
             <div>
               {% if user != listing.user %}
-              <div class="d-grid gap-2">
-                <a
-                  href="{% url 'book_listing' listing.id %}"
-                  class="btn btn-primary btn-sm"
-                >
-                  <i class="fas fa-calendar-check me-1"></i> Book Now
-                </a>
-                <a
-                  href="{% url 'listing_reviews' listing.id %}"
-                  class="btn btn-secondary btn-sm"
-                >
-                  <i class="fas fa-comment me-1"></i> Reviews
-                </a>
-              </div>
+                <div class="d-grid gap-2">
+                  {% if not is_public_view or listing.user_profile_available %}
+                    <!-- Regular "Book Now" button -->
+                    <a href="{% url 'book_listing' listing.id %}?source={% if source %}{{ source }}{% else %}view_listings{% endif %}&username={% if username %}{{ username }}{% endif %}" class="btn btn-primary btn-sm">
+                      <i class="fas fa-calendar-check me-1"></i> Book Now
+                    </a>
+                  {% elif is_public_view %}
+                    <!-- "No Longer Available" message (only in public_view) -->
+                    <div class="alert alert-secondary py-2 mb-0 text-center">
+                      <i class="fas fa-ban me-1"></i> No Longer Available
+                    </div>
+                  {% endif %}
+                  
+                  <a href="{% url 'listing_reviews' listing.id %}" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-comment me-1"></i> Reviews
+                  </a>
+                </div>
               {% else %}
-              <div class="d-grid">
-                <a
-                  href="{% url 'listing_reviews' listing.id %}"
-                  class="btn btn-secondary btn-sm"
-                >
-                  <i class="fas fa-comment me-1"></i> Reviews
-                </a>
-              </div>
+                <!-- Owner view stays the same -->
               {% endif %}
             </div>
           </div>
