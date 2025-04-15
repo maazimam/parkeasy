@@ -594,6 +594,7 @@ def view_listings(request):
         "connector_type_choices": EV_CONNECTOR_TYPES,
         "parking_spot_sizes": PARKING_SPOT_SIZES,
         "has_active_filters": has_active_filters(request),
+        'is_public_view': False,
     }
 
     if request.GET.get("ajax") == "1":
