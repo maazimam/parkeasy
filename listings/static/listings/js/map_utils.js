@@ -222,3 +222,284 @@ function reverseGeocode(lat, lng, options = {}) {
       }
     });
 }
+
+
+// Create a new map legend with toggle functionality
+function createMapLegend() {
+  const legend = L.control({ position: 'bottomright' });
+
+  legend.onAdd = function(map) {
+      const div = L.DomUtil.create('div', 'map-legend');
+      div.innerHTML = `
+          <div style="background: white; padding: 8px; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.4); font-size: 12px;">
+              <div style="font-weight: bold; margin-bottom: 5px; text-align: center;">Map Legend</div>
+              
+              <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                  <input type="checkbox" id="toggle-garages" checked style="margin-right: 5px;">
+                  <div style="
+                      background-color: #2c3e50; 
+                      width: 20px; 
+                      height: 20px; 
+                      border-radius: 5px;
+                      display: flex; 
+                      justify-content: center; 
+                      align-items: center; 
+                      border: 2px solid white; 
+                      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+                      margin-right: 8px;
+                      margin-left: 3px;
+                  ">
+                      <i class="fas fa-car" style="color: white; font-size: 10px; transform: rotate(-45deg);"></i>
+                  </div>
+                  <label for="toggle-garages">Parking Garages</label>
+              </div>
+              
+              <div style="display: flex; align-items: center;">
+                  <input type="checkbox" id="toggle-listings" checked style="margin-right: 5px;">
+                  <div style="
+                      background-color: #3388ff; 
+                      width: 20px; 
+                      height: 20px; 
+                      border-radius: 50%;
+                      border: 2px solid white; 
+                      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+                      margin-right: 8px;
+                      margin-left: 3px;
+                  "></div>
+                  <label for="toggle-listings">Available Listings</label>
+              </div>
+          </div>
+      `;
+      
+      // Prevent clicks on the legend from propagating to the map
+      L.DomEvent.disableClickPropagation(div);
+      
+      // Add event listeners to the toggle switches after a slight delay to ensure DOM is ready
+      setTimeout(() => {
+          const toggleGarages = document.getElementById('toggle-garages');
+          const toggleListings = document.getElementById('toggle-listings');
+          
+          if (toggleGarages) {
+              toggleGarages.addEventListener('change', function() {
+                  if (this.checked) {
+                      if (!map.hasLayer(garageLayerGroup)) {
+                          map.addLayer(garageLayerGroup);
+                      }
+                  } else {
+                      if (map.hasLayer(garageLayerGroup)) {
+                          map.removeLayer(garageLayerGroup);
+                      }
+                  }
+              });
+          }
+          
+          if (toggleListings) {
+              toggleListings.addEventListener('change', function() {
+                  if (this.checked) {
+                      if (!map.hasLayer(listingLayerGroup)) {
+                          map.addLayer(listingLayerGroup);
+                      }
+                  } else {
+                      if (map.hasLayer(listingLayerGroup)) {
+                          map.removeLayer(listingLayerGroup);
+                      }
+                  }
+              });
+          }
+      }, 100);
+      
+      return div;
+  };
+
+  return legend;
+}
+
+// This is a simpler function that directly adds garages to the map
+function addGaragesDirectly(map) {
+  console.log("Adding garages directly to map...");
+  currentMap = map;
+  
+  // Create layer group if it doesn't exist
+  if (!garageLayerGroup) {
+      garageLayerGroup = L.layerGroup().addTo(map);
+  }
+
+  // Create marker icon - code remains the same
+  const garageIcon = L.divIcon({
+      html: `<div style="
+          background-color: #2c3e50; 
+          width: 22px;   /* Reduced from 28px */
+          height: 22px;  /* Reduced from 28px */
+          border-radius: 5px;
+          display: flex; 
+          justify-content: center; 
+          align-items: center; 
+          border: 1px solid white; /* Thinner border */
+          box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+      ">
+          <i class="fas fa-car" style="
+              color: white; 
+              font-size: 11px;  /* Reduced from 14px */
+              transform: rotate(-45deg);
+          "></i>
+      </div>`,
+      className: 'garage-marker',
+      iconSize: [22, 22],     /* Reduced from [28, 28] */
+      iconAnchor: [11, 22],   /* Adjusted for new size */
+      popupAnchor: [0, -22]   /* Adjusted for new size */
+  });
+
+  // Create backup markers to use if API fails
+  const backupGarages = [
+      {
+          name: "SUTTON 53 PARKING LLC",
+          address: "410 EAST 54 STREET, NEW YORK, NY 10022",
+          phone: "(877) 727-5464",
+          lat: 40.757700,
+          lng: -73.963900
+      },
+      {
+          name: "TIMES SQUARE GARAGE", 
+          address: "224 WEST 49TH STREET, NEW YORK, NY 10019",
+          phone: "(212) 333-7275",
+          lat: 40.760800,
+          lng: -73.984700
+      }
+  ];
+
+  if (!map) {
+      console.error("Map object is null or undefined in addGaragesDirectly!");
+      return;
+  }
+
+  // Add each garage marker from backup if needed
+  function addBackupMarkers() {
+      backupGarages.forEach((garage, index) => {
+          try {
+              console.log(`Adding backup garage ${index+1}/${backupGarages.length}: "${garage.name}" at ${garage.lat}, ${garage.lng}`);
+
+              // Create marker and add to LAYER GROUP instead of map
+              const marker = L.marker([garage.lat, garage.lng], {
+                  icon: garageIcon,
+                  title: garage.name,
+                  zIndexOffset: 100  // Lower z-index to ensure garages stay behind listings
+              });
+              
+              garageLayerGroup.addLayer(marker);
+
+              // Create popup content
+              const popupContent = `
+                  <div class="garage-popup">
+                      <h4 class="garage-name">${garage.name}</h4>
+                      <div class="garage-address">
+                          <i class="fas fa-map-marker-alt"></i>
+                          <div>${garage.address}</div>
+                      </div>
+                      <div class="garage-phone">
+                          <i class="fas fa-phone"></i>
+                          <a href="tel:${garage.phone}">${garage.phone}</a>
+                      </div>
+                  </div>
+              `;
+
+              // Bind popup to marker
+              marker.bindPopup(popupContent);
+              
+              // Open popup for first marker
+              if (index === 0) {
+                  setTimeout(() => {
+                      marker.openPopup();
+                  }, 500);
+              }
+          } catch (error) {
+              console.error(`Error adding backup garage ${garage.name}:`, error);
+          }
+      });
+  }
+
+  // Try to fetch garages from NYC Open Data API
+  fetch('https://data.cityofnewyork.us/resource/5bhr-pjxt.json?$limit=50')
+      .then(response => {
+          if (!response.ok) {
+              throw new Error('Network response was not ok');
+          }
+          return response.json();
+      })
+      .then(garages => {
+          console.log(`Fetched ${garages.length} garages from NYC API`);
+          
+          // Add markers for each garage
+          garages.forEach(garage => {
+              // Only add markers if we have coordinates
+              if (garage.latitude && garage.longitude) {
+                  try {
+                      const lat = parseFloat(garage.latitude);
+                      const lng = parseFloat(garage.longitude);
+                      
+                      // Format the address string
+                      const address = [
+                          garage.address_building, 
+                          garage.address_street_name,
+                          garage.address_city, 
+                          garage.address_state,
+                          garage.address_zip
+                      ].filter(Boolean).join(' ');
+                      
+                      // Get capacity info
+                      let capacity = "";
+                      if (garage.detail) {
+                          capacity = garage.detail;
+                      }
+                      
+                      // Create marker and add to LAYER GROUP instead of map
+                      const marker = L.marker([lat, lng], {
+                          icon: garageIcon,
+                          title: garage.business_name,
+                          zIndexOffset: 100  // Lower z-index to ensure garages stay behind listings
+                      });
+                      
+                      garageLayerGroup.addLayer(marker);
+                      
+                      // Create popup content
+                      const popupContent = `
+                          <div class="garage-popup">
+                              <h4 class="garage-name">${garage.business_name}</h4>
+                              <div class="garage-address">
+                                  <i class="fas fa-map-marker-alt"></i>
+                                  <div>${address}</div>
+                              </div>
+                              ${garage.contact_phone ? `
+                              <div class="garage-phone">
+                                  <i class="fas fa-phone"></i>
+                                  <a href="tel:${garage.contact_phone}">${garage.contact_phone}</a>
+                              </div>` : ''}
+                              ${capacity ? `
+                              <div class="garage-details">
+                                  <i class="fas fa-info-circle"></i>
+                                  <div>${capacity}</div>
+                              </div>` : ''}
+                          </div>
+                      `;
+                      
+                      // Bind popup to marker
+                      marker.bindPopup(popupContent);
+                      
+                  } catch (error) {
+                      console.error(`Error adding garage ${garage.business_name}:`, error);
+                  }
+              }
+          });
+          
+          // Center map on NYC after adding garages
+          map.setView([40.7128, -74.0060], 12);
+      })
+      .catch(error => {
+          console.error('Error fetching garage data:', error);
+          
+          // If API fails, add default markers as fallback
+          console.log("API fetch failed, adding backup garage markers");
+          addBackupMarkers();
+      });
+
+  console.log("Garage data request initiated");
+}
