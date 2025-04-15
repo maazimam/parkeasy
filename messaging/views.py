@@ -29,7 +29,15 @@ def inbox(request):
 
 @login_required
 def sent_messages(request):
-    messages_sent = Message.objects.filter(sender=request.user).order_by("-created_at")
+    # Get all sent messages except verification requests
+    messages_sent = (
+        Message.objects.filter(sender=request.user)
+        .exclude(
+            subject="Verification Request"  # Hide verification requests from users
+        )
+        .order_by("-created_at")
+    )
+
     context = {"messages_sent": messages_sent}
     return render(request, "messaging/sent_messages.html", context)
 

@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Verify User{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            {% if already_verified %}
+                <div class="alert alert-info">
+                    User <strong>{{ username }}</strong> is already verified.
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'inbox' %}" class="btn btn-primary">Return to Inbox</a>
+                </div>
+            {% elif verification_complete %}
+                <div class="alert alert-success">
+                    User <strong>{{ username }}</strong> has been successfully verified and notified.
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'inbox' %}" class="btn btn-primary">Return to Inbox</a>
+                </div>
+            {% else %}
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">Verify User: {{ user_to_verify.username }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <h5>User Information</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Username:</strong> {{ user_to_verify.username }}</p>
+                                <p><strong>Email:</strong> {{ user_to_verify.email|default:"Not provided" }}</p>
+                                <p><strong>Joined:</strong> {{ user_to_verify.date_joined|date:"F d, Y" }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Age:</strong> {{ user_to_verify.profile.age|default:"Not provided" }}</p>
+                                <p><strong>Phone:</strong> {{ user_to_verify.profile.phone_number|default:"Not provided" }}</p>
+                            </div>
+                        </div>
+                        
+                        {% if user_to_verify.profile.address %}
+                            <div class="mb-3">
+                                <strong>Address:</strong>
+                                <div class="card bg-light">
+                                    <div class="card-body py-2">
+                                        {{ user_to_verify.profile.address|linebreaks }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if has_verification_file %}
+                            <h5 class="mt-4">Verification Document</h5>
+                            <div class="mb-3">
+                                <a href="{{ user_to_verify.profile.verification_file.url }}" class="btn btn-outline-primary" target="_blank">
+                                    <i class="fas fa-file-pdf me-2"></i>View Verification Document
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                No verification document was uploaded.
+                            </div>
+                        {% endif %}
+                        
+                        <form method="post" class="mt-4">
+                            {% csrf_token %}
+                            <div class="alert alert-info">
+                                Approving this user will send them a notification and allow them to post listings.
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'inbox' %}" class="btn btn-secondary">Cancel</a>
+                                <button type="submit" name="confirm_verification" class="btn btn-success">
+                                    Approve Verification
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

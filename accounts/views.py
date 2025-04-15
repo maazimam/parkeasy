@@ -4,10 +4,10 @@ from django.contrib.auth.forms import (
     UserCreationForm,
     PasswordChangeForm,
 )
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .forms import EmailChangeForm
-from django.contrib import messages
+from django.http import HttpResponseForbidden
+from .forms import EmailChangeForm, VerificationForm  # Update import
 
 # Import the messaging model and User to send admin notifications.
 from messaging.models import Message
@@ -50,56 +50,139 @@ def user_logout(request):
 def verify(request):
     """
     Handles account verification requests.
-    When the correct answer is provided, a message is sent to every admin user,
-    including a link to the user's profile in the admin panel.
-    The user does not view the message content but receives a notification that
-    the verification request has been sent for review.
+    Collects user information for verification and sends a notification to admins.
+    Prevents users from submitting multiple verification requests.
     """
+    # If already verified, show success page
     if request.user.profile.is_verified:
         return render(request, "accounts/verify.html", {"success": True})
 
-    context = {}
+    # If verification already requested but not approved yet, show pending status
+    if request.user.profile.verification_requested:
+        return render(request, "accounts/verify.html", {"pending": True})
+
     if request.method == "POST":
-        answer = request.POST.get("answer")
-        verification_file = request.FILES.get("verification_file")
+        form = VerificationForm(request.POST, request.FILES)
+        if form.is_valid():
+            # Update user profile with form data
+            profile = request.user.profile
+            profile.age = form.cleaned_data["age"]
+            profile.address = form.cleaned_data["address"]
+            profile.phone_number = form.cleaned_data["phone_number"]
 
-        # Validate that the file is a PDF if provided.
-        if verification_file and not verification_file.name.lower().endswith(".pdf"):
-            context["error_message"] = "Only PDF files are allowed."
-            return render(request, "accounts/verify.html", context)
-
-        if answer == "ParkEasy":
-            # Save verification file if provided.
+            # Save verification file if provided
+            verification_file = form.cleaned_data["verification_file"]
             if verification_file:
-                request.user.profile.verification_file = verification_file
-                request.user.profile.save()
+                profile.verification_file = verification_file
 
-            # Build link to the admin profile change page.
-            profile_link = f"http://127.0.0.1:8000/admin/accounts/profile/{request.user.profile.id}/change/"
+            # Mark verification as requested
+            profile.verification_requested = True
+            profile.save()
 
-            # Send a message to all admin users.
+            # Build links for admin actions
+            base_url = request.build_absolute_uri("/").rstrip("/")
+            verify_link = f"{base_url}/accounts/admin_verify/{request.user.id}/"
+            admin_profile_link = (
+                f"{base_url}/admin/accounts/profile/{request.user.profile.id}/change/"
+            )
+
+            # Send a message to all admin users
             admin_users = User.objects.filter(is_staff=True)
             for admin in admin_users:
                 Message.objects.create(
                     sender=request.user,
                     recipient=admin,
                     subject="Verification Request",
-                    body=f"User {request.user.username} has requested verification. "
-                    f"Please review their profile here: {profile_link}",
+                    body=f"User {request.user.username} has requested verification.\n\n"
+                    f"User Information:\n"
+                    f"- Age: {profile.age}\n"
+                    f"- Address: {profile.address}\n"
+                    f"- Phone: {profile.phone_number}\n\n"
+                    f"Click here to verify the user: {verify_link}\n\n"
+                    f"Or view their profile in the admin panel: {admin_profile_link}",
                 )
 
-            # Inform the user that the verification request has been sent.
-            messages.info(
-                request,
-                "Your verification request has been sent for review. You will be notified once it is approved.",
-            )
-            return render(request, "accounts/verify.html", {"success": True})
-        else:
-            context["error_message"] = (
-                "Incorrect answer, verification failed. Please try again."
-            )
+            # Return a confirmation page
+            context = {
+                "request_sent": True,
+                "success_message": "Your verification request has been sent for review. \
+                    You will be notified once it is approved.",
+            }
+            return render(request, "accounts/verify.html", context)
+    else:
+        form = VerificationForm()
 
-    return render(request, "accounts/verify.html", context)
+    return render(request, "accounts/verify.html", {"form": form})
+
+
+@login_required
+def admin_verify_user(request, user_id):
+    """
+    View for administrators to verify users directly from notification messages.
+    This creates a smoother workflow than requiring admins to navigate to the admin panel.
+    Shows the verification file (if any) before approval.
+    """
+    # Check if the current user is an admin
+    if not request.user.is_staff:
+        return HttpResponseForbidden("You do not have permission to verify users.")
+
+    # Get the user to verify
+    user_to_verify = get_object_or_404(User, pk=user_id)
+
+    # Check if user is already verified
+    if user_to_verify.profile.is_verified:
+        return render(
+            request,
+            "accounts/admin_verify.html",
+            {"already_verified": True, "username": user_to_verify.username},
+        )
+
+    if request.method == "POST" and "confirm_verification" in request.POST:
+        # Process verification approval
+        user_to_verify.profile.is_verified = True
+        user_to_verify.profile.save()
+
+        # Send a confirmation message to the verified user
+        Message.objects.create(
+            sender=request.user,
+            recipient=user_to_verify,
+            subject="Account Verification Approved",
+            body="Congratulations! Your account has been verified. You can now post parking spots on ParkEasy.",
+        )
+
+        # Show confirmation page
+        return render(
+            request,
+            "accounts/admin_verify.html",
+            {"verification_complete": True, "username": user_to_verify.username},
+        )
+
+    # Show verification details and confirmation form
+    return render(
+        request,
+        "accounts/admin_verify.html",
+        {
+            "user_to_verify": user_to_verify,
+            "has_verification_file": bool(user_to_verify.profile.verification_file),
+        },
+    )
+
+
+@login_required
+def user_notifications(request):
+    """
+    Display notification messages for the user, including verification status updates
+    """
+    # Get all messages sent to this user
+    messages_list = Message.objects.filter(recipient=request.user).order_by(
+        "-created_at"
+    )
+
+    # Mark all as read
+    unread_messages = messages_list.filter(read=False)
+    unread_messages.update(read=True)
+
+    return render(request, "accounts/notifications.html", {"messages": messages_list})
 
 
 @login_required
@@ -107,6 +190,9 @@ def profile_view(request):
     # Get messages from session if present
     success_message = request.session.pop("success_message", None)
     error_message = request.session.pop("error_message", None)
+
+    # Calculate unread message count for the user
+    unread_count = Message.objects.filter(recipient=request.user, read=False).count()
 
     # Render the user's profile page with message context
     return render(
@@ -116,6 +202,7 @@ def profile_view(request):
             "user": request.user,
             "success_message": success_message,
             "error_message": error_message,
+            "unread_count": unread_count,
         },
     )
 

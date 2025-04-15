@@ -8,9 +8,14 @@ from django.dispatch import receiver
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     is_verified = models.BooleanField(default=False)
+    verification_requested = models.BooleanField(default=False)
     verification_file = models.FileField(
         upload_to="verification_documents/", null=True, blank=True
-    )  # New field
+    )
+    # New user information fields
+    age = models.PositiveIntegerField(null=True, blank=True)
+    address = models.TextField(null=True, blank=True)
+    phone_number = models.CharField(max_length=20, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
