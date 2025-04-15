@@ -63,8 +63,22 @@
                     </div>
                     {% endif %}
                     
+                    <!-- Add the listings link ONLY if user is verified -->
+                    {% if is_verified %}
+                    <div class="mb-3 text-center">
+                      <div class="d-inline-flex align-items-center mb-2">
+                        <i class="fas fa-car-side text-secondary me-2"></i>
+                        <span>
+                          <a href="{% url 'user_listings' username=profile_user.username %}" class="host-listings-link">
+                            <strong>Host's Listings</strong>
+                          </a>
+                        </span>
+                      </div>
+                    </div>
+                    {% endif %}
+                    
                     <div class="text-center mt-4">
-                        <a href="javascript:history.back()" class="btn btn-secondary">Back</a>
+                        <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
                     </div>
                 </div>
             </div>
