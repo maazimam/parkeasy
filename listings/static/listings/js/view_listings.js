@@ -226,8 +226,9 @@ function setupSearch() {
 
 function performSearch() {
   const searchInput = document.getElementById("location-search");
-  const mapContainer = document.getElementById("search-map-container");
+  const mapContainer = document.getElementById("map-view");
   const query = searchInput.value;
+  console.log("query", query);
 
   if (!query) return;
 
@@ -235,6 +236,7 @@ function performSearch() {
   searchLocation(query, {
     restrictToNYC: true,
     onSuccess: (result) => {
+      console.log("result", result);
       const latlng = L.latLng(result.lat, result.lng);
 
       // Show map when location is found
@@ -266,11 +268,6 @@ function performSearch() {
       setTimeout(() => {
         searchMap.invalidateSize();
       }, 100);
-
-      // Update toggle button state
-      const toggleMapBtn = document.getElementById("toggle-map");
-      toggleMapBtn.classList.remove("btn-outline-secondary");
-      toggleMapBtn.classList.add("btn-secondary");
     },
   });
 }

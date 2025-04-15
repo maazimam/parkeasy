@@ -71,6 +71,7 @@ function searchLocation(query, options = {}) {
     return;
   }
 
+  console.log("query", query);
   const defaultOptions = {
     restrictToNYC: true,
     onSuccess: () => {},
@@ -107,6 +108,7 @@ function searchLocation(query, options = {}) {
     mode: "cors", // Try with explicit CORS mode
   })
     .then((response) => {
+      console.log("response", response);
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
@@ -134,6 +136,9 @@ function searchLocation(query, options = {}) {
       }
     })
     .catch((error) => {
+      console.log("error", error);
+      console.log("error.message", error.message);
+      console.log("error.name", error.name);
       console.error("Nominatim API error:", error);
 
       // Fallback for CORS issues - use a hardcoded NYC location
