@@ -96,7 +96,7 @@ class ListingForm(forms.ModelForm):
         return cleaned_data
 
     def clean_rent_per_hour(self):
-        rent_per_hour = self.cleaned_data.get('rent_per_hour')
+        rent_per_hour = self.cleaned_data.get("rent_per_hour")
         if rent_per_hour <= 0:
             raise forms.ValidationError("Price per hour must be greater than 0.")
         return rent_per_hour
