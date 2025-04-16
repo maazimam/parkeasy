@@ -1,5 +1,6 @@
 from django import forms
 from django.core.validators import RegexValidator
+from django.contrib.auth.models import User
 
 
 # Existing EmailChangeForm
@@ -74,3 +75,55 @@ class VerificationForm(forms.Form):
         if file and not file.name.lower().endswith(".pdf"):
             raise forms.ValidationError("Only PDF files are allowed.")
         return file
+
+
+class AdminNotificationForm(forms.Form):
+    RECIPIENT_CHOICES = [
+        ("ALL", "All Users"),
+        ("OWNERS", "Verified Users Only"),
+        ("SELECTED", "Selected Users"),
+    ]
+
+    recipient_type = forms.ChoiceField(
+        choices=RECIPIENT_CHOICES,
+        widget=forms.RadioSelect(),
+        initial="ALL",
+        required=True,
+    )
+
+    selected_users = forms.ModelMultipleChoiceField(
+        queryset=User.objects.all().exclude(
+            is_staff=True
+        ),  # Include all non-admin users
+        widget=forms.SelectMultiple(attrs={"class": "form-control"}),
+        required=False,
+    )
+
+    subject = forms.CharField(
+        max_length=255,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+        required=True,
+    )
+
+    content = forms.CharField(
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 5}), required=True
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Update the queryset to include all non-admin users
+        self.fields["selected_users"].queryset = (
+            User.objects.all().exclude(is_staff=True).order_by("username")
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        recipient_type = cleaned_data.get("recipient_type")
+        selected_users = cleaned_data.get("selected_users")
+
+        if recipient_type == "SELECTED" and not selected_users:
+            raise forms.ValidationError(
+                "You must select at least one user when choosing 'Selected Users'."
+            )
+
+        return cleaned_data

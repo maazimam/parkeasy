@@ -26,3 +26,37 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
     if created:
         Profile.objects.create(user=instance)
     instance.profile.save()
+
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ("SYSTEM", "System Notification"),
+        ("BOOKING", "Booking Notification"),
+        ("ADMIN", "Admin Notification"),
+        ("VERIFICATION", "Verification Notification"),
+    ]
+
+    # Sender is optional (could be system notification)
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="sent_notifications",
+        null=True,
+        blank=True,
+    )
+    recipient = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="notifications"
+    )
+    subject = models.CharField(max_length=255)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    read = models.BooleanField(default=False)  # Make sure default is False
+    notification_type = models.CharField(
+        max_length=15, choices=NOTIFICATION_TYPES, default="SYSTEM"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Notification for {self.recipient.username}: {self.subject}"

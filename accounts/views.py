@@ -7,7 +7,12 @@ from django.contrib.auth.forms import (
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
-from .forms import EmailChangeForm, VerificationForm  # Update import
+from .forms import (
+    EmailChangeForm,
+    VerificationForm,
+    AdminNotificationForm,
+)  # Update import
+from .models import Notification
 
 # Import the messaging model and User to send admin notifications.
 from messaging.models import Message
@@ -86,6 +91,18 @@ def verify(request):
                 f"{base_url}/admin/accounts/profile/{request.user.profile.id}/change/"
             )
 
+            # Format message with links in list format
+            message_body = (
+                f"User {request.user.username} has requested verification.\n\n"
+                f"User Information:\n"
+                f"- Age: {profile.age}\n"
+                f"- Address: {profile.address}\n"
+                f"- Phone: {profile.phone_number}\n\n"
+                f"Actions:\n"
+                f"- Verify user directly: {verify_link}\n"
+                f"- View profile in admin panel: {admin_profile_link}"
+            )
+
             # Send a message to all admin users
             admin_users = User.objects.filter(is_staff=True)
             for admin in admin_users:
@@ -93,19 +110,13 @@ def verify(request):
                     sender=request.user,
                     recipient=admin,
                     subject="Verification Request",
-                    body=f"User {request.user.username} has requested verification.\n\n"
-                    f"User Information:\n"
-                    f"- Age: {profile.age}\n"
-                    f"- Address: {profile.address}\n"
-                    f"- Phone: {profile.phone_number}\n\n"
-                    f"Click here to verify the user: {verify_link}\n\n"
-                    f"Or view their profile in the admin panel: {admin_profile_link}",
+                    body=message_body,
                 )
 
             # Return a confirmation page
             context = {
                 "request_sent": True,
-                "success_message": "Your verification request has been sent for review. \
+                "success_message": "Your verification request has been sent for review.\
                     You will be notified once it is approved.",
             }
             return render(request, "accounts/verify.html", context)
@@ -142,12 +153,13 @@ def admin_verify_user(request, user_id):
         user_to_verify.profile.is_verified = True
         user_to_verify.profile.save()
 
-        # Send a confirmation message to the verified user
-        Message.objects.create(
+        # Create a notification for the verified user
+        Notification.objects.create(
             sender=request.user,
             recipient=user_to_verify,
             subject="Account Verification Approved",
-            body="Congratulations! Your account has been verified. You can now post parking spots on ParkEasy.",
+            content="Congratulations! Your account has been verified. You can now post parking spots on ParkEasy.",
+            notification_type="VERIFICATION",
         )
 
         # Show confirmation page
@@ -171,18 +183,35 @@ def admin_verify_user(request, user_id):
 @login_required
 def user_notifications(request):
     """
-    Display notification messages for the user, including verification status updates
+    Display all notifications for the user, including system messages,
+    booking notifications, and admin messages.
     """
-    # Get all messages sent to this user
-    messages_list = Message.objects.filter(recipient=request.user).order_by(
+    # Get all notifications for this user
+    notifications = Notification.objects.filter(recipient=request.user).order_by(
         "-created_at"
     )
 
-    # Mark all as read
-    unread_messages = messages_list.filter(read=False)
-    unread_messages.update(read=True)
+    # Mark all as read (do this before rendering the template)
+    Notification.objects.filter(recipient=request.user, read=False).update(read=True)
 
-    return render(request, "accounts/notifications.html", {"messages": messages_list})
+    # Get verification messages from the Message model for backward compatibility
+    verification_messages = Message.objects.filter(
+        recipient=request.user, subject="Account Verification Approved"
+    ).order_by("-created_at")
+
+    # Mark verification messages as read too
+    Message.objects.filter(
+        recipient=request.user, subject="Account Verification Approved", read=False
+    ).update(read=True)
+
+    return render(
+        request,
+        "accounts/notifications.html",
+        {
+            "notifications": notifications,
+            "verification_messages": verification_messages,
+        },
+    )
 
 
 @login_required
@@ -191,10 +220,14 @@ def profile_view(request):
     success_message = request.session.pop("success_message", None)
     error_message = request.session.pop("error_message", None)
 
-    # Calculate unread message count for the user
-    unread_count = Message.objects.filter(recipient=request.user, read=False).count()
+    # Calculate unread notifications count (already available from context processor)
+    # We don't need to calculate it here, but we'll keep track of verification status
 
-    # Render the user's profile page with message context
+    # Check verification status
+    is_verified = request.user.profile.is_verified
+    verification_requested = request.user.profile.verification_requested
+
+    # Render the user's profile page
     return render(
         request,
         "accounts/profile.html",
@@ -202,7 +235,8 @@ def profile_view(request):
             "user": request.user,
             "success_message": success_message,
             "error_message": error_message,
-            "unread_count": unread_count,
+            "is_verified": is_verified,
+            "verification_requested": verification_requested,
         },
     )
 
@@ -251,4 +285,164 @@ def change_email(request):
         request,
         "accounts/change_email.html",
         {"form": form, "is_adding_email": is_adding_email},
+    )
+
+
+@login_required
+def admin_send_notification(request):
+    """
+    View for administrators to send notifications to users.
+    Allows admins to send to all users, only parking spot owners (verified users), or selected users.
+    All registered users can receive notifications regardless of verification status.
+    """
+    # Check if the current user is an admin
+    if not request.user.is_staff:
+        return HttpResponseForbidden(
+            "You do not have permission to send notifications."
+        )
+
+    if request.method == "POST":
+        form = AdminNotificationForm(request.POST)
+
+        if form.is_valid():
+            recipient_type = form.cleaned_data["recipient_type"]
+            subject = form.cleaned_data["subject"]
+            content = form.cleaned_data["content"]
+
+            # Determine recipients based on the type
+            if recipient_type == "ALL":
+                # Send to all registered users (except other admins)
+                recipients = User.objects.exclude(is_staff=True)
+            elif recipient_type == "OWNERS":
+                # Get verified users (potential parking spot owners)
+
+                recipients = User.objects.filter(profile__is_verified=True).exclude(
+                    is_staff=True
+                )
+            else:  # 'SELECTED'
+                recipients = form.cleaned_data["selected_users"]
+
+            # Create notifications for each recipient with our helper function
+            notification_count = 0
+            for recipient in recipients:
+                create_notification(
+                    sender=request.user,
+                    recipient=recipient,
+                    subject=subject,
+                    content=content,
+                    notification_type="ADMIN",
+                )
+                notification_count += 1
+
+            return render(
+                request,
+                "accounts/admin_notification_sent.html",
+                {"recipient_count": notification_count},
+            )
+    else:
+        form = AdminNotificationForm()
+
+    return render(request, "accounts/admin_send_notification.html", {"form": form})
+
+
+@login_required
+def admin_sent_notifications(request):
+    """
+    View for administrators to see all notifications they have sent.
+    Groups notifications by content and timestamp to avoid duplicates.
+    """
+    # Check if the current user is an admin
+    if not request.user.is_staff:
+        return HttpResponseForbidden(
+            "You do not have permission to view sent notifications."
+        )
+
+    # Get all notifications sent by this admin
+    sent_notifications = Notification.objects.filter(sender=request.user).order_by(
+        "-created_at"
+    )
+
+    # Create a dictionary to group notifications manually
+    notification_dict = {}
+
+    for notification in sent_notifications:
+        # Create a unique key using subject, content, and rounded timestamp (to the minute)
+        timestamp_minute = notification.created_at.replace(second=0, microsecond=0)
+        key = f"{notification.subject}|{notification.content}|{timestamp_minute}"
+
+        if key not in notification_dict:
+            notification_dict[key] = {
+                "subject": notification.subject,
+                "content": notification.content,
+                "created_at": notification.created_at,
+                "notification_type": notification.notification_type,
+                "recipients": set(),
+            }
+
+        # Add recipient to the set
+        notification_dict[key]["recipients"].add(notification.recipient)
+
+    # Convert dictionary to list and add recipient counts
+    notification_groups = []
+    for data in notification_dict.values():
+        recipients = list(data["recipients"])
+        notification_groups.append(
+            {
+                "subject": data["subject"],
+                "content": data["content"],
+                "created_at": data["created_at"],
+                "notification_type": data["notification_type"],
+                "recipients": recipients[:5],  # First 5 recipients for display
+                "recipient_count": len(recipients),
+                "has_more_recipients": len(recipients) > 5,
+            }
+        )
+
+    # Sort by created_at in descending order
+    notification_groups.sort(key=lambda x: x["created_at"], reverse=True)
+
+    return render(
+        request,
+        "accounts/admin_sent_notifications.html",
+        {"notification_groups": notification_groups},
+    )
+
+
+@login_required
+def debug_notification_counts(request):
+    """
+    Simple view to debug notification counts
+    """
+    unread_notifications = Notification.objects.filter(
+        recipient=request.user, read=False
+    )
+
+    unread_messages = Message.objects.filter(
+        recipient=request.user, read=False
+    ).exclude(subject="Account Verification Approved")
+
+    context = {
+        "unread_notifications": unread_notifications,
+        "unread_messages": unread_messages,
+        "unread_notification_count": unread_notifications.count(),
+        "unread_message_count": unread_messages.count(),
+    }
+
+    return render(request, "accounts/debug_counts.html", context)
+
+
+def create_notification(
+    sender, recipient, subject, content, notification_type="SYSTEM"
+):
+    """
+    Helper function to create notifications ensuring they're marked as unread.
+    This helps maintain consistency across the application.
+    """
+    return Notification.objects.create(
+        sender=sender,
+        recipient=recipient,
+        subject=subject,
+        content=content,
+        notification_type=notification_type,
+        read=False,  # Explicitly set to unread
     )

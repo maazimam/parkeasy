@@ -15,16 +15,40 @@
                         <li class="nav-item"><a class="nav-link" href="{% url 'manage_listings' %}">Manage My Listings</a></li>
                     {% endif %}
                     
+                    <!-- Use direct variable from debug view -->
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'inbox' %}">
                             Messages
-                            {% if unread_count > 0 %}
-                                <span class="badge bg-danger">{{ unread_count }}</span>
+                            {% if unread_message_count > 0 %}
+                                <span class="badge bg-danger">{{ unread_message_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'user_notifications' %}">
+                            Notifications
+                            {% if unread_notification_count > 0 %}
+                                <span class="badge bg-danger">{{ unread_notification_count }}</span>
                             {% endif %}
                         </a>
                     </li>
 
                     <li class="nav-item"><a class="nav-link" href="{% url 'profile' %}">Profile</a></li>
+                    
+                    {% if user.is_staff %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Admin
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                <li><a class="dropdown-item" href="{% url 'admin_send_notification' %}">Send Notifications</a></li>
+                                <li><a class="dropdown-item" href="{% url 'admin_sent_notifications' %}">Sent Notifications</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/admin/">Admin Panel</a></li>
+                            </ul>
+                        </li>
+                    {% endif %}
 
                     <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
                 {% else %}
