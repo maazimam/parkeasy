@@ -83,7 +83,8 @@ function toggleFilterPanel() {
             document.getElementById("charger_level_hidden").value = chargerLevel;
             document.getElementById("connector_type_hidden").value = connectorType;
           }
-    
+          
+          // POSSIBLE BUG
           // Date and time for single booking
           if (filterType === "single") {
             const startDate = document.getElementById("single_start_date").value;

@@ -94,15 +94,18 @@
                         placeholder="Any price">
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label">
-                        <i class="fas fa-calendar me-1"></i> Date
-                      </label>
-                      <input type="date" 
-                             class="form-control" 
-                             id="start_date" 
-                             name="start_date"
-                             value="{{ start_date|default:'' }}" 
-                             placeholder="Select date">
+              <i class="fas fa-calendar-day me-1"></i> Date
+              <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
+                      data-bs-toggle="popover" 
+                      data-bs-placement="top"
+                      data-bs-html="true"
+                      data-bs-trigger="hover focus"
+                      title="Date Help"
+                      data-bs-content="Select a single date or enable 'Multiple days' to search for a continuous period spanning multiple days. <br><br>If 'Multiple days' is selected, the start time will be on the first day and the end time on the last day.">
+                <i class="fas fa-info-circle small"></i>
+              </button>
+            </label>
+              <input type="date" class="form-control" name="start_date" id="single_start_date" value="{{ start_date }}">
                     </div>
                     <div class="col-md-3">
                       <label class="form-label">
@@ -126,6 +129,8 @@
                         {% endfor %}
                       </select>
                     </div>
+                    <input type="hidden" name="filter_type" value="single">
+                    <input type="hidden" name="end_date" id="single_end_date" value="{{ start_date }}">
                   </div>
                 </div>
               </div>

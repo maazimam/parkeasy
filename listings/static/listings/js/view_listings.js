@@ -174,9 +174,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   setupAdvancedFilters();
   setupRadiusToggle();
+  setupDateSync();
   initializeDateRangeToggle();
   initializeEvChargerToggle();
-  initializeRecurringPatternToggle(); // Initialize map directly since it's always visible
+  initializeRecurringPatternToggle();
   initializeMap();
   setMinDates();
   addListingsToMap();
@@ -395,5 +396,23 @@ function initializeLocationName() {
         }
       }, 100);
     }
+  }
+}
+
+function setupDateSync() {
+  const singleStartDate = document.getElementById("single_start_date");
+  const singleEndDate = document.getElementById("single_end_date");
+
+  if (singleStartDate && singleEndDate) {
+    // Set end date to match start date initially
+    if (singleStartDate.value) {
+      singleEndDate.value = singleStartDate.value;
+    }
+
+    // Update end date whenever start date changes
+    singleStartDate.addEventListener("change", function () {
+      singleEndDate.value = this.value;
+      console.log("Synced end date with start date:", this.value);
+    });
   }
 }
