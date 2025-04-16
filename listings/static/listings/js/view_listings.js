@@ -36,6 +36,144 @@ function initializeMap() {
   }
 }
 
+function setupLoadMoreButton() {
+  const loadMoreBtn = document.getElementById("load-more-btn");
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", loadMoreListings);
+  }
+}
+
+// Separate the click handler logic into its own function for better reusability
+function loadMoreListings() {
+  const loadMoreBtn = this;
+  const nextPage = loadMoreBtn.getAttribute("data-next-page");
+  const listingsContainer = document.querySelector(".listings-container");
+
+  loadMoreBtn.innerHTML =
+    '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
+  loadMoreBtn.disabled = true;
+
+  // Build URL with existing filters
+  let url = new URL(window.location.href);
+  url.searchParams.set("page", nextPage);
+  url.searchParams.set("ajax", "1");
+
+  fetch(url)
+    .then((response) => response.text())
+    .then((html) => {
+      console.log("html", html);
+      console.log("listingsContainer", listingsContainer);
+
+      // Remove ALL instances of load more buttons and containers
+      const existingButtonContainers =
+        document.querySelectorAll(".text-center.my-4");
+      existingButtonContainers.forEach((container) => {
+        if (container.querySelector("#load-more-btn")) {
+          container.remove();
+        }
+      });
+
+      // Also try to find and remove any orphaned load more buttons
+      const orphanedButtons = document.querySelectorAll("#load-more-btn");
+      orphanedButtons.forEach((button) => {
+        const container =
+          button.closest(".text-center.my-4") || button.parentElement;
+        if (container) {
+          container.remove();
+        } else {
+          button.remove();
+        }
+      });
+
+      // Parse the HTML response
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+      console.log("doc", doc);
+
+      // Add new listings to container
+      const newListings = doc.querySelectorAll(".card");
+      console.log("newListings", newListings);
+      newListings.forEach((listing) => {
+        const listingClone = listing.cloneNode(true);
+        listingsContainer.appendChild(listingClone);
+
+        // Find and update the star ratings in the newly added listing
+        const ratingStars = listingClone.querySelector(".rating-stars");
+        if (ratingStars) {
+          const rating = parseFloat(listingClone.dataset.rating || 0);
+          ratingStars.innerHTML = generateStarRating(rating);
+        }
+      });
+      console.log("listingsContainer", listingsContainer);
+
+      // Try multiple possible selectors for the load more container
+      let loadMoreContainer = doc.querySelector(".text-center.my-4");
+      if (!loadMoreContainer) {
+        loadMoreContainer = doc.querySelector("[data-load-more-container]");
+      }
+      if (!loadMoreContainer) {
+        loadMoreContainer = doc.querySelector(".pagination-container");
+      }
+
+      console.log("loadMoreContainer", loadMoreContainer);
+
+      // Check if there's a next page button in the response
+      const hasMoreListings =
+        loadMoreContainer && loadMoreContainer.querySelector("#load-more-btn");
+
+      if (hasMoreListings) {
+        // Only add the "Load More" button if there are more listings to load
+        const newButtonContainer = loadMoreContainer.cloneNode(true);
+        // Make sure the button has the correct text and is enabled before adding
+        const buttonInContainer =
+          newButtonContainer.querySelector("#load-more-btn");
+        if (buttonInContainer) {
+          buttonInContainer.innerHTML = "Load More Listings";
+          buttonInContainer.disabled = false;
+        }
+        listingsContainer.appendChild(newButtonContainer);
+
+        // Re-attach event listener
+        const newLoadMoreBtn = document.getElementById("load-more-btn");
+        if (newLoadMoreBtn) {
+          newLoadMoreBtn.addEventListener("click", loadMoreListings);
+        }
+      } else {
+        console.log("No more listings to load - reached the end of results");
+        // Add a "No more listings" message
+        const endMessage = document.createElement("div");
+        endMessage.className = "text-center my-4";
+        endMessage.innerHTML = "<p>No more listings to display</p>";
+        listingsContainer.appendChild(endMessage);
+      }
+    })
+    .catch((error) => {
+      console.error("Error loading more listings:", error);
+      // Remove any existing load more buttons first
+      const existingButtons = document.querySelectorAll("#load-more-btn");
+      existingButtons.forEach((btn) => {
+        const container = btn.closest(".text-center.my-4") || btn.parentElement;
+        if (container) {
+          container.remove();
+        } else {
+          btn.remove();
+        }
+      });
+
+      // Create a new button since the old one was removed
+      const retryButtonContainer = document.createElement("div");
+      retryButtonContainer.className = "text-center my-4";
+      retryButtonContainer.innerHTML = `<button id="load-more-btn" class="btn btn-primary" data-next-page="${nextPage}">Try Again</button>`;
+      listingsContainer.appendChild(retryButtonContainer);
+
+      // Re-attach event listener to the new button
+      const newLoadMoreBtn = document.getElementById("load-more-btn");
+      if (newLoadMoreBtn) {
+        newLoadMoreBtn.addEventListener("click", loadMoreListings);
+      }
+    });
+}
+
 function onMapClick(e) {
   // Only update if we're in search mode (not viewing listings)
   placeMarker(e.latlng);
@@ -183,7 +321,7 @@ document.addEventListener("DOMContentLoaded", function () {
   addListingsToMap();
   initializeLocationName();
   setupSearch();
-
+  setupLoadMoreButton();
   // Force map resize immediately AND after a short delay
   setTimeout(() => {
     if (searchMap) {
