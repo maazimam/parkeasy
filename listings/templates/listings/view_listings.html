@@ -27,9 +27,14 @@
     <div id="filter-panel" class="collapsed">
       <div class="panel-header filter-header">
         <h5 class="mb-0" id="filter-title"><i class="fas fa-filter me-2"></i>Filter Spots</h5>
-        <button id="toggle-filters" class="btn btn-sm btn-outline-secondary">
-          <i class="fas fa-chevron-down" id="filter-chevron"></i>
-        </button>
+        <div class="d-flex align-items-center">
+          <a href="{% url 'view_listings' %}" class="btn btn-sm btn-outline-secondary me-2">
+            <i class="fas fa-times me-1"></i>Clear
+          </a>
+          <button id="toggle-filters" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-chevron-down" id="filter-chevron"></i>
+          </button>
+        </div>
       </div>
       
       <div class="filter-content">
