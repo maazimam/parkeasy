@@ -43,12 +43,31 @@ function setupLoadMoreButton() {
   }
 }
 
-// Separate the click handler logic into its own function for better reusability
+// Helper function to remove all load more buttons
+function removeLoadMoreButtons() {
+  // Remove button containers
+  document.querySelectorAll(".text-center.my-4").forEach((container) => {
+    if (container.querySelector("#load-more-btn")) {
+      container.remove();
+    }
+  });
+
+  // Remove any orphaned buttons
+  document.querySelectorAll("#load-more-btn").forEach((button) => {
+    const container =
+      button.closest(".text-center.my-4") || button.parentElement;
+    if (container) container.remove();
+    else button.remove();
+  });
+}
+
+// Simplified loadMoreListings function
 function loadMoreListings() {
   const loadMoreBtn = this;
   const nextPage = loadMoreBtn.getAttribute("data-next-page");
   const listingsContainer = document.querySelector(".listings-container");
 
+  // Show loading state
   loadMoreBtn.innerHTML =
     '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
   loadMoreBtn.disabled = true;
@@ -61,86 +80,77 @@ function loadMoreListings() {
   fetch(url)
     .then((response) => response.text())
     .then((html) => {
-      console.log("html", html);
-      console.log("listingsContainer", listingsContainer);
-
-      // Remove ALL instances of load more buttons and containers
-      const existingButtonContainers =
-        document.querySelectorAll(".text-center.my-4");
-      existingButtonContainers.forEach((container) => {
-        if (container.querySelector("#load-more-btn")) {
-          container.remove();
-        }
-      });
-
-      // Also try to find and remove any orphaned load more buttons
-      const orphanedButtons = document.querySelectorAll("#load-more-btn");
-      orphanedButtons.forEach((button) => {
-        const container =
-          button.closest(".text-center.my-4") || button.parentElement;
-        if (container) {
-          container.remove();
-        } else {
-          button.remove();
-        }
-      });
-
       // Parse the HTML response
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, "text/html");
-      console.log("doc", doc);
+
+      // Remove any existing load more buttons
+      document
+        .querySelectorAll("#load-more-btn, .text-center.my-4")
+        .forEach((el) => el.remove());
 
       // Add new listings to container
       const newListings = doc.querySelectorAll(".card");
-      console.log("newListings", newListings);
+
+      // Track new listings for map update
+      const newListingData = [];
+
       newListings.forEach((listing) => {
+        // Add listing to DOM
         const listingClone = listing.cloneNode(true);
         listingsContainer.appendChild(listingClone);
 
-        // Find and update the star ratings in the newly added listing
-        const ratingStars = listingClone.querySelector(".rating-stars");
-        if (ratingStars) {
-          const rating = parseFloat(listingClone.dataset.rating || 0);
-          ratingStars.innerHTML = generateStarRating(rating);
+        // Collect data for map markers
+        const lat = parseFloat(listing.dataset.lat);
+        const lng = parseFloat(listing.dataset.lng);
+
+        console.log("lat", lat);
+        console.log("lng", lng);
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+          newListingData.push({
+            id: listing.dataset.id,
+            title: listing.dataset.title,
+            lat: lat,
+            lng: lng,
+            price: listing.dataset.price,
+            rating: parseFloat(listing.dataset.rating || 0),
+            locationName: listing.dataset.location || "",
+          });
         }
       });
-      console.log("listingsContainer", listingsContainer);
 
-      // Try multiple possible selectors for the load more container
-      let loadMoreContainer = doc.querySelector(".text-center.my-4");
-      if (!loadMoreContainer) {
-        loadMoreContainer = doc.querySelector("[data-load-more-container]");
+      console.log("newListingData", newListingData);
+
+      // Update map with new markers if map is initialized
+      if (mapInitialized && newListingData.length > 0) {
+        // Add new markers to the map
+        newListingData.forEach((listing) => {
+          addListingMarker(listing);
+        });
       }
-      if (!loadMoreContainer) {
-        loadMoreContainer = doc.querySelector(".pagination-container");
-      }
 
-      console.log("loadMoreContainer", loadMoreContainer);
+      // Check if there are more listings
+      const newLoadMoreBtn = doc.querySelector("#load-more-btn");
 
-      // Check if there's a next page button in the response
-      const hasMoreListings =
-        loadMoreContainer && loadMoreContainer.querySelector("#load-more-btn");
+      if (newLoadMoreBtn) {
+        // Create a new button container
+        const buttonContainer = document.createElement("div");
+        buttonContainer.className = "text-center my-4";
 
-      if (hasMoreListings) {
-        // Only add the "Load More" button if there are more listings to load
-        const newButtonContainer = loadMoreContainer.cloneNode(true);
-        // Make sure the button has the correct text and is enabled before adding
-        const buttonInContainer =
-          newButtonContainer.querySelector("#load-more-btn");
-        if (buttonInContainer) {
-          buttonInContainer.innerHTML = "Load More Listings";
-          buttonInContainer.disabled = false;
-        }
-        listingsContainer.appendChild(newButtonContainer);
+        // Clone the button from the response
+        const buttonClone = newLoadMoreBtn.cloneNode(true);
+        buttonClone.innerHTML = "Load More Listings";
+        buttonClone.disabled = false;
 
-        // Re-attach event listener
-        const newLoadMoreBtn = document.getElementById("load-more-btn");
-        if (newLoadMoreBtn) {
-          newLoadMoreBtn.addEventListener("click", loadMoreListings);
-        }
+        // Add the button to the container and the container to the page
+        buttonContainer.appendChild(buttonClone);
+        listingsContainer.appendChild(buttonContainer);
+
+        // Add event listener to the new button
+        buttonClone.addEventListener("click", loadMoreListings);
       } else {
-        console.log("No more listings to load - reached the end of results");
-        // Add a "No more listings" message
+        // No more listings to load
         const endMessage = document.createElement("div");
         endMessage.className = "text-center my-4";
         endMessage.innerHTML = "<p>No more listings to display</p>";
@@ -149,29 +159,57 @@ function loadMoreListings() {
     })
     .catch((error) => {
       console.error("Error loading more listings:", error);
-      // Remove any existing load more buttons first
-      const existingButtons = document.querySelectorAll("#load-more-btn");
-      existingButtons.forEach((btn) => {
-        const container = btn.closest(".text-center.my-4") || btn.parentElement;
-        if (container) {
-          container.remove();
-        } else {
-          btn.remove();
-        }
-      });
 
-      // Create a new button since the old one was removed
-      const retryButtonContainer = document.createElement("div");
-      retryButtonContainer.className = "text-center my-4";
-      retryButtonContainer.innerHTML = `<button id="load-more-btn" class="btn btn-primary" data-next-page="${nextPage}">Try Again</button>`;
-      listingsContainer.appendChild(retryButtonContainer);
+      // Create a retry button
+      const retryContainer = document.createElement("div");
+      retryContainer.className = "text-center my-4";
 
-      // Re-attach event listener to the new button
-      const newLoadMoreBtn = document.getElementById("load-more-btn");
-      if (newLoadMoreBtn) {
-        newLoadMoreBtn.addEventListener("click", loadMoreListings);
-      }
+      const retryButton = document.createElement("button");
+      retryButton.id = "load-more-btn";
+      retryButton.className = "btn btn-primary";
+      retryButton.setAttribute("data-next-page", nextPage);
+      retryButton.textContent = "Try Again";
+      retryButton.addEventListener("click", loadMoreListings);
+
+      retryContainer.appendChild(retryButton);
+      listingsContainer.appendChild(retryContainer);
     });
+}
+
+// Helper function to add a listing marker to the map
+function addListingMarker(listing) {
+  if (!mapInitialized) return;
+
+  try {
+    // Create the marker and add it to the layer group
+    const marker = L.marker([listing.lat, listing.lng], {
+      zIndexOffset: 1000, // Higher z-index to appear above garage markers
+    });
+
+    // Add to layer group and tracking array
+    listingLayerGroup.addLayer(marker);
+    listingMarkers.push(marker);
+
+    // Create popup content
+    const ratingHtml = listing.rating
+      ? `<br><strong>Rating:</strong> ${generateStarRating(
+          listing.rating
+        )} (${listing.rating.toFixed(1)})`
+      : `<br><span class="text-muted">No reviews yet ${generateStarRating(
+          0
+        )}</span>`;
+
+    const popupContent = `
+      <strong>${listing.title}</strong><br>
+      ${listing.locationName}<br>
+      $${listing.price}/hour
+      ${ratingHtml}
+    `;
+
+    marker.bindPopup(popupContent);
+  } catch (error) {
+    console.error("Error adding listing marker:", error);
+  }
 }
 
 function onMapClick(e) {
@@ -312,7 +350,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   setupAdvancedFilters();
   setupRadiusToggle();
-  setupDateSync();
+  setupDateSyncForSingleBooking();
   initializeDateRangeToggle();
   initializeEvChargerToggle();
   initializeRecurringPatternToggle();
@@ -345,6 +383,14 @@ document.addEventListener("DOMContentLoaded", function () {
       searchMap.invalidateSize(true);
     }
   });
+
+  // Handle advanced filters modal
+  const applyAdvancedFiltersBtn = document.getElementById(
+    "apply-advanced-filters"
+  );
+  if (applyAdvancedFiltersBtn) {
+    applyAdvancedFiltersBtn.addEventListener("click", applyAdvancedFilters);
+  }
 });
 
 function setupSearch() {
@@ -408,149 +454,4 @@ function performSearch() {
       }, 100);
     },
   });
-}
-
-function addListingsToMap() {
-  // Add markers for all listings (as in original code)
-  const listings = document.querySelectorAll(".card");
-  console.log("listings", listings);
-  const bounds = [];
-
-  console.log(`Found ${listings.length} listings to add to map`);
-
-  // Ensure listingLayerGroup exists
-  if (!listingLayerGroup) {
-    listingLayerGroup = L.layerGroup().addTo(searchMap);
-  } else {
-    // Clear existing markers
-    listingLayerGroup.clearLayers();
-  }
-
-  listings.forEach((listing) => {
-    try {
-      console.log("listing", listing);
-      const location = parseLocation(listing.dataset.location);
-      console.log("location", location);
-      const locationName = listing.dataset.locationName;
-      const title = listing.dataset.title;
-      const price = listing.dataset.price;
-      const rating = parseFloat(listing.dataset.rating) || 0;
-
-      console.log(
-        `Adding listing: ${title} at ${location.lat}, ${location.lng}`
-      );
-
-      // Create the marker but add it to the layer group instead of the map
-      const marker = L.marker([location.lat, location.lng], {
-        zIndexOffset: 1000, // Higher z-index to appear above garage markers
-      });
-
-      listingLayerGroup.addLayer(marker);
-      bounds.push([location.lat, location.lng]);
-
-      // Create popup content
-      const ratingHtml = rating
-        ? `<br><strong>Rating:</strong> ${generateStarRating(
-            rating
-          )} (${rating.toFixed(1)})`
-        : `<br><span class="text-muted">No reviews yet ${generateStarRating(
-            0
-          )}</span>`;
-
-      const popupContent = `
-            <strong>${title}</strong><br>
-            ${locationName}<br>
-            $${price}/hour
-            ${ratingHtml}
-        `;
-
-      marker.bindPopup(popupContent);
-    } catch (error) {
-      console.error("Error adding listing marker:", error);
-    }
-  });
-}
-
-function initializeLocationName() {
-  // Initialize location name if coordinates exist
-  const searchLat = document.getElementById("search-lat").value;
-  const searchLng = document.getElementById("search-lng").value;
-
-  if (searchLat && searchLng && searchLat !== "None" && searchLng !== "None") {
-    console.log("searchLat", searchLat);
-    console.log("searchLng", searchLng);
-
-    // Ensure we have valid numbers
-    const lat = parseFloat(searchLat);
-    const lng = parseFloat(searchLng);
-
-    if (!isNaN(lat) && !isNaN(lng)) {
-      const latlng = L.latLng(lat, lng);
-
-      // Place marker and center map
-      placeMarker(latlng);
-      searchMap.setView(latlng, 15);
-
-      // Get location name for the coordinates
-      reverseGeocode(lat, lng, {
-        onSuccess: (result) => {
-          // Update the search input with the location name
-          document.getElementById("location-search").value = result.displayName;
-          // Expand the filter panel by removing the collapsed class and ensuring content is visible
-          const filterPanel = document.getElementById("filter-panel");
-          if (filterPanel) {
-            // This might be more reliable as it would use the existing toggle logic
-            const toggleButton = document.getElementById("toggle-filters");
-            if (toggleButton && filterPanel.classList.contains("collapsed")) {
-              toggleButton.click();
-            }
-          }
-          // Make sure the marker has a popup with the location name
-          if (searchMarker) {
-            searchMarker.bindPopup(result.displayName).openPopup();
-
-            // Also set a default popup in case reverse geocoding fails
-            searchMarker.setPopupContent(result.displayName);
-          }
-        },
-        onError: () => {
-          // If reverse geocoding fails, still show a popup with coordinates
-          if (searchMarker) {
-            const fallbackContent = `Location at ${lat.toFixed(
-              6
-            )}, ${lng.toFixed(6)}`;
-            searchMarker.bindPopup(fallbackContent).openPopup();
-          }
-        },
-      });
-
-      // Fix map rendering
-      setTimeout(() => {
-        searchMap.invalidateSize();
-
-        // Make sure marker is visible after map is properly rendered
-        if (searchMarker) {
-          searchMarker.openPopup();
-        }
-      }, 100);
-    }
-  }
-}
-
-function setupDateSync() {
-  const singleStartDate = document.getElementById("single_start_date");
-  const singleEndDate = document.getElementById("single_end_date");
-
-  if (singleStartDate && singleEndDate) {
-    // Set end date to match start date initially
-    if (singleStartDate.value) {
-      singleEndDate.value = singleStartDate.value;
-    }
-
-    // Update end date whenever start date changes
-    singleStartDate.addEventListener("change", function () {
-      singleEndDate.value = this.value;
-      console.log("Synced end date with start date:", this.value);
-    });
-  }
 }

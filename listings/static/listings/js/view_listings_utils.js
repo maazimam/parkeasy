@@ -255,3 +255,122 @@ function toggleFilterPanel() {
     });
   }
   
+
+
+// Function to apply advanced filters from modal
+function applyAdvancedFilters() {
+    // Get the main filter form
+    const filterForm = document.getElementById("filter-form");
+  
+    // Basic validation for recurring booking
+    const recurringStartDate = document.getElementById(
+      "recurring_start_date"
+    ).value;
+    const recurringStartTime = document.getElementById(
+      "recurring_start_time"
+    ).value;
+    const recurringEndTime = document.getElementById("recurring_end_time").value;
+    // Transfer values from modal to main form
+  
+    // EV Charger options
+    const hasEvCharger = document.getElementById("ev_charger").checked;
+    const chargerLevel = document.getElementById("charger_level").value;
+    const connectorType = document.getElementById("connector_type").value;
+  
+    // Create or update hidden inputs in the main form
+    updateOrCreateHiddenInput(
+      filterForm,
+      "has_ev_charger",
+      hasEvCharger ? "on" : ""
+    );
+    updateOrCreateHiddenInput(filterForm, "charger_level", chargerLevel);
+    updateOrCreateHiddenInput(filterForm, "connector_type", connectorType);
+  
+    // Always set filter type to recurring for advanced filters
+    updateOrCreateHiddenInput(filterForm, "filter_type", "recurring");
+  
+    // Get recurring booking details
+    const recurringPattern =
+      document.querySelector('input[name="recurring_pattern_modal"]:checked')
+        ?.value || "daily"; 
+    const recurringEndDate = document.getElementById("recurring_end_date").value;
+    const recurringWeeks = document.getElementById("recurring_weeks").value;
+    const recurringOvernight = document.getElementById(
+      "recurring_overnight"
+    ).checked;
+  
+    // Update form with recurring values
+    updateOrCreateHiddenInput(
+      filterForm,
+      "recurring_start_date",
+      recurringStartDate
+    );
+    updateOrCreateHiddenInput(
+      filterForm,
+      "recurring_start_time",
+      recurringStartTime
+    );
+    updateOrCreateHiddenInput(filterForm, "recurring_end_time", recurringEndTime);
+    updateOrCreateHiddenInput(filterForm, "recurring_pattern", recurringPattern);
+    updateOrCreateHiddenInput(filterForm, "recurring_end_date", recurringEndDate);
+    updateOrCreateHiddenInput(filterForm, "recurring_weeks", recurringWeeks);
+    updateOrCreateHiddenInput(
+      filterForm,
+      "recurring_overnight",
+      recurringOvernight ? "on" : ""
+    );
+  
+    // Clear single booking fields to avoid conflicts
+    updateOrCreateHiddenInput(filterForm, "start_date", "");
+    updateOrCreateHiddenInput(filterForm, "end_date", "");
+    updateOrCreateHiddenInput(filterForm, "start_time", "");
+    updateOrCreateHiddenInput(filterForm, "end_time", "");
+  
+    // Close the modal
+    const modal = bootstrap.Modal.getInstance(
+      document.getElementById("advanced-filters-modal")
+    );
+    if (modal) {
+      modal.hide();
+    }
+  
+    // Submit the form
+    filterForm.submit();
+  }
+  
+  // Helper function to update or create hidden input fields
+function updateOrCreateHiddenInput(form, name, value) {
+    let input = form.querySelector(`input[name="${name}"]`);
+  
+    if (!input) {
+      input = document.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      form.appendChild(input);
+    }
+  
+    input.value = value;
+  }
+
+
+
+
+function setupDateSyncForSingleBooking() {
+    const singleStartDate = document.getElementById("single_start_date");
+    const singleEndDate = document.getElementById("single_end_date");
+  
+    if (singleStartDate && singleEndDate) {
+      // Set end date to match start date initially
+      if (singleStartDate.value) {
+        singleEndDate.value = singleStartDate.value;
+      }
+  
+      // Update end date whenever start date changes
+      singleStartDate.addEventListener("change", function () {
+        singleEndDate.value = this.value;
+        console.log("Synced end date with start date:", this.value);
+      });
+    }
+  }
+  
+  
