@@ -1,5 +1,4 @@
-// Modified view_listings.js for three-pane layout
-console.log("Modified view_listings.js loaded");
+console.log("view_listings.js loaded");
 
 // Global variables
 let searchMap;
@@ -339,12 +338,8 @@ function initializeLocationName() {
   const searchLng = document.getElementById("search-lng").value;
 
   if (searchLat && searchLng && searchLat !== "None" && searchLng !== "None") {
-    // Show map container and update toggle button state
-    const mapContainer = document.getElementById("search-map-container");
-    const toggleMapBtn = document.getElementById("toggle-map");
-    mapContainer.style.display = "block";
-    toggleMapBtn.classList.remove("btn-outline-secondary");
-    toggleMapBtn.classList.add("btn-secondary");
+    console.log("searchLat", searchLat);
+    console.log("searchLng", searchLng);
 
     // Ensure we have valid numbers
     const lat = parseFloat(searchLat);
@@ -360,8 +355,17 @@ function initializeLocationName() {
       // Get location name for the coordinates
       reverseGeocode(lat, lng, {
         onSuccess: (result) => {
+          // Update the search input with the location name
           document.getElementById("location-search").value = result.displayName;
-
+          // Expand the filter panel by removing the collapsed class and ensuring content is visible
+          const filterPanel = document.getElementById("filter-panel");
+          if (filterPanel) {
+            // This might be more reliable as it would use the existing toggle logic
+            const toggleButton = document.getElementById("toggle-filters");
+            if (toggleButton && filterPanel.classList.contains("collapsed")) {
+              toggleButton.click();
+            }
+          }
           // Make sure the marker has a popup with the location name
           if (searchMarker) {
             searchMarker.bindPopup(result.displayName).openPopup();
