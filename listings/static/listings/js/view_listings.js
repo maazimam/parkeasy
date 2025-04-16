@@ -610,13 +610,13 @@ document.addEventListener("DOMContentLoaded", function() {
             console.log("Showing map view");
 
             // Initialize map if not already done
-            initMap();
+                    initMap();
 
             // Force map to render properly
-            if (map) {
+                    if (map) {
                 console.log("Forcing map to resize");
                 setTimeout(() => {
-                    map.invalidateSize();
+                        map.invalidateSize();
                     
                     // After invalidating size, make sure we're still showing all markers
                     const allBounds = [];
@@ -647,7 +647,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             minZoom: 12       // Lower minimum zoom for better overview
                         });
                         console.log("Fit map to include all markers with maximum practical zoom");
-                    } else {
+            } else {
                         // Default to Manhattan view if no markers
                         map.setView([40.7831, -73.9712], 14);
                     }
