@@ -372,8 +372,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     if (!map) {
                         console.log("Initializing map view...");
 
-                        // Create map centered on NYC
-                        map = L.map("map-view").setView([40.7128, -74.0060], 18);
+                        // Create map centered on Manhattan with a better overview zoom level
+                        map = L.map("map-view").setView([40.7831, -73.9712], 14);
                         currentMap = map;
 
                         // Create layer groups
@@ -456,18 +456,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                                         });
 
                                                         garageLayerGroup.addLayer(marker);
-
-                                                        // Add a brief animation effect (simulate bounce)
-                                                        const markerElement = marker.getElement();
-                                                        if (markerElement) {
-                                                            markerElement.style.transition = 'transform 0.3s ease-in-out';
-                                                            setTimeout(() => {
-                                                                markerElement.style.transform = 'translateY(-10px)';
-                                                                setTimeout(() => {
-                                                                    markerElement.style.transform = 'translateY(0)';
-                                                                }, 300);
-                                                            }, 100 * Math.random() * 10); // Stagger the animations
-                                                        }
 
                                                         // Create popup content
                                                         const popupContent = `
@@ -580,10 +568,13 @@ document.addEventListener("DOMContentLoaded", function() {
                 // Fit map to show all markers with padding
                 if (bounds.length > 0) {
                     map.fitBounds(bounds, {
-                        padding: [5, 5],  // Minimal padding
+                        padding: [50, 50],  // Increased padding
                         maxZoom: 18,      // Maximum practical zoom
-                        minZoom: 17       // Enforce very high zoom level
+                        minZoom: 12       // Lower minimum zoom for better overview
                     });
+                } else {
+                    // Default to Manhattan view if no markers
+                    map.setView([40.7831, -73.9712], 14);
                 }
                 
                 // Make sure the map renders properly
@@ -619,13 +610,13 @@ document.addEventListener("DOMContentLoaded", function() {
             console.log("Showing map view");
 
             // Initialize map if not already done
-            initMap();
+                    initMap();
 
             // Force map to render properly
-            if (map) {
+                    if (map) {
                 console.log("Forcing map to resize");
                 setTimeout(() => {
-                    map.invalidateSize();
+                        map.invalidateSize();
                     
                     // After invalidating size, make sure we're still showing all markers
                     const allBounds = [];
@@ -651,14 +642,20 @@ document.addEventListener("DOMContentLoaded", function() {
                     // If we have markers, fit to bounds
                     if (allBounds.length > 0) {
                         map.fitBounds(allBounds, {
-                            padding: [5, 5],  // Minimal padding 
+                            padding: [50, 50],  // Increased padding
                             maxZoom: 18,      // Maximum practical zoom
-                            minZoom: 17       // Enforce very high zoom level
+                            minZoom: 12       // Lower minimum zoom for better overview
                         });
                         console.log("Fit map to include all markers with maximum practical zoom");
-                    } else {
-                        // Default to maximum practical zoom for NYC
-                        map.setView([40.7128, -74.0060], 18);
+            } else {
+                        // Default to Manhattan view if no markers
+                        map.setView([40.7831, -73.9712], 14);
+                    }
+                    
+                    // Ensure garage layer is visible
+                    if (garageLayerGroup && !map.hasLayer(garageLayerGroup)) {
+                        map.addLayer(garageLayerGroup);
+                        console.log("Added garage layer to map");
                     }
                     
                     console.log("Map has been resized");
@@ -986,29 +983,29 @@ function addGaragesDirectly(map) {
         garageLayerGroup = L.layerGroup().addTo(map);
     }
 
-    // Create marker icon - code remains the same
+    // Create marker icon
     const garageIcon = L.divIcon({
         html: `<div style="
             background-color: #2c3e50; 
-            width: 22px;   /* Reduced from 28px */
-            height: 22px;  /* Reduced from 28px */
+            width: 22px;   
+            height: 22px;  
             border-radius: 5px;
             display: flex; 
             justify-content: center; 
             align-items: center; 
-            border: 1px solid white; /* Thinner border */
+            border: 1px solid white;
             box-shadow: 0 1px 3px rgba(0,0,0,0.4);
         ">
             <i class="fas fa-car" style="
                 color: white; 
-                font-size: 11px;  /* Reduced from 14px */
+                font-size: 11px;
                 transform: rotate(-45deg);
             "></i>
         </div>`,
         className: 'garage-marker',
-        iconSize: [22, 22],     /* Reduced from [28, 28] */
-        iconAnchor: [11, 22],   /* Adjusted for new size */
-        popupAnchor: [0, -22]   /* Adjusted for new size */
+        iconSize: [22, 22],
+        iconAnchor: [11, 22],
+        popupAnchor: [0, -22]
     });
 
     // Create backup markers to use if API fails
@@ -1040,16 +1037,14 @@ function addGaragesDirectly(map) {
             try {
                 console.log(`Adding backup garage ${index+1}/${backupGarages.length}: "${garage.name}" at ${garage.lat}, ${garage.lng}`);
 
-                // Create marker and add to LAYER GROUP instead of map
                 const marker = L.marker([garage.lat, garage.lng], {
                     icon: garageIcon,
                     title: garage.name,
-                    zIndexOffset: 100  // Lower z-index to ensure garages stay behind listings
+                    zIndexOffset: 100
                 });
                 
                 garageLayerGroup.addLayer(marker);
 
-                // Create popup content
                 const popupContent = `
                     <div class="garage-popup">
                         <h4 class="garage-name">${garage.name}</h4>
@@ -1064,10 +1059,8 @@ function addGaragesDirectly(map) {
                     </div>
                 `;
 
-                // Bind popup to marker
                 marker.bindPopup(popupContent);
                 
-                // Open popup for first marker
                 if (index === 0) {
                     setTimeout(() => {
                         marker.openPopup();
@@ -1090,15 +1083,12 @@ function addGaragesDirectly(map) {
         .then(garages => {
             console.log(`Fetched ${garages.length} garages from NYC API`);
             
-            // Add markers for each garage
             garages.forEach(garage => {
-                // Only add markers if we have coordinates
                 if (garage.latitude && garage.longitude) {
                     try {
                         const lat = parseFloat(garage.latitude);
                         const lng = parseFloat(garage.longitude);
                         
-                        // Format the address string
                         const address = [
                             garage.address_building, 
                             garage.address_street_name,
@@ -1107,22 +1097,19 @@ function addGaragesDirectly(map) {
                             garage.address_zip
                         ].filter(Boolean).join(' ');
                         
-                        // Get capacity info
                         let capacity = "";
                         if (garage.detail) {
                             capacity = garage.detail;
                         }
                         
-                        // Create marker and add to LAYER GROUP instead of map
                         const marker = L.marker([lat, lng], {
                             icon: garageIcon,
                             title: garage.business_name,
-                            zIndexOffset: 100  // Lower z-index to ensure garages stay behind listings
+                            zIndexOffset: 100
                         });
                         
                         garageLayerGroup.addLayer(marker);
                         
-                        // Create popup content
                         const popupContent = `
                             <div class="garage-popup">
                                 <h4 class="garage-name">${garage.business_name}</h4>
@@ -1143,7 +1130,6 @@ function addGaragesDirectly(map) {
                             </div>
                         `;
                         
-                        // Bind popup to marker
                         marker.bindPopup(popupContent);
                         
                     } catch (error) {
@@ -1152,15 +1138,40 @@ function addGaragesDirectly(map) {
                 }
             });
             
-            // Center map on NYC after adding garages
-            map.setView([40.7128, -74.0060], 12);
+            const bounds = [];
+            garageLayerGroup.eachLayer(function(layer) {
+                if (layer.getLatLng) {
+                    bounds.push([layer.getLatLng().lat, layer.getLatLng().lng]);
+                }
+            });
+            
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, {
+                    padding: [50, 50],
+                    maxZoom: 18,
+                    minZoom: 12
+                });
+            }
         })
         .catch(error => {
             console.error('Error fetching garage data:', error);
-            
-            // If API fails, add default markers as fallback
             console.log("API fetch failed, adding backup garage markers");
             addBackupMarkers();
+            
+            const bounds = [];
+            garageLayerGroup.eachLayer(function(layer) {
+                if (layer.getLatLng) {
+                    bounds.push([layer.getLatLng().lat, layer.getLatLng().lng]);
+                }
+            });
+            
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, {
+                    padding: [50, 50],
+                    maxZoom: 18,
+                    minZoom: 12
+                });
+            }
         });
 
     console.log("Garage data request initiated");
