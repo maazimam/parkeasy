@@ -11,6 +11,8 @@ let garageLayerGroup;
 let listingLayerGroup;
 let currentMap;
 
+
+
 // Map-related functions (outside DOMContentLoaded)
 function initializeMap() {
   if (!mapInitialized) {
@@ -360,6 +362,7 @@ document.addEventListener("DOMContentLoaded", function () {
   initializeLocationName();
   setupSearch();
   setupLoadMoreButton();
+  initializePopover();
   // Force map resize immediately AND after a short delay
   setTimeout(() => {
     if (searchMap) {

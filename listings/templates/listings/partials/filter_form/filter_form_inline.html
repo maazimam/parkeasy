@@ -28,14 +28,28 @@
                     <div class="col-md-6">
                       <label class="form-label">
                         <i class="fas fa-map-marker-alt me-1"></i> Location
+                          <i class="fas fa-info-circle small" 
+                             data-bs-toggle="popover" 
+                             data-bs-placement="top"
+                             data-bs-html="true"
+                             data-bs-trigger="hover focus"
+                             title="Location Help"
+                             data-bs-content="Enter an address, landmark, or city to search by location. You can also use the map button to select a location visually."></i>
                       </label>
                       <div class="input-group">
                         <input type="text" 
                               id="location-search" 
+                              name="location"
                               class="form-control" 
                               placeholder="Enter an address or landmark"
                               value="{{ request.GET.location|default:'' }}"/>
-                        <button class="btn btn-outline-primary" type="button" id="search-location">
+                        <button class="btn btn-outline-primary" type="button" id="search-location"             
+                        data-bs-toggle="popover" 
+                        data-bs-placement="top"
+                        data-bs-html="true"
+                        data-bs-trigger="hover focus"
+                        title="Location Help"
+                        data-bs-content="Search by address or pick on map.">
                           <i class="fas fa-map-pin"></i>
                         </button>
                       </div>
@@ -53,6 +67,13 @@
                       <div class="d-flex justify-content-between align-items-center">
                         <label class="form-label mb-0">
                           <i class="fas fa-circle-notch me-1"></i> Distance
+                          <i class="fas fa-info-circle small" 
+                             data-bs-toggle="popover" 
+                             data-bs-placement="top"
+                             data-bs-html="true"
+                             data-bs-trigger="hover focus"
+                             title="Distance Help"
+                             data-bs-content="Enter a distance in kilometers to filter results by distance from the selected location."></i>
                         </label>
                         <div class="form-check form-switch">
                           <input class="form-check-input" type="checkbox" id="enable-radius" name="enable_radius" {% if radius %}checked{% endif %}>
@@ -83,7 +104,14 @@
 
                     <div class="col-md-3">
                   <label for="max_price" class="form-label">
-                     Max Price ($/hr)
+                     <i class="fas fa-tag me-1"></i>Max Price ($/hr)                          
+                     <i class="fas fa-info-circle small" 
+                             data-bs-toggle="popover" 
+                             data-bs-placement="top"
+                             data-bs-html="true"
+                             data-bs-trigger="hover focus"
+                             title="Price Help"
+                             data-bs-content="Set a maximum price per hour to filter results by cost."></i>
                   </label>
                   <input type="number" 
                         step="0.01" 
@@ -94,15 +122,19 @@
                         placeholder="Any price">
                     </div>
                     <div class="col-md-3">
-              <i class="fas fa-calendar-day me-1"></i> Date
-              <button type="button" class="btn btn-link text-secondary p-0 ms-1" 
-                      data-bs-toggle="popover" 
-                      data-bs-placement="top"
-                      data-bs-html="true"
-                      data-bs-trigger="hover focus"
-                      title="Date Help"
-                      data-bs-content="Select a single date or enable 'Multiple days' to search for a continuous period spanning multiple days. <br><br>If 'Multiple days' is selected, the start time will be on the first day and the end time on the last day.">
-                <i class="fas fa-info-circle small"></i>
+
+              <label for="start_date" class="form-label">
+                            <i class="fas fa-calendar-day me-1"></i>
+              Date                      
+              <i class="fas fa-info-circle small" 
+                             data-bs-toggle="popover" 
+                             data-bs-placement="top"
+                             data-bs-html="true"
+                             data-bs-trigger="hover focus"
+                             title="Date Help"
+                             data-bs-content="Search by a single date by selecting date, start time, and end time."></i>
+                  </label>
+              <button type="button" class="btn btn-link text-secondary p-0 ms-1">
               </button>
             </label>
               <input type="date" class="form-control" name="start_date" id="single_start_date" value="{{ start_date }}">

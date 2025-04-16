@@ -9,7 +9,16 @@
       <div class="modal-body">
         <!-- EV Charger Options -->
         <div class="filter-group mb-3">
-          <label class="form-label fw-bold">EV Charging</label>
+          <label class="form-label fw-bold">EV Charging
+                        <i class="fas fa-info-circle small" 
+                             data-bs-toggle="popover" 
+                             data-bs-placement="top"
+                             data-bs-html="true"
+                             data-bs-trigger="hover focus"
+                             title="EV Charger Help"
+                             data-bs-content="Select this option to filter listings with an EV charging station.Select charger level and connector type if needed."></i>
+          
+          </label>
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" id="ev_charger" name="has_ev_charger_modal" 
                   {% if request.GET.has_ev_charger == 'on' %}checked{% endif %}>
@@ -43,7 +52,15 @@
         <!-- Recurring Booking Options -->
         <div id="recurring-filter">
           <div class="filter-group mb-3">
-            <label class="form-label fw-bold">Recurring Booking Details</label>
+            <label class="form-label fw-bold">Recurring Booking Details
+              <i class="fas fa-info-circle small" 
+                             data-bs-toggle="popover" 
+                             data-bs-placement="top"
+                             data-bs-html="true"
+                             data-bs-trigger="hover focus"
+                             title="Recurring Booking Help"
+                             data-bs-content="Search a recurring booking by selecting a repeating time slot (daily or weekly) and specifying the start date, start time, and end time."></i>
+            </label>
             
             <!-- Start date, Start time, End time -->
             <div class="row g-2 mb-2">
@@ -74,7 +91,16 @@
             
             <!-- Pattern options with improved layout -->
             <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-              <label class="form-label mb-0 me-2">Pattern:</label>
+              <label class="form-label mb-0 me-2">Pattern:
+                                <i class="fas fa-info-circle small" 
+                             data-bs-toggle="popover" 
+                             data-bs-placement="top"
+                             data-bs-html="true"
+                             data-bs-trigger="hover focus"
+                             title="Daily/Weekly Pattern Help"
+                             data-bs-content="<strong>Daily:</strong> Filter for the same time slot every day until the end date.<br><br><strong>Weekly:</strong> Filter for the same day of week for a specified number of weeks."></i>
+              
+              </label>
               
               <div class="btn-group" role="group">
                 <input type="radio" class="btn-check" name="recurring_pattern_modal" id="pattern_daily" value="daily" 
@@ -96,7 +122,9 @@
               
               <div id="weekly-pattern-fields" class="ms-2" {% if request.GET.recurring_pattern != "weekly" %}style="display:none;"{% endif %}>
                 <div class="input-group input-group-sm">
-                  <span class="input-group-text">For</span>
+                  <span class="input-group-text">For 
+
+                  </span>
                   <input type="number" class="form-control" id="recurring_weeks" name="recurring_weeks_modal" min="1" max="52"
                         value="{{ request.GET.recurring_weeks|default:'4' }}" style="width: 70px;">
                   <span class="input-group-text">weeks</span>
@@ -110,7 +138,13 @@
                     {% if request.GET.recurring_overnight %}checked{% endif %}>
               <label class="form-check-label" for="recurring_overnight">
                 <i class="fas fa-moon me-1"></i> Overnight booking
-              </label>
+                <i class="fas fa-info-circle small" 
+                             data-bs-toggle="popover" 
+                             data-bs-placement="top"
+                             data-bs-html="true"
+                             data-bs-trigger="hover focus"
+                             title="Overnight Booking Help"
+                             data-bs-content="Check this box when looking for spots from evening to morning of the next day (when end time is earlier than start time)."></i>
             </div>
           </div>
         </div>
