@@ -352,7 +352,10 @@ def view_listings(request):
                         filtered.append(listing)
                 all_listings = filtered
                 # ptint difference between listings and filtered
-                print("difference between listings and filtered", len(all_listings) - len(filtered))
+                print(
+                    "difference between listings and filtered",
+                    len(all_listings) - len(filtered),
+                )
             except ValueError:
                 pass
 
