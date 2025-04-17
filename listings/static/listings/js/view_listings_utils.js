@@ -25,6 +25,48 @@ function generateStarRating(rating) {
     return starsHtml;
   }
 
+  // Add this new function for the multiple days toggle
+function initializeMultipleDaysToggle() {
+  const multiDaysToggle = document.getElementById("enable-multiple-days");
+  const singleDateContainer = document.getElementById("single-date-container");
+  const multipleDaysContainer = document.getElementById(
+    "multiple-days-container"
+  );
+  const singleStartDate = document.getElementById("single_start_date");
+  const multiStartDate = document.getElementById("multi_start_date");
+  const multiEndDate = document.getElementById("multi_end_date");
+  const singleEndDate = document.getElementById("single_end_date");
+
+  if (multiDaysToggle) {
+    multiDaysToggle.addEventListener("change", function () {
+      if (this.checked) {
+        // Switch to multiple days view
+        singleDateContainer.style.display = "none";
+        multipleDaysContainer.style.display = "flex";
+
+        // Copy date from single to multi if needed
+        if (singleStartDate.value && !multiStartDate.value) {
+          multiStartDate.value = singleStartDate.value;
+          multiEndDate.value = singleStartDate.value;
+        }
+      } else {
+        // Switch to single date view
+        singleDateContainer.style.display = "block";
+        multipleDaysContainer.style.display = "none";
+
+        // Copy date from multi to single if needed
+        if (multiStartDate.value && !singleStartDate.value) {
+          singleStartDate.value = multiStartDate.value;
+        }
+
+        // Update hidden end date to match start date for single day
+        singleEndDate.value = singleStartDate.value;
+      }
+    });
+  }
+}
+
+
 
 
 function toggleFilterPanel() {

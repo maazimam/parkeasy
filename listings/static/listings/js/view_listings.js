@@ -319,6 +319,7 @@ function updateCoordinates(lat, lng) {
   }
 }
 
+
 document.addEventListener("DOMContentLoaded", function () {
   // Initialize both views to be active simultaneously
   const listView = document.getElementById("list-view");
@@ -357,6 +358,7 @@ document.addEventListener("DOMContentLoaded", function () {
   initializeDateRangeToggle();
   initializeEvChargerToggle();
   initializeRecurringPatternToggle();
+  initializeMultipleDaysToggle();
   initializeMap();
   setMinDates();
   addListingsToMap();
