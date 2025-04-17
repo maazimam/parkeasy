@@ -19,48 +19,6 @@
 {% block content %}
 <!-- Navbar is already fixed via the added CSS -->
 
-  <!-- Add this where you want to display messages -->
-  {% if error_messages %}
-      {% for message in error_messages %}
-          <div class="alert alert-danger">{{ message }}</div>
-      {% endfor %}
-  {% endif %}
-
-  {% if warning_messages %}
-      {% for message in warning_messages %}
-          <div class="alert alert-warning">{{ message }}</div>
-      {% endfor %}
-  {% endif %}
-
-  {% if success_messages %}
-  <div class="alert alert-success alert-dismissible fade show mb-3">
-    {% for message in success_messages %}
-      {{ message }}
-      {% if not forloop.last %}<br>{% endif %}
-    {% endfor %}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  </div>
-  {% endif %}
-
-  <!-- View Toggle Buttons -->
-  <div class="view-toggle text-center mb-4">
-    <div class="btn-group" role="group">
-      <button class="btn btn-primary active" id="list-view-btn">
-        List View
-      </button>
-      <button class="btn btn-outline-primary" id="map-view-btn">
-        Map View
-      </button>
-    </div>
-  </div>
-
-  <!-- Replace the form section with this -->
-<form method="GET" action="{% url 'view_listings' %}" class="filter-box">
-  <!-- Keep the card wrapper -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-body p-4">
-      <!-- Modify the header with filter title and clear button -->
-      <div class="d-flex justify-content-between align-items-center mb-4">
 <!-- Main content area divided into panels -->
 <div id="main-content" class="full-width-container">
   <!-- Left side with filters and list view -->
