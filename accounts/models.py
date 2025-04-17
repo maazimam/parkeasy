@@ -60,3 +60,27 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notification for {self.recipient.username}: {self.subject}"
+
+# Update the accounts/models.py file with this new model
+
+class VerificationRequest(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('DECLINED', 'Declined'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_requests')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    decline_reason = models.TextField(blank=True, null=True)
+    
+    # Verification data will be stored in the Profile model
+    # This is just for managing the verification request workflow
+    
+    class Meta:
+        ordering = ['-created_at']
+        
+    def __str__(self):
+        return f"Verification request for {self.user.username} ({self.get_status_display()})"

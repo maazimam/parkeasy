@@ -1,4 +1,4 @@
-from .models import Notification
+from .models import Notification, VerificationRequest
 from messaging.models import Message
 
 
@@ -42,4 +42,29 @@ def notification_count(request):
         "unread_notification_count": 0,
         "unread_message_count": 0,
         "total_unread_count": 0,
+    }
+# Add this to your context processor or create a new one
+def verification_count(request):
+    """
+    Context processor to add pending verification count to all templates.
+    """
+    if request.user.is_authenticated and request.user.is_staff:
+        try:
+            # Count pending verification requests
+            pending_verifications_count = VerificationRequest.objects.filter(
+                status='PENDING'
+            ).count()
+            
+            return {
+                "pending_verifications_count": pending_verifications_count,
+            }
+        except Exception:
+            # Handle any errors
+            return {
+                "pending_verifications_count": 0,
+            }
+
+    # Return 0 for non-admins or unauthenticated users
+    return {
+        "pending_verifications_count": 0,
     }

@@ -12,7 +12,7 @@ from .forms import (
     VerificationForm,
     AdminNotificationForm,
 )  # Update import
-from .models import Notification
+from .models import Notification, VerificationRequest
 
 # Import the messaging model and User to send admin notifications.
 from messaging.models import Message
@@ -53,10 +53,13 @@ def user_logout(request):
     return redirect("login")  # Redirect to login page after logout
 
 
+# Add these updated functions to accounts/views.py
+
+@login_required
 def verify(request):
     """
     Handles account verification requests.
-    Collects user information for verification and sends a notification to admins.
+    Collects user information for verification and creates a VerificationRequest.
     Prevents users from submitting multiple verification requests.
     """
     # If already verified, show success page
@@ -64,7 +67,12 @@ def verify(request):
         return render(request, "accounts/verify.html", {"success": True})
 
     # If verification already requested but not approved yet, show pending status
-    if request.user.profile.verification_requested:
+    # Check for any pending verification requests
+    pending_request = VerificationRequest.objects.filter(
+        user=request.user, status='PENDING'
+    ).exists()
+    
+    if pending_request:
         return render(request, "accounts/verify.html", {"pending": True})
 
     if request.method == "POST":
@@ -81,44 +89,19 @@ def verify(request):
             if verification_file:
                 profile.verification_file = verification_file
 
-            # Mark verification as requested
-            profile.verification_requested = True
+            # Save profile changes
             profile.save()
-
-            # Build links for admin actions
-            base_url = request.build_absolute_uri("/").rstrip("/")
-            verify_link = f"{base_url}/accounts/admin_verify/{request.user.id}/"
-            admin_profile_link = (
-                f"{base_url}/admin/accounts/profile/{request.user.profile.id}/change/"
+            
+            # Create a verification request
+            VerificationRequest.objects.create(
+                user=request.user,
+                status='PENDING'
             )
-
-            # Format message with links in list format
-            message_body = (
-                f"User {request.user.username} has requested verification.\n\n"
-                f"User Information:\n"
-                f"- Age: {profile.age}\n"
-                f"- Address: {profile.address}\n"
-                f"- Phone: {profile.phone_number}\n\n"
-                f"Actions:\n"
-                f"- Verify user directly: {verify_link}\n"
-                f"- View profile in admin panel: {admin_profile_link}"
-            )
-
-            # Send a message to all admin users
-            admin_users = User.objects.filter(is_staff=True)
-            for admin in admin_users:
-                Message.objects.create(
-                    sender=request.user,
-                    recipient=admin,
-                    subject="Verification Request",
-                    body=message_body,
-                )
 
             # Return a confirmation page
             context = {
                 "request_sent": True,
-                "success_message": "Your verification request has been sent for review.\
-                    You will be notified once it is approved.",
+                "success_message": "Your verification request has been sent for review. You will be notified once it is approved.",
             }
             return render(request, "accounts/verify.html", context)
     else:
@@ -128,11 +111,29 @@ def verify(request):
 
 
 @login_required
+def admin_verification_requests(request):
+    """
+    View for administrators to see all pending verification requests.
+    """
+    # Check if the current user is an admin
+    if not request.user.is_staff:
+        return HttpResponseForbidden("You do not have permission to view verification requests.")
+
+    # Get all pending verification requests
+    verification_requests = VerificationRequest.objects.filter(status='PENDING').order_by('-created_at')
+
+    return render(
+        request,
+        "accounts/admin_verification_requests.html",
+        {"verification_requests": verification_requests}
+    )
+
+
+@login_required
 def admin_verify_user(request, user_id):
     """
-    View for administrators to verify users directly from notification messages.
-    This creates a smoother workflow than requiring admins to navigate to the admin panel.
-    Shows the verification file (if any) before approval.
+    View for administrators to verify users directly.
+    Now supports both approving and declining verification requests with reasons.
     """
     # Check if the current user is an admin
     if not request.user.is_staff:
@@ -146,29 +147,90 @@ def admin_verify_user(request, user_id):
         return render(
             request,
             "accounts/admin_verify.html",
-            {"already_verified": True, "username": user_to_verify.username},
+            {"already_verified": True, "username": user_to_verify.username}
         )
 
-    if request.method == "POST" and "confirm_verification" in request.POST:
-        # Process verification approval
-        user_to_verify.profile.is_verified = True
-        user_to_verify.profile.save()
-
-        # Create a notification for the verified user
-        Notification.objects.create(
-            sender=request.user,
-            recipient=user_to_verify,
-            subject="Account Verification Approved",
-            content="Congratulations! Your account has been verified. You can now post parking spots on ParkEasy.",
-            notification_type="VERIFICATION",
+    # Find the pending verification request
+    try:
+        verification_request = VerificationRequest.objects.get(
+            user=user_to_verify, status='PENDING'
         )
+    except VerificationRequest.DoesNotExist:
+        # If no request exists, check if there are any older requests
+        has_request = VerificationRequest.objects.filter(user=user_to_verify).exists()
+        if not has_request:
+            # Create a new request if none exists
+            verification_request = VerificationRequest.objects.create(
+                user=user_to_verify, status='PENDING'
+            )
+        else:
+            # Get the most recent request
+            verification_request = VerificationRequest.objects.filter(
+                user=user_to_verify
+            ).order_by('-created_at').first()
 
-        # Show confirmation page
-        return render(
-            request,
-            "accounts/admin_verify.html",
-            {"verification_complete": True, "username": user_to_verify.username},
-        )
+    if request.method == "POST":
+        if "confirm_verification" in request.POST:
+            # Process verification approval
+            user_to_verify.profile.is_verified = True
+            user_to_verify.profile.save()
+
+            # Update verification request status
+            verification_request.status = 'APPROVED'
+            verification_request.save()
+
+            # Create a notification for the verified user
+            Notification.objects.create(
+                sender=request.user,
+                recipient=user_to_verify,
+                subject="Account Verification Approved",
+                content="Congratulations! Your account has been verified. You can now post parking spots on ParkEasy.",
+                notification_type="VERIFICATION",
+            )
+
+            # Show confirmation page
+            return render(
+                request,
+                "accounts/admin_verify.html",
+                {"verification_complete": True, "username": user_to_verify.username}
+            )
+        
+        elif "decline_verification" in request.POST:
+            # Get the reason for declining
+            decline_reason = request.POST.get("decline_reason", "")
+            
+            if not decline_reason:
+                # If no reason provided, show an error
+                return render(
+                    request,
+                    "accounts/admin_verify.html",
+                    {
+                        "user_to_verify": user_to_verify,
+                        "has_verification_file": bool(user_to_verify.profile.verification_file),
+                        "error_message": "Please provide a reason for declining the verification request."
+                    }
+                )
+            
+            # Update verification request status
+            verification_request.status = 'DECLINED'
+            verification_request.decline_reason = decline_reason
+            verification_request.save()
+            
+            # Create a notification for the user
+            Notification.objects.create(
+                sender=request.user,
+                recipient=user_to_verify,
+                subject="Account Verification Declined",
+                content=f"Your account verification has been declined for the following reason:\n\n{decline_reason}\n\nPlease submit a new verification request with updated information or documents.",
+                notification_type="VERIFICATION",
+            )
+            
+            # Show confirmation page
+            return render(
+                request,
+                "accounts/admin_verify.html",
+                {"verification_declined": True, "username": user_to_verify.username}
+            )
 
     # Show verification details and confirmation form
     return render(
@@ -177,8 +239,10 @@ def admin_verify_user(request, user_id):
         {
             "user_to_verify": user_to_verify,
             "has_verification_file": bool(user_to_verify.profile.verification_file),
-        },
+        }
     )
+
+
 
 
 @login_required

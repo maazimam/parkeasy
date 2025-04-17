@@ -66,6 +66,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "ParkEasy.urls"
 
+# In ParkEasy/settings.py, update the TEMPLATES section to include the new context processor:
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -79,6 +81,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "messaging.context_processors.unread_messages_count",
                 "accounts.context_processors.notification_count",
+                "accounts.context_processors.verification_count",  # Add this line
             ],
         },
     },
