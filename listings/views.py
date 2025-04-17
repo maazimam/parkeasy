@@ -300,6 +300,7 @@ def edit_listing(request, listing_id):
 
 
 def view_listings(request):
+    print("view_listings")
     current_datetime = datetime.now()
 
     # This query returns listings with at least one slot that has not yet ended.
@@ -325,21 +326,36 @@ def view_listings(request):
     warning_messages = []
 
     if filter_type == "single":
+        print("filter_type == 'single'")
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
         start_time = request.GET.get("start_time")
         end_time = request.GET.get("end_time")
+        print("start_date", start_date)
+        print("end_date", end_date)
+        print("start_time", start_time)
+        print("end_time", end_time)
         if any([start_date, end_date, start_time, end_time]):
+            print("any([start_date, end_date, start_time, end_time])")
             try:
                 user_start_str = f"{start_date} {start_time}"
                 user_end_str = f"{end_date} {end_time}"
+                print("user_start_str", user_start_str)
+                print("user_end_str", user_end_str)
                 user_start_dt = datetime.strptime(user_start_str, "%Y-%m-%d %H:%M")
                 user_end_dt = datetime.strptime(user_end_str, "%Y-%m-%d %H:%M")
+                print("user_start_dt", user_start_dt)
+                print("user_end_dt", user_end_dt)
                 filtered = []
                 for listing in all_listings:
                     if listing.is_available_for_range(user_start_dt, user_end_dt):
                         filtered.append(listing)
                 all_listings = filtered
+                # ptint difference between listings and filtered
+                print(
+                    "difference between listings and filtered",
+                    len(all_listings) - len(filtered),
+                )
             except ValueError:
                 pass
 
