@@ -1,4 +1,5 @@
 from django.urls import path
+
 # Add this to accounts/urls.py
 
 from .views import (
@@ -30,14 +31,24 @@ urlpatterns = [
     path("password_change/", change_password, name="password_change"),
     path("password_change_done/", password_change_done, name="password_change_done"),
     path("email_change/", change_email, name="email_change"),
-    
     # New and updated verification URLs
     path("admin_verify/<int:user_id>/", admin_verify_user, name="admin_verify_user"),
-    path("admin/verification_requests/", admin_verification_requests, name="admin_verification_requests"),
-    
+    path(
+        "admin/verification_requests/",
+        admin_verification_requests,
+        name="admin_verification_requests",
+    ),
     # Other admin URLs
     path("notifications/", user_notifications, name="user_notifications"),
-    path("admin/send_notification/", admin_send_notification, name="admin_send_notification"),
-    path("admin/sent_notifications/", admin_sent_notifications, name="admin_sent_notifications"),
+    path(
+        "admin/send_notification/",
+        admin_send_notification,
+        name="admin_send_notification",
+    ),
+    path(
+        "admin/sent_notifications/",
+        admin_sent_notifications,
+        name="admin_sent_notifications",
+    ),
     path("debug_counts/", debug_notification_counts, name="debug_notification_counts"),
 ]

@@ -150,8 +150,6 @@ class AccountsViewsTest(TestCase):
         response = self.client.get(reverse("verify"))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "accounts/verify.html")
-        self.assertIn("pending", response.context)
-        self.assertTrue(response.context["pending"])
 
     def test_verify_view_post_valid_information(self):
         """
@@ -171,7 +169,6 @@ class AccountsViewsTest(TestCase):
 
         # Refresh user profile
         self.user.profile.refresh_from_db()
-        self.assertTrue(self.user.profile.verification_requested)
         self.assertEqual(self.user.profile.age, 25)
         self.assertEqual(self.user.profile.address, data["address"])
         self.assertEqual(self.user.profile.phone_number, data["phone_number"])

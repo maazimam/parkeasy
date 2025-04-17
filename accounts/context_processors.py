@@ -43,6 +43,8 @@ def notification_count(request):
         "unread_message_count": 0,
         "total_unread_count": 0,
     }
+
+
 # Add this to your context processor or create a new one
 def verification_count(request):
     """
@@ -52,9 +54,9 @@ def verification_count(request):
         try:
             # Count pending verification requests
             pending_verifications_count = VerificationRequest.objects.filter(
-                status='PENDING'
+                status="PENDING"
             ).count()
-            
+
             return {
                 "pending_verifications_count": pending_verifications_count,
             }

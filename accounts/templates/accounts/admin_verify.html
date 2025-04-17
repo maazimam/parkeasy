@@ -11,25 +11,25 @@
                     User <strong>{{ username }}</strong> is already verified.
                 </div>
                 <div class="text-center mt-3">
-                    <a href="{% url 'admin_verification_requests' %}" class="btn btn-primary">Return to Verification Requests</a>
+                    <a href="{% url 'admin_verification_requests' %}" class="btn btn-accent">Return to Verification Requests</a>
                 </div>
             {% elif verification_complete %}
                 <div class="alert alert-success">
                     User <strong>{{ username }}</strong> has been successfully verified and notified.
                 </div>
                 <div class="text-center mt-3">
-                    <a href="{% url 'admin_verification_requests' %}" class="btn btn-primary">Return to Verification Requests</a>
+                    <a href="{% url 'admin_verification_requests' %}" class="btn btn-accent">Return to Verification Requests</a>
                 </div>
             {% elif verification_declined %}
                 <div class="alert alert-warning">
                     Verification request for <strong>{{ username }}</strong> has been declined. The user has been notified with your reason.
                 </div>
                 <div class="text-center mt-3">
-                    <a href="{% url 'admin_verification_requests' %}" class="btn btn-primary">Return to Verification Requests</a>
+                    <a href="{% url 'admin_verification_requests' %}" class="btn btn-accent">Return to Verification Requests</a>
                 </div>
             {% else %}
                 <div class="card">
-                    <div class="card-header bg-primary text-white">
+                    <div class="card-header bg-accent text-white">
                         <h4 class="mb-0">Verify User: {{ user_to_verify.username }}</h4>
                     </div>
                     <div class="card-body">
@@ -60,7 +60,7 @@
                         {% if has_verification_file %}
                             <h5 class="mt-4">Verification Document</h5>
                             <div class="mb-3">
-                                <a href="{{ user_to_verify.profile.verification_file.url }}" class="btn btn-outline-primary" target="_blank">
+                                <a href="{{ user_to_verify.profile.verification_file.url }}" class="btn btn-outline-accent" target="_blank">
                                     <i class="fas fa-file-pdf me-2"></i>View Verification Document
                                 </a>
                             </div>
