@@ -32,7 +32,8 @@
             <span>{{ listing.location_name }}</span>
             {% if listing.distance is not None %}
             <span class="badge bg-info text-dark ms-1">
-              <i class="fas fa-route me-1"></i>{{ listing.distance|floatformat:1 }} km
+              <i class="fas fa-route me-1"></i>{{ listing.distance|floatformat:1
+              }} km
             </span>
             {% endif %}
           </p>
@@ -54,6 +55,16 @@
             </span>
           </div>
           {% endif %}
+          
+          <!-- Parking Spot Size if not standard -->
+          {% if listing.parking_spot_size != "STANDARD" %}
+          <div class="mt-1">
+            <span class="badge {% if listing.parking_spot_size == "COMPACT" %}bg-info{% elif listing.parking_spot_size == "OVERSIZE" %}bg-primary{% elif listing.parking_spot_size == "COMMERCIAL" %}bg-danger{% endif %} text-white small">
+              <i class="fas fa-car-side me-1"></i>
+              {{ listing.get_parking_spot_size_display }}
+            </span>
+          </div>
+          {% endif %}
         </div>
 
         <!-- Middle column: Price & Rating -->
@@ -68,14 +79,21 @@
           <div class="mb-1">
             <p class="card-text mb-1 small fw-bold">Rating:</p>
             <div class="d-flex align-items-center flex-wrap">
-              <div class="rating-stars-sm me-1" data-rating="{{ listing.avg_rating }}"></div>
+              <div
+                class="rating-stars-sm me-1"
+                data-rating="{{ listing.avg_rating }}"
+              ></div>
               {% if listing.avg_rating %}
-                <span class="badge bg-warning text-dark fw-bold small">{{ listing.avg_rating|floatformat:1 }}</span>
-                <span class="badge bg-light text-muted ms-1 small">
-                  {{ listing.rating_count }} {% if listing.rating_count == 1 %}rating{% else %}ratings{% endif %}
-                </span>
+              <span class="badge bg-warning text-dark fw-bold small"
+                >{{ listing.avg_rating|floatformat:1 }}</span
+              >
+              <span class="badge bg-light text-muted ms-1 small">
+                {{ listing.rating_count }} {% if listing.rating_count == 1 %}rating{% else %}ratings{% endif %}
+              </span>
               {% else %}
-                <span class="badge bg-light text-muted small">No ratings yet</span>
+              <span class="badge bg-light text-muted small"
+                >No ratings yet</span
+              >
               {% endif %}
             </div>
           </div>
@@ -85,13 +103,22 @@
         <div class="col-md-3">
           <div class="d-flex flex-column h-100 justify-content-end">
             {% if user != listing.user %}
-            <div class="d-grid gap-1">
+            <div class="d-grid gap-2">
+              {% if not is_public_view or listing.user_profile_available %}
+              <!-- Regular "Book Now" button -->
               <a
-                href="{% url 'book_listing' listing.id %}"
+                href="{% url 'book_listing' listing.id %}?source={% if source %}{{ source }}{% else %}view_listings{% endif %}&username={% if username %}{{ username }}{% endif %}"
                 class="btn btn-primary btn-sm"
               >
                 <i class="fas fa-calendar-check me-1"></i> Book Now
               </a>
+              {% elif is_public_view %}
+              <!-- "No Longer Available" message (only in public_view) -->
+              <div class="alert alert-secondary py-2 mb-0 text-center">
+                <i class="fas fa-ban me-1"></i> No Longer Available
+              </div>
+              {% endif %}
+
               <a
                 href="{% url 'listing_reviews' listing.id %}"
                 class="btn btn-secondary btn-sm"
@@ -118,11 +145,13 @@
   <div class="text-center p-3">
     <p class="mb-0">No parking spots available that match your filters.</p>
   </div>
-  {% endfor %} 
-  
-  {% if has_next %}
+  {% endfor %} {% if has_next %}
   <div class="text-center my-2">
-    <button id="load-more-btn" class="btn btn-sm btn-accent" data-next-page="{{ next_page }}">
+    <button
+      id="load-more-btn"
+      class="btn btn-sm btn-accent"
+      data-next-page="{{ next_page }}"
+    >
       Load More Listings
     </button>
   </div>
@@ -135,26 +164,26 @@
     transition: all 0.2s ease;
     border-left: 3px solid transparent;
   }
-  
+
   .listings-container .card:hover {
     transform: translateX(3px);
     border-left: 3px solid #007bff;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.1) !important;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1) !important;
   }
-  
+
   /* Smaller star ratings */
   .rating-stars-sm {
     font-size: 0.75rem;
     line-height: 1;
     color: #ffc107;
   }
-  
+
   /* Smaller badges */
   .badge.small {
     font-size: 0.7rem;
     padding: 0.25em 0.5em;
   }
-  
+
   /* Description text */
   .description-text {
     line-height: 1.2;
@@ -164,18 +193,18 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
-  
+
   /* List panel card spacing */
   #list-panel .card {
     margin-bottom: 0.5rem;
   }
-  
+
   /* Button sizing */
   .listings-container .btn-sm {
     padding: 0.25rem 0.5rem;
     font-size: 0.75rem;
   }
-  
+
   .load-more-btn {
     font-size: 0.8rem;
     padding: 0.25rem 0.75rem;
@@ -184,11 +213,11 @@
 
 <script>
   // Initialize star ratings
-  document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.rating-stars-sm').forEach(function(el) {
-      const rating = parseFloat(el.getAttribute('data-rating')) || 0;
-      let stars = '';
-      
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".rating-stars-sm").forEach(function (el) {
+      const rating = parseFloat(el.getAttribute("data-rating")) || 0;
+      let stars = "";
+
       for (let i = 1; i <= 5; i++) {
         if (i <= rating) {
           stars += '<i class="fas fa-star"></i>';
@@ -198,7 +227,7 @@
           stars += '<i class="far fa-star"></i>';
         }
       }
-      
+
       el.innerHTML = stars;
     });
   });

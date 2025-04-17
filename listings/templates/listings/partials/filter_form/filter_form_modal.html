@@ -49,6 +49,26 @@
           </div>
         </div>
         
+        <!-- Parking Spot Size -->
+        <div class="filter-group mb-3">
+          <label class="form-label fw-bold">
+            <i class="fas fa-car-side me-1"></i> Parking Spot Size
+            <i class="fas fa-info-circle small" 
+                data-bs-toggle="popover" 
+                data-bs-placement="top"
+                data-bs-html="true"
+                data-bs-trigger="hover focus"
+                title="Spot Size Help"
+                data-bs-content="Filter by the size of parking spot you need for your vehicle."></i>
+          </label>
+          <select class="form-select" name="parking_spot_size_modal" id="parking_spot_size">
+            <option value="">Any Size</option>
+            {% for value, label in parking_spot_sizes %}
+              <option value="{{ value }}" {% if request.GET.parking_spot_size == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        
         <!-- Recurring Booking Options -->
         <div id="recurring-filter">
           <div class="filter-group mb-3">

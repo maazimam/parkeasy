@@ -325,6 +325,17 @@ function applyAdvancedFilters() {
     updateOrCreateHiddenInput(filterForm, "end_date", "");
     updateOrCreateHiddenInput(filterForm, "start_time", "");
     updateOrCreateHiddenInput(filterForm, "end_time", "");
+
+    // Parking spot size
+    const parkingSpotSize = document.getElementById(
+      "parking_spot_size"
+    ).value;
+    document.getElementById("parking_spot_size_hidden").value =
+      parkingSpotSize;
+      // update or create parking spot size hidden input
+      updateOrCreateHiddenInput(filterForm, "parking_spot_size", parkingSpotSize);
+
+  
   
     // Close the modal
     const modal = bootstrap.Modal.getInstance(
@@ -333,7 +344,7 @@ function applyAdvancedFilters() {
     if (modal) {
       modal.hide();
     }
-  
+
     // Submit the form
     filterForm.submit();
   }

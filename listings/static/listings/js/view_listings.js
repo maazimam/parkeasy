@@ -11,8 +11,6 @@ let garageLayerGroup;
 let listingLayerGroup;
 let currentMap;
 
-
-
 // Map-related functions (outside DOMContentLoaded)
 function initializeMap() {
   if (!mapInitialized) {
@@ -256,6 +254,9 @@ function placeMarker(latlng) {
         marker.bindPopup(result.displayName);
       },
     });
+
+    // Optional: Update map view to center on new position
+    searchMap.setView(position, searchMap.getZoom());
 
     // Draw search radius if enabled
     drawSearchRadius(position);
