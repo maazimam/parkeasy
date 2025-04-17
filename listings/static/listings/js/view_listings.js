@@ -1,50 +1,219 @@
 console.log("view_listings.js loaded");
 
-// Helper function to generate star HTML - extract it so it can be used anywhere
-function generateStarRating(rating) {
-  let starsHtml = "";
-
-  if (!rating) {
-    // Show 5 empty stars if no rating
-    for (let i = 0; i < 5; i++) {
-      starsHtml += '<i class="far fa-star text-warning"></i>';
-    }
-  } else {
-    // Full stars
-    for (let i = 0; i < Math.floor(rating); i++) {
-      starsHtml += '<i class="fas fa-star text-warning"></i>';
-    }
-    // Half star
-    if (rating % 1 >= 0.5) {
-      starsHtml += '<i class="fas fa-star-half-alt text-warning"></i>';
-    }
-    // Empty stars
-    for (let i = Math.ceil(rating); i < 5; i++) {
-      starsHtml += '<i class="far fa-star text-warning"></i>';
-    }
-  }
-
-  return starsHtml;
-}
-
 // Global variables
 let searchMap;
 let searchMarker;
 let mapInitialized = false;
+let listingMarkers = []; // Keep track of all listing markers
+let garageMarkers = [];
+let currentMapView = null;
+let garageLayerGroup;
+let listingLayerGroup;
+let currentMap;
 
 // Map-related functions (outside DOMContentLoaded)
 function initializeMap() {
   if (!mapInitialized) {
+    console.log("Initializing search map...");
     // Use our NYC-bounded map initialization instead of the original code
-    searchMap = initializeNYCMap("search-map");
+    searchMap = initializeNYCMap("map-view");
+    currentMapView = searchMap; // Store map reference
+
+    // Initialize layer groups
+    listingLayerGroup = L.layerGroup().addTo(searchMap);
+    garageLayerGroup = L.layerGroup().addTo(searchMap);
 
     // Add click event to map
     searchMap.on("click", onMapClick);
+
+    // Add the legend to the search map
+    searchMap.addControl(createMapLegend());
+
+    // Add garage markers to the search map
+    addGaragesDirectly(searchMap);
+
     mapInitialized = true;
   }
 }
 
+function setupLoadMoreButton() {
+  const loadMoreBtn = document.getElementById("load-more-btn");
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", loadMoreListings);
+  }
+}
+
+// Helper function to remove all load more buttons
+function removeLoadMoreButtons() {
+  // Remove button containers
+  document.querySelectorAll(".text-center.my-4").forEach((container) => {
+    if (container.querySelector("#load-more-btn")) {
+      container.remove();
+    }
+  });
+
+  // Remove any orphaned buttons
+  document.querySelectorAll("#load-more-btn").forEach((button) => {
+    const container =
+      button.closest(".text-center.my-4") || button.parentElement;
+    if (container) container.remove();
+    else button.remove();
+  });
+}
+
+// Simplified loadMoreListings function
+function loadMoreListings() {
+  const loadMoreBtn = this;
+  const nextPage = loadMoreBtn.getAttribute("data-next-page");
+  const listingsContainer = document.querySelector(".listings-container");
+
+  // Show loading state
+  loadMoreBtn.innerHTML =
+    '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
+  loadMoreBtn.disabled = true;
+
+  // Build URL with existing filters
+  let url = new URL(window.location.href);
+  url.searchParams.set("page", nextPage);
+  url.searchParams.set("ajax", "1");
+
+  fetch(url)
+    .then((response) => response.text())
+    .then((html) => {
+      // Parse the HTML response
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+
+      // Remove any existing load more buttons
+      document
+        .querySelectorAll("#load-more-btn, .text-center.my-4")
+        .forEach((el) => el.remove());
+
+      // Add new listings to container
+      const newListings = doc.querySelectorAll(".card");
+
+      // Track new listings for map update
+      const newListingData = [];
+
+      newListings.forEach((listing) => {
+        // Add listing to DOM
+        const listingClone = listing.cloneNode(true);
+        listingsContainer.appendChild(listingClone);
+
+        // Collect data for map markers
+        const lat = parseFloat(listing.dataset.lat);
+        const lng = parseFloat(listing.dataset.lng);
+
+        console.log("lat", lat);
+        console.log("lng", lng);
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+          newListingData.push({
+            id: listing.dataset.id,
+            title: listing.dataset.title,
+            lat: lat,
+            lng: lng,
+            price: listing.dataset.price,
+            rating: parseFloat(listing.dataset.rating || 0),
+            locationName: listing.dataset.location || "",
+          });
+        }
+      });
+
+      console.log("newListingData", newListingData);
+
+      // Update map with new markers if map is initialized
+      if (mapInitialized && newListingData.length > 0) {
+        // Add new markers to the map
+        newListingData.forEach((listing) => {
+          addListingMarker(listing);
+        });
+      }
+
+      // Check if there are more listings
+      const newLoadMoreBtn = doc.querySelector("#load-more-btn");
+
+      if (newLoadMoreBtn) {
+        // Create a new button container
+        const buttonContainer = document.createElement("div");
+        buttonContainer.className = "text-center my-4";
+
+        // Clone the button from the response
+        const buttonClone = newLoadMoreBtn.cloneNode(true);
+        buttonClone.innerHTML = "Load More Listings";
+        buttonClone.disabled = false;
+
+        // Add the button to the container and the container to the page
+        buttonContainer.appendChild(buttonClone);
+        listingsContainer.appendChild(buttonContainer);
+
+        // Add event listener to the new button
+        buttonClone.addEventListener("click", loadMoreListings);
+      } else {
+        // No more listings to load
+        const endMessage = document.createElement("div");
+        endMessage.className = "text-center my-4";
+        endMessage.innerHTML = "<p>No more listings to display</p>";
+        listingsContainer.appendChild(endMessage);
+      }
+    })
+    .catch((error) => {
+      console.error("Error loading more listings:", error);
+
+      // Create a retry button
+      const retryContainer = document.createElement("div");
+      retryContainer.className = "text-center my-4";
+
+      const retryButton = document.createElement("button");
+      retryButton.id = "load-more-btn";
+      retryButton.className = "btn btn-primary";
+      retryButton.setAttribute("data-next-page", nextPage);
+      retryButton.textContent = "Try Again";
+      retryButton.addEventListener("click", loadMoreListings);
+
+      retryContainer.appendChild(retryButton);
+      listingsContainer.appendChild(retryContainer);
+    });
+}
+
+// Helper function to add a listing marker to the map
+function addListingMarker(listing) {
+  if (!mapInitialized) return;
+
+  try {
+    // Create the marker and add it to the layer group
+    const marker = L.marker([listing.lat, listing.lng], {
+      zIndexOffset: 1000, // Higher z-index to appear above garage markers
+    });
+
+    // Add to layer group and tracking array
+    listingLayerGroup.addLayer(marker);
+    listingMarkers.push(marker);
+
+    // Create popup content
+    const ratingHtml = listing.rating
+      ? `<br><strong>Rating:</strong> ${generateStarRating(
+          listing.rating
+        )} (${listing.rating.toFixed(1)})`
+      : `<br><span class="text-muted">No reviews yet ${generateStarRating(
+          0
+        )}</span>`;
+
+    const popupContent = `
+      <strong>${listing.title}</strong><br>
+      ${listing.locationName}<br>
+      $${listing.price}/hour
+      ${ratingHtml}
+    `;
+
+    marker.bindPopup(popupContent);
+  } catch (error) {
+    console.error("Error adding listing marker:", error);
+  }
+}
+
 function onMapClick(e) {
+  // Only update if we're in search mode (not viewing listings)
   placeMarker(e.latlng);
   updateCoordinates(e.latlng.lat, e.latlng.lng);
 
@@ -60,7 +229,17 @@ function placeMarker(latlng) {
   if (searchMarker) {
     searchMap.removeLayer(searchMarker);
   }
-  searchMarker = L.marker(latlng, { draggable: true }).addTo(searchMap);
+
+  // Create a special search marker that stands out from listing markers
+  searchMarker = L.marker(latlng, {
+    draggable: true,
+    icon: L.divIcon({
+      className: "search-marker-icon",
+      html: '<div style="background-color: #ff3b30; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white;"></div>',
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
+    }),
+  }).addTo(searchMap);
 
   // Update coordinates when marker is dragged
   searchMarker.on("dragend", function (event) {
@@ -78,7 +257,53 @@ function placeMarker(latlng) {
 
     // Optional: Update map view to center on new position
     searchMap.setView(position, searchMap.getZoom());
+
+    // Draw search radius if enabled
+    drawSearchRadius(position);
   });
+
+  // Draw search radius if enabled
+  drawSearchRadius(latlng);
+}
+
+// Add search radius visualization
+let radiusCircle = null;
+function drawSearchRadius(center) {
+  // Remove existing radius circle if it exists
+  if (radiusCircle) {
+    searchMap.removeLayer(radiusCircle);
+    radiusCircle = null;
+  }
+
+  // Check if radius filtering is enabled
+  const enableRadiusCheckbox = document.getElementById("enable-radius");
+  const radiusInput = document.getElementById("radius-input");
+
+  if (
+    enableRadiusCheckbox &&
+    enableRadiusCheckbox.checked &&
+    radiusInput &&
+    radiusInput.value
+  ) {
+    const radiusKm = parseFloat(radiusInput.value);
+    if (!isNaN(radiusKm) && radiusKm > 0) {
+      // Convert km to meters for the circle radius
+      const radiusMeters = radiusKm * 1000;
+
+      // Create a circle with styling
+      radiusCircle = L.circle(center, {
+        radius: radiusMeters,
+        color: "#007bff",
+        fillColor: "#007bff",
+        fillOpacity: 0.1,
+        weight: 2,
+        dashArray: "5, 5",
+      }).addTo(searchMap);
+
+      // Fit map to show the entire circle
+      searchMap.fitBounds(radiusCircle.getBounds());
+    }
+  }
 }
 
 function updateCoordinates(lat, lng) {
@@ -94,532 +319,84 @@ function updateCoordinates(lat, lng) {
   }
 }
 
-function setupLocationMap() {
-  const toggleMapBtn = document.getElementById("toggle-map");
-  const mapContainer = document.getElementById("search-map-container");
 
-  if (!toggleMapBtn || !mapContainer) return;
-
-  toggleMapBtn.addEventListener("click", function () {
-    const isMapHidden = mapContainer.style.display === "none";
-
-    if (isMapHidden) {
-      mapContainer.style.display = "block";
-      toggleMapBtn.classList.remove("btn-outline-secondary");
-      toggleMapBtn.classList.add("btn-secondary");
-
-      if (!mapInitialized) {
-        initializeMap();
-      }
-      setTimeout(() => {
-        if (searchMap) {
-          searchMap.invalidateSize();
-        }
-      }, 100);
-    } else {
-      mapContainer.style.display = "none";
-      toggleMapBtn.classList.remove("btn-secondary");
-      toggleMapBtn.classList.add("btn-outline-secondary");
-    }
-  });
-}
-
-// Single DOMContentLoaded event listener for all functionality
 document.addEventListener("DOMContentLoaded", function () {
-  // ---- FILTER SECTION ----
-  // Filter type toggle handlers (single/recurring)
-  const filterSingle = document.getElementById("filter_single");
-  const filterRecurring = document.getElementById("filter_recurring");
-  const singleFilter = document.getElementById("single-filter");
-  const recurringFilter = document.getElementById("recurring-filter");
+  // Initialize both views to be active simultaneously
+  const listView = document.getElementById("list-view");
+  const mapView = document.getElementById("map-view");
 
-  // Initialize filter visibility based on selected option
-  function initializeFilters() {
-    if (filterSingle && filterRecurring) {
-      if (filterSingle.checked) {
-        singleFilter.style.display = "block";
-        recurringFilter.style.display = "none";
-      } else if (filterRecurring.checked) {
-        singleFilter.style.display = "none";
-        recurringFilter.style.display = "block";
+  if (listView) listView.classList.add("active-view");
+  if (mapView) mapView.classList.add("active-view");
+
+  // Filter panel expand/collapse functionality
+  const filterHeader = document.querySelector(".filter-header");
+  const toggleFiltersBtn = document.getElementById("toggle-filters");
+
+  // Add click event to both header and toggle button
+  if (filterHeader) {
+    filterHeader.addEventListener("click", function (e) {
+      // Prevent click if they clicked the toggle button directly
+      if (
+        e.target !== toggleFiltersBtn &&
+        !toggleFiltersBtn.contains(e.target)
+      ) {
+        toggleFilterPanel();
       }
-
-      // Add event listeners for filter type changes
-      filterSingle.addEventListener("change", function () {
-        if (this.checked) {
-          singleFilter.style.display = "block";
-          recurringFilter.style.display = "none";
-        }
-      });
-
-      filterRecurring.addEventListener("change", function () {
-        if (this.checked) {
-          singleFilter.style.display = "none";
-          recurringFilter.style.display = "block";
-        }
-      });
-    }
-  }
-
-  function initializeFilterTypeDropdown() {
-    const filterTypeSelect = document.getElementById('filter-type-select');
-    const singleFilter = document.getElementById('single-filter');
-    const recurringFilter = document.getElementById('recurring-filter');
-  
-    if (filterTypeSelect) {
-      // Set initial state
-      if (filterTypeSelect.value === 'single') {
-        singleFilter.style.display = "block";
-        recurringFilter.style.display = "none";
-      } else if (filterTypeSelect.value === 'recurring') {
-        singleFilter.style.display = "none";
-        recurringFilter.style.display = "block";
-      }
-  
-      // Add change event listener
-      filterTypeSelect.addEventListener('change', function() {
-        if (this.value === 'single') {
-          singleFilter.style.display = "block";
-          recurringFilter.style.display = "none";
-        } else if (this.value === 'recurring') {
-          singleFilter.style.display = "none";
-          recurringFilter.style.display = "block";
-        }
-      });
-    }
-  }
-
-  // Recurring pattern toggle (daily/weekly)
-  function initializeRecurringPatterns() {
-    const patternDaily = document.getElementById("pattern_daily");
-    const patternWeekly = document.getElementById("pattern_weekly");
-    const dailyFields = document.getElementById("daily-pattern-fields");
-    const weeklyFields = document.getElementById("weekly-pattern-fields");
-
-    if (patternDaily && patternWeekly && dailyFields && weeklyFields) {
-      // Initialize visibility
-      if (patternDaily.checked) {
-        dailyFields.style.display = "block";
-        weeklyFields.style.display = "none";
-      } else if (patternWeekly.checked) {
-        dailyFields.style.display = "none";
-        weeklyFields.style.display = "block";
-      }
-
-      // Add event listeners
-      patternDaily.addEventListener("change", function () {
-        if (this.checked) {
-          dailyFields.style.display = "block";
-          weeklyFields.style.display = "none";
-        }
-      });
-
-      patternWeekly.addEventListener("change", function () {
-        if (this.checked) {
-          dailyFields.style.display = "none";
-          weeklyFields.style.display = "block";
-        }
-      });
-    }
-  }
-
-  // Set minimum date to today for all date inputs
-  function setMinDates() {
-    const today = new Date().toISOString().split("T")[0];
-    const dateInputs = document.querySelectorAll('input[type="date"]');
-    dateInputs.forEach((input) => {
-      input.min = today;
     });
   }
 
-  // ---- STAR RATING FUNCTIONALITY ----
-  const ratingElements = document.querySelectorAll(".rating-stars");
-  ratingElements.forEach(function (ratingElement) {
-    const rating = parseFloat(ratingElement.getAttribute("data-rating"));
-    ratingElement.innerHTML = generateStarRating(rating);
-  });
-
-  // ---- LOAD MORE FUNCTIONALITY ----
-  function setupLoadMoreButton() {
-    const loadMoreBtn = document.getElementById("load-more-btn");
-    if (loadMoreBtn) {
-      loadMoreBtn.addEventListener("click", function () {
-        const nextPage = this.getAttribute("data-next-page");
-        const listingsContainer = document.querySelector(".listings-container");
-
-        loadMoreBtn.innerHTML =
-          '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
-        loadMoreBtn.disabled = true;
-
-        // Build URL with existing filters
-        let url = new URL(window.location.href);
-        url.searchParams.set("page", nextPage);
-        url.searchParams.set("ajax", "1");
-
-        fetch(url)
-          .then((response) => response.text())
-          .then((html) => {
-            // Find and remove the existing load more button container
-            const existingButtonContainer =
-              document.querySelector(".text-center.my-4");
-            if (existingButtonContainer) {
-              existingButtonContainer.remove();
-            }
-
-            // Parse the HTML response
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, "text/html");
-
-            // Add new listings to container
-            const newListings = doc.querySelectorAll(".card");
-            newListings.forEach((listing) => {
-              const listingClone = listing.cloneNode(true);
-              listingsContainer.appendChild(listingClone);
-
-              // Find and update the star ratings in the newly added listing
-              const ratingStars = listingClone.querySelector(".rating-stars");
-              if (ratingStars) {
-                const rating = parseFloat(listingClone.dataset.rating || 0);
-                ratingStars.innerHTML = generateStarRating(rating);
-              }
-            });
-
-            // Add new load more button if available
-            const loadMoreContainer = doc.querySelector(".text-center.my-4");
-            if (loadMoreContainer) {
-              listingsContainer.appendChild(loadMoreContainer.cloneNode(true));
-
-              // Re-attach event listener
-              const newLoadMoreBtn = document.getElementById("load-more-btn");
-              if (newLoadMoreBtn) {
-                newLoadMoreBtn.innerHTML = "Load More Listings"; // Consistent - no icon
-                newLoadMoreBtn.addEventListener("click", arguments.callee);
-              }
-            }
-          })
-          .catch((error) => {
-            console.error("Error loading more listings:", error);
-            loadMoreBtn.innerHTML = "Error Loading"; // Consistent - no icon
-            loadMoreBtn.disabled = false;
-          });
-      });
-    }
+  if (toggleFiltersBtn) {
+    toggleFiltersBtn.addEventListener("click", function (e) {
+      e.stopPropagation(); // Prevent double toggle from header click
+      toggleFilterPanel();
+    });
   }
 
-  function setupFilterButton() {
-    const filterButton = document.querySelector(
-      'form.filter-box button[type="submit"]'
-    );
-
-    if (filterButton) {
-      filterButton.addEventListener("click", function (event) {
-        event.preventDefault();
-        const form = this.closest("form");
-        if (form) {
-          form.submit();
-        }
-      });
-    }
-  }
-
-  // ---- MAP VIEW FUNCTIONALITY ----
-  function setupMapView() {
-    const listViewBtn = document.getElementById("list-view-btn");
-    const mapViewBtn = document.getElementById("map-view-btn");
-    const listView = document.getElementById("list-view");
-    const mapView = document.getElementById("map-view");
-    let map;
-
-    if (!listViewBtn || !mapViewBtn || !listView || !mapView) return;
-
-    function parseLocation(locationString) {
-      try {
-        const match = locationString.match(/\[([-\d.]+),\s*([-\d.]+)\]/);
-        if (match) {
-          return {
-            lat: parseFloat(match[1]),
-            lng: parseFloat(match[2]),
-            address: locationString.split("[")[0].trim(),
-            location_name: locationString.split("[")[0].trim(),
-          };
-        }
-      } catch (error) {
-        console.log("Error parsing location:", error);
-      }
-      return {
-        lat: NYC_CENTER[0], // Use NYC_CENTER from nyc-map-bounds.js
-        lng: NYC_CENTER[1],
-        address: locationString || "Location not specified",
-      };
-    }
-
-    function initMap() {
-      if (!map) {
-        // Use our NYC-bounded map initialization
-        map = initializeNYCMap("map-view");
-
-        // Add markers for all listings
-        const listings = document.querySelectorAll(".card");
-        const bounds = [];
-
-        listings.forEach((listing) => {
-          const location = parseLocation(listing.dataset.location);
-          const locationName = listing.dataset.locationName;
-          const title = listing.dataset.title;
-          const price = listing.dataset.price;
-          const rating = parseFloat(listing.dataset.rating) || 0;
-
-          // Only add markers within NYC bounds
-          if (
-            location.lat >= NYC_BOUNDS.min_lat &&
-            location.lat <= NYC_BOUNDS.max_lat &&
-            location.lng >= NYC_BOUNDS.min_lng &&
-            location.lng <= NYC_BOUNDS.max_lng
-          ) {
-            const marker = L.marker([location.lat, location.lng]).addTo(map);
-            bounds.push([location.lat, location.lng]);
-
-            // Create popup content
-            const ratingHtml = rating
-              ? `<br><strong>Rating:</strong> ${generateStarRating(
-                  rating
-                )} (${rating.toFixed(1)})`
-              : `<br><span class="text-muted">No reviews yet ${generateStarRating(
-                  0
-                )}</span>`;
-
-            const popupContent = `
-              <strong>${title}</strong><br>
-              ${locationName}<br>
-              $${price}/hour
-              ${ratingHtml}
-            `;
-
-            marker.bindPopup(popupContent);
-          }
-        });
-
-        // Fit map to show all markers, or use NYC center if no markers
-        if (bounds.length > 0) {
-          map.fitBounds(bounds);
-        }
-      }
-    }
-
-    function showListView() {
-      mapView.classList.remove("active-view");
-      listView.classList.add("active-view");
-      listViewBtn.classList.add("btn-primary");
-      listViewBtn.classList.remove("btn-outline-primary");
-      mapViewBtn.classList.add("btn-outline-primary");
-      mapViewBtn.classList.remove("btn-primary");
-    }
-
-    function showMapView() {
-      listView.classList.remove("active-view");
-      mapView.classList.add("active-view");
-      mapViewBtn.classList.add("btn-primary");
-      mapViewBtn.classList.remove("btn-outline-primary");
-      listViewBtn.classList.remove("btn-primary");
-      listViewBtn.classList.add("btn-outline-primary");
-      listViewBtn.classList.remove("active");
-
-      initMap();
-      if (map) {
-        map.invalidateSize();
-      }
-    }
-
-    // Add event listeners
-    listViewBtn.addEventListener("click", showListView);
-    mapViewBtn.addEventListener("click", showMapView);
-
-    // Initialize with list view
-    showListView();
-  }
-
-  // Radius toggle functionality
-  function setupRadiusToggle() {
-    const enableRadiusCheckbox = document.getElementById("enable-radius");
-    const radiusInputGroup = document.getElementById("radius-input-group");
-    const radiusInput = document.getElementById("radius-input");
-    const radiusHint = document.getElementById("radius-hint");
-
-    if (enableRadiusCheckbox && radiusInputGroup && radiusInput && radiusHint) {
-      // Initialize state based on checkbox
-      if (enableRadiusCheckbox.checked) {
-        radiusInputGroup.style.display = "flex";
-        radiusHint.style.display = "none";
-      } else {
-        radiusInputGroup.style.display = "none";
-        radiusHint.style.display = "block";
-      }
-
-      // Toggle radius input visibility
-      enableRadiusCheckbox.addEventListener("change", function () {
-        if (this.checked) {
-          radiusInputGroup.style.display = "flex";
-          radiusHint.style.display = "none";
-          radiusInput.focus();
-        } else {
-          radiusInputGroup.style.display = "none";
-          radiusHint.style.display = "block";
-          radiusInput.value = ""; // Clear the radius value when disabled
-        }
-      });
-    }
-  }
-
-  function initializeEvFilters() {
-    // Try multiple selectors to find the checkbox
-    const evChargerCheckbox =
-      document.querySelector('input[name="has_ev_charger"]') ||
-      document.querySelector('input[name="ev_charger"]') ||
-      document.querySelector("#ev_charger");
-
-    // Log what we found to help debug
-    if (evChargerCheckbox) {
-      console.log(
-        "Found EV checkbox with name:",
-        evChargerCheckbox.name,
-        "and id:",
-        evChargerCheckbox.id
-      );
-    } else {
-      console.error("EV charger checkbox not found with any known selector");
-      // List all checkboxes to help debug
-      console.log(
-        "All checkboxes:",
-        document.querySelectorAll('input[type="checkbox"]')
-      );
-      return;
-    }
-
-    // Similarly, be robust with container selection
-    const evContainers = document.querySelectorAll(".ev-charger-container");
-    console.log("Found", evContainers.length, "EV container elements");
-
-    if (evContainers.length === 0) {
-      console.error("No EV container elements found");
-      return;
-    }
-
-    function toggleEvFields() {
-      const isChecked = evChargerCheckbox.checked;
-      console.log("EV checkbox state:", isChecked);
-
-      // Toggle visibility
-      evContainers.forEach((container) => {
-        container.style.display = isChecked ? "block" : "none";
-      });
-
-      // Handle field values and disabled state
-      const chargerLevelField = document.querySelector(
-        '[name="charger_level"]'
-      );
-      const connectorTypeField = document.querySelector(
-        '[name="connector_type"]'
-      );
-
-      if (chargerLevelField) {
-        chargerLevelField.disabled = !isChecked;
-        if (!isChecked) chargerLevelField.value = "";
-      }
-
-      if (connectorTypeField) {
-        connectorTypeField.disabled = !isChecked;
-        if (!isChecked) connectorTypeField.value = "";
-      }
-    }
-
-    // Run the function initially
-    toggleEvFields();
-
-    // Add event listener for changes
-    evChargerCheckbox.addEventListener("change", toggleEvFields);
-  }
-
-  // Initialize all components
-  initializeFilters();
-  initializeFilterTypeDropdown();
-  initializeRecurringPatterns();
-  initializeDateRangeToggle();
-  setMinDates();
-  setupLoadMoreButton();
-  setupMapView();
-  setupFilterButton();
+  setupAdvancedFilters();
   setupRadiusToggle();
-  setupLocationMap();
+  setupDateSyncForSingleBooking();
+  initializeDateRangeToggle();
+  initializeEvChargerToggle();
+  initializeRecurringPatternToggle();
+  initializeMultipleDaysToggle();
+  initializeMap();
+  setMinDates();
+  addListingsToMap();
+  initializeLocationName();
   setupSearch();
-
-  // Initialize location name if coordinates exist
-  const searchLat = document.getElementById("search-lat").value;
-  const searchLng = document.getElementById("search-lng").value;
-
-  if (searchLat && searchLng && searchLat !== "None" && searchLng !== "None") {
-    // Show map container and update toggle button state
-    const mapContainer = document.getElementById("search-map-container");
-    const toggleMapBtn = document.getElementById("toggle-map");
-    mapContainer.style.display = "block";
-    toggleMapBtn.classList.remove("btn-outline-secondary");
-    toggleMapBtn.classList.add("btn-secondary");
-
-    // Initialize map and place marker
-    initializeMap();
-
-    // Ensure we have valid numbers
-    const lat = parseFloat(searchLat);
-    const lng = parseFloat(searchLng);
-
-    if (!isNaN(lat) && !isNaN(lng)) {
-      const latlng = L.latLng(lat, lng);
-
-      // Place marker and center map
-      placeMarker(latlng);
-      searchMap.setView(latlng, 15);
-
-      // Get location name for the coordinates
-      reverseGeocode(lat, lng, {
-        onSuccess: (result) => {
-          document.getElementById("location-search").value = result.displayName;
-
-          // Make sure the marker has a popup with the location name
-          if (searchMarker) {
-            searchMarker.bindPopup(result.displayName).openPopup();
-
-            // Also set a default popup in case reverse geocoding fails
-            searchMarker.setPopupContent(result.displayName);
-          }
-        },
-        onError: () => {
-          // If reverse geocoding fails, still show a popup with coordinates
-          if (searchMarker) {
-            const fallbackContent = `Location at ${lat.toFixed(
-              6
-            )}, ${lng.toFixed(6)}`;
-            searchMarker.bindPopup(fallbackContent).openPopup();
-          }
-        },
-      });
-
-      // Fix map rendering
-      setTimeout(() => {
-        searchMap.invalidateSize();
-
-        // Make sure marker is visible after map is properly rendered
-        if (searchMarker) {
-          searchMarker.openPopup();
-        }
-      }, 100);
+  setupLoadMoreButton();
+  initializePopover();
+  // Force map resize immediately AND after a short delay
+  setTimeout(() => {
+    if (searchMap) {
+      searchMap.invalidateSize(true);
     }
-  }
-  initializeEvFilters(); // Use this instead of the shared utility
 
-  // Initialize all popovers
-  var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-  var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-    return new bootstrap.Popover(popoverTriggerEl)
+    // Fix any initial spacing issues with the layout
+    const mainContent = document.getElementById("main-content");
+    if (mainContent) {
+      mainContent.style.position = "absolute";
+      mainContent.style.top = "56px"; // Match navbar height
+      mainContent.style.left = "0";
+      mainContent.style.right = "0";
+      mainContent.style.bottom = "0";
+    }
+  }, 100);
+
+  // Add window resize handler to ensure map fills space correctly
+  window.addEventListener("resize", function () {
+    if (searchMap) {
+      searchMap.invalidateSize(true);
+    }
   });
+
+  // Handle advanced filters modal
+  const applyAdvancedFiltersBtn = document.getElementById(
+    "apply-advanced-filters"
+  );
+  if (applyAdvancedFiltersBtn) {
+    applyAdvancedFiltersBtn.addEventListener("click", applyAdvancedFilters);
+  }
 });
 
 function setupSearch() {
@@ -639,8 +416,9 @@ function setupSearch() {
 
 function performSearch() {
   const searchInput = document.getElementById("location-search");
-  const mapContainer = document.getElementById("search-map-container");
+  const mapContainer = document.getElementById("map-view");
   const query = searchInput.value;
+  console.log("query", query);
 
   if (!query) return;
 
@@ -648,6 +426,7 @@ function performSearch() {
   searchLocation(query, {
     restrictToNYC: true,
     onSuccess: (result) => {
+      console.log("result", result);
       const latlng = L.latLng(result.lat, result.lng);
 
       // Show map when location is found
@@ -679,51 +458,6 @@ function performSearch() {
       setTimeout(() => {
         searchMap.invalidateSize();
       }, 100);
-
-      // Update toggle button state
-      const toggleMapBtn = document.getElementById("toggle-map");
-      toggleMapBtn.classList.remove("btn-outline-secondary");
-      toggleMapBtn.classList.add("btn-secondary");
     },
   });
-}
-
-function initializeDateRangeToggle() {
-  const enableDateRange = document.getElementById('enable_date_range');
-  const endDateContainer = document.getElementById('end-date-container');
-  const startDateInput = document.getElementById('single_start_date');
-  const endDateInput = document.getElementById('single_end_date');
-  
-  if (enableDateRange && endDateContainer && startDateInput && endDateInput) {
-    // Set initial state
-    if (enableDateRange.checked) {
-      endDateContainer.style.display = 'block';
-    } else {
-      endDateContainer.style.display = 'none';
-      endDateInput.value = startDateInput.value; // Default end date to start date
-    }
-    
-    // Add change event listeners
-    enableDateRange.addEventListener('change', function() {
-      if (this.checked) {
-        endDateContainer.style.display = 'block';
-        if (!endDateInput.value) {
-          endDateInput.value = startDateInput.value;
-        }
-      } else {
-        endDateContainer.style.display = 'none';
-        endDateInput.value = startDateInput.value; // Set end date equal to start date
-      }
-    });
-    
-    // Keep end date in sync with start date when range is disabled
-    startDateInput.addEventListener('change', function() {
-      if (!enableDateRange.checked) {
-        endDateInput.value = this.value;
-      } else if (endDateInput.value && new Date(endDateInput.value) < new Date(this.value)) {
-        // If end date is now before start date, update it
-        endDateInput.value = this.value;
-      }
-    });
-  }
 }

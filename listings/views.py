@@ -2,10 +2,12 @@ from datetime import datetime, time, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db import models
 from django.forms import inlineformset_factory
 from django.shortcuts import get_object_or_404, redirect, render
+from django.core.exceptions import ObjectDoesNotExist
 
 from .forms import (
     ListingForm,
@@ -298,6 +300,7 @@ def edit_listing(request, listing_id):
 
 
 def view_listings(request):
+    print("view_listings")
     current_datetime = datetime.now()
 
     # This query returns listings with at least one slot that has not yet ended.
@@ -330,21 +333,36 @@ def view_listings(request):
         success_messages.append(success_message)
 
     if filter_type == "single":
+        print("filter_type == 'single'")
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
         start_time = request.GET.get("start_time")
         end_time = request.GET.get("end_time")
+        print("start_date", start_date)
+        print("end_date", end_date)
+        print("start_time", start_time)
+        print("end_time", end_time)
         if any([start_date, end_date, start_time, end_time]):
+            print("any([start_date, end_date, start_time, end_time])")
             try:
                 user_start_str = f"{start_date} {start_time}"
                 user_end_str = f"{end_date} {end_time}"
+                print("user_start_str", user_start_str)
+                print("user_end_str", user_end_str)
                 user_start_dt = datetime.strptime(user_start_str, "%Y-%m-%d %H:%M")
                 user_end_dt = datetime.strptime(user_end_str, "%Y-%m-%d %H:%M")
+                print("user_start_dt", user_start_dt)
+                print("user_end_dt", user_end_dt)
                 filtered = []
                 for listing in all_listings:
                     if listing.is_available_for_range(user_start_dt, user_end_dt):
                         filtered.append(listing)
                 all_listings = filtered
+                # ptint difference between listings and filtered
+                print(
+                    "difference between listings and filtered",
+                    len(all_listings) - len(filtered),
+                )
             except ValueError:
                 pass
 
@@ -568,8 +586,14 @@ def view_listings(request):
             listing.available_until = None
             listing.available_time_until = None
 
-    page_number = request.GET.get("page", 1)
+    # Process the listings before pagination
+    for listing in processed_listings:
+        # Explicitly mark listings as available in the main listings view
+        listing.user_profile_available = True
+
+    # Continue with pagination
     paginator = Paginator(processed_listings, 10)
+    page_number = request.GET.get("page", 1)
     page_obj = paginator.get_page(page_number)
 
     context = {
@@ -600,6 +624,7 @@ def view_listings(request):
         "connector_type_choices": EV_CONNECTOR_TYPES,
         "parking_spot_sizes": PARKING_SPOT_SIZES,
         "has_active_filters": has_active_filters(request),
+        "is_public_view": False,
     }
 
     if request.GET.get("ajax") == "1":
@@ -649,3 +674,61 @@ def listing_reviews(request, listing_id):
         "listings/listing_reviews.html",
         {"listing": listing, "reviews": reviews},
     )
+
+
+def user_listings(request, username):
+    # Get the host user
+    host = get_object_or_404(User, username=username)
+
+    # Check if the host is verified
+    try:
+        profile = host.profile  # Assuming you have a profile model related to User
+        is_verified = profile.is_verified
+    except (AttributeError, ObjectDoesNotExist):  # ← Specific exceptions
+        is_verified = False
+
+    # Redirect or show error if host is not verified
+    if not is_verified:
+        messages.error(request, "This user is not a verified host.")
+        return redirect("home")  # Or another appropriate page
+
+    # Continue with the existing code for verified hosts
+    current_datetime = datetime.now()
+
+    # Get all listings from this user
+    listings = Listing.objects.filter(user=host).distinct()
+
+    # Create two separate lists - available and unavailable
+    available_listings = []
+    unavailable_listings = []
+
+    for listing in listings:
+        is_available = listing.slots.filter(
+            models.Q(end_date__gt=current_datetime.date())
+            | models.Q(
+                end_date=current_datetime.date(), end_time__gt=current_datetime.time()
+            )
+        ).exists()
+
+        listing.user_profile_available = is_available
+
+        if is_available:
+            available_listings.append(listing)
+        else:
+            unavailable_listings.append(listing)
+
+    # Sort each list by creation date (newest first)
+    available_listings.sort(key=lambda x: -x.created_at.timestamp())
+    unavailable_listings.sort(key=lambda x: -x.created_at.timestamp())
+
+    # Combine the lists - available first, then unavailable
+    sorted_listings = available_listings + unavailable_listings
+
+    context = {
+        "listings": sorted_listings,
+        "host": host,
+        "is_public_view": True,
+        "source": "user_listings",
+        "username": username,
+    }
+    return render(request, "listings/user_listings.html", context)

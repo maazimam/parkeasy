@@ -16,6 +16,7 @@ from .models import Notification
 
 # Import the messaging model and User to send admin notifications.
 from messaging.models import Message
+from .forms import EmailChangeForm
 from django.contrib.auth.models import User
 
 
@@ -444,5 +445,51 @@ def create_notification(
         subject=subject,
         content=content,
         notification_type=notification_type,
-        read=False,  # Explicitly set to unread
+        read=False,)  # Explicitly set to unread
+def public_profile_view(request, username):
+    # Get the user whose profile is being viewed
+
+    profile_user = get_object_or_404(User, username=username)
+
+    # Check if this is the user's own profile
+    is_own_profile = request.user.username == username
+
+    # If it's their own profile, redirect to the editable version
+    if is_own_profile:
+        return redirect("profile")
+
+    # Get verification status from profile
+    is_verified = hasattr(profile_user, "profile") and profile_user.profile.is_verified
+
+    # Calculate average rating across all listings
+    from django.db.models import Avg
+    from listings.models import Listing, Review
+
+    # Get all listings by this user
+    user_listings = Listing.objects.filter(user=profile_user)
+    listing_count = user_listings.count()
+
+    # Calculate the overall rating across all reviews from all listings
+    average_rating = None
+    total_reviews = 0
+
+    if listing_count > 0 and is_verified:
+        # Get all reviews for all listings by this user
+        all_reviews = Review.objects.filter(listing__user=profile_user)
+        total_reviews = all_reviews.count()
+
+        if total_reviews > 0:
+            # Calculate average rating across all reviews
+            average_rating = all_reviews.aggregate(avg=Avg("rating"))["avg"]
+
+    return render(
+        request,
+        "accounts/public_profile.html",
+        {
+            "profile_user": profile_user,
+            "is_verified": is_verified,
+            "average_rating": average_rating,
+            "listing_count": listing_count,
+            "review_count": total_reviews,
+        },
     )

@@ -13,6 +13,7 @@ from .views import (
     admin_send_notification,
     admin_sent_notifications,
     debug_notification_counts,  # Add this import
+    public_profile_view,
 )
 
 urlpatterns = [
@@ -20,6 +21,7 @@ urlpatterns = [
     path("login/", user_login, name="login"),
     path("logout/", user_logout, name="logout"),
     path("verify/", verify, name="verify"),
+    path("profile/<str:username>/", public_profile_view, name="public_profile"),
     path("profile/", profile_view, name="profile"),
     # Password change URLs
     path("password_change/", change_password, name="password_change"),
