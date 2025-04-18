@@ -72,6 +72,7 @@ def verification_count(request):
         "pending_verifications_count": 0,
     }
 
+
 def report_count(request):
     """
     Context processor to add report count to all templates.

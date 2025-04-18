@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
-from django.http import HttpResponseForbidden, HttpResponse
+from django.http import HttpResponseForbidden
 from .forms import ReportForm
 from messaging.models import Message
 from listings.models import Listing, Review
@@ -36,12 +36,14 @@ def report_item(request, content_type_str, object_id):
                 and request.user != reported_object.recipient
             ):
                 return redirect("inbox")
-        
+
         # Permission check for reviews - prevent users from reporting their own reviews
         elif content_type_str == "review":
             if request.user == reported_object.user:
                 request.session["error_message"] = "You cannot report your own review."
-                return redirect("listing_reviews", listing_id=reported_object.listing.id)
+                return redirect(
+                    "listing_reviews", listing_id=reported_object.listing.id
+                )
 
     except model.DoesNotExist:
         if content_type_str == "message":
@@ -72,7 +74,8 @@ def report_item(request, content_type_str, object_id):
                     sender=request.user,
                     recipient=admin,
                     subject=f"New Report: {report.get_report_type_display()}",
-                    content=f"A new {report.get_report_type_display().lower()} report has been submitted for a {content_type_str}. Please review it.",
+                    content=f"""A new {report.get_report_type_display().lower()} report has been submitted for a
+                            {content_type_str}. Please review it.""",
                     notification_type="ADMIN_ALERT",
                 )
 
@@ -82,7 +85,9 @@ def report_item(request, content_type_str, object_id):
             elif content_type_str == "listing":
                 return redirect("view_listings")
             elif content_type_str == "review":
-                return redirect("listing_reviews", listing_id=reported_object.listing.id)
+                return redirect(
+                    "listing_reviews", listing_id=reported_object.listing.id
+                )
     else:
         form = ReportForm()
 
@@ -103,38 +108,43 @@ def admin_reports(request):
         return HttpResponseForbidden("You do not have permission to view reports.")
 
     # Get filter options from request
-    status_filter = request.GET.get('status', 'PENDING')  # Default to pending
-    report_type = request.GET.get('type', None)
-    
+    status_filter = request.GET.get("status", "PENDING")  # Default to pending
+    report_type = request.GET.get("type", None)
+
     # Base query
     reports_query = Report.objects.all()
-    
+
     # Apply filters
-    if status_filter and status_filter != 'ALL':
+    if status_filter and status_filter != "ALL":
         reports_query = reports_query.filter(status=status_filter)
-    
+
     if report_type:
         reports_query = reports_query.filter(report_type=report_type)
-    
+
     # Order by creation date (newest first)
-    reports = reports_query.order_by('-created_at')
-    
+    reports = reports_query.order_by("-created_at")
+
     # Count by status for filter UI
     status_counts = {
-        'PENDING': Report.objects.filter(status='PENDING').count(),
-        'REVIEWING': Report.objects.filter(status='REVIEWING').count(),
-        'RESOLVED': Report.objects.filter(status='RESOLVED').count(),
-        'DISMISSED': Report.objects.filter(status='DISMISSED').count(),
-        'ALL': Report.objects.count(),
+        "PENDING": Report.objects.filter(status="PENDING").count(),
+        "REVIEWING": Report.objects.filter(status="REVIEWING").count(),
+        "RESOLVED": Report.objects.filter(status="RESOLVED").count(),
+        "DISMISSED": Report.objects.filter(status="DISMISSED").count(),
+        "ALL": Report.objects.count(),
     }
-    
-    return render(request, 'reports/admin_reports.html', {
-        'reports': reports,
-        'current_status': status_filter,
-        'current_type': report_type or 'ALL',
-        'status_counts': status_counts,
-        'report_types': Report.REPORT_TYPES,
-    })
+
+    return render(
+        request,
+        "reports/admin_reports.html",
+        {
+            "reports": reports,
+            "current_status": status_filter,
+            "current_type": report_type or "ALL",
+            "status_counts": status_counts,
+            "report_types": Report.REPORT_TYPES,
+        },
+    )
+
 
 @login_required
 def admin_report_detail(request, report_id):
@@ -145,46 +155,42 @@ def admin_report_detail(request, report_id):
 
     # Get the report
     report = get_object_or_404(Report, pk=report_id)
-    
-    # Get the reported object
-    try:
-        if report.content_type.model == 'message':
-            reported_object = Message.objects.get(id=report.object_id)
-            object_type = 'message'
-        elif report.content_type.model == 'listing':
-            reported_object = Listing.objects.get(id=report.object_id)
-            object_type = 'listing'
-        elif report.content_type.model == 'review':
-            reported_object = Review.objects.get(id=report.object_id)
-            object_type = 'review'
-        else:
-            reported_object = None
-            object_type = 'unknown'
-    except:
+
+    if report.content_type.model == "message":
+        reported_object = Message.objects.get(id=report.object_id)
+        object_type = "message"
+    elif report.content_type.model == "listing":
+        reported_object = Listing.objects.get(id=report.object_id)
+        object_type = "listing"
+    elif report.content_type.model == "review":
+        reported_object = Review.objects.get(id=report.object_id)
+        object_type = "review"
+    else:
         reported_object = None
-        object_type = 'deleted'
-    
-    if request.method == 'POST':
+        object_type = "unknown"
+
+    if request.method == "POST":
         # Handle status changes
-        if 'update_status' in request.POST:
-            new_status = request.POST.get('status')
-            admin_notes = request.POST.get('admin_notes', '')
-            
+        if "update_status" in request.POST:
+            new_status = request.POST.get("status")
+            admin_notes = request.POST.get("admin_notes", "")
+
             if new_status in [s[0] for s in Report.STATUS_CHOICES]:
                 report.status = new_status
                 report.admin_notes = admin_notes
                 report.resolved_by = request.user
                 report.save()
-                
+
                 # Optionally notify the reporter about status change
-                if new_status in ['RESOLVED', 'DISMISSED']:
+                if new_status in ["RESOLVED", "DISMISSED"]:
                     # Create notification with new format
-                    notification_content = f"Your report about a {report.get_report_type_display().lower()} {report.content_type.model} has been {new_status.lower()}."
-                    
+                    notification_content = f"""Your report about a {report.get_report_type_display().lower()}
+                                {report.content_type.model} has been {new_status.lower()}."""
+
                     # Add admin notes if provided
                     if admin_notes:
                         notification_content += f"\n\nAdmin note: {admin_notes}"
-                    
+
                     Notification.objects.create(
                         sender=request.user,
                         recipient=report.reporter,
@@ -192,11 +198,15 @@ def admin_report_detail(request, report_id):
                         content=notification_content,
                         notification_type="REPORT",
                     )
-                
-                return redirect('admin_reports')
-    
-    return render(request, 'reports/admin_report_detail.html', {
-        'report': report,
-        'reported_object': reported_object,
-        'object_type': object_type,
-    })
+
+                return redirect("admin_reports")
+
+    return render(
+        request,
+        "reports/admin_report_detail.html",
+        {
+            "report": report,
+            "reported_object": reported_object,
+            "object_type": object_type,
+        },
+    )
