@@ -110,8 +110,8 @@ def compose_message(request, recipient_id=None):
 def message_detail(request, message_id):
     message = get_object_or_404(Message, pk=message_id)
 
-    # Only allow sender or recipient to view
-    if message.recipient != request.user and message.sender != request.user:
+    # Only allow sender, recipient or admin to view
+    if message.recipient != request.user and message.sender != request.user and not request.user.is_staff:
         return HttpResponseForbidden("You are not allowed to view this message.")
 
     # If the current user is the recipient, mark as read
