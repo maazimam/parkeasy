@@ -194,3 +194,17 @@ html, body {
 }
 
 /* Regular containers remain untouched */
+
+.outline-badge {
+  cursor: pointer;
+  position: relative;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.outline-badge:hover {
+  box-shadow: 0 0 6px rgba(13, 110, 253, 0.5);
+  border-color: #0d6efd;
+  transform: translateY(-1px);
+}
+/* Add a transition effect to the outline badge */
