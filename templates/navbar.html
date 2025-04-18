@@ -53,10 +53,10 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle position-relative" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 Admin
-                                {% if pending_verifications_count > 0 %}
+                                {% if pending_verifications_count > 0 or pending_reports_count > 0 %}
                                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                        {{ pending_verifications_count }}
-                                        <span class="visually-hidden">pending verifications</span>
+                                        {{ pending_verifications_count|add:pending_reports_count }}
+                                        <span class="visually-hidden">pending items</span>
                                     </span>
                                 {% endif %}
                             </a>
@@ -66,6 +66,14 @@
                                         Verification Requests
                                         {% if pending_verifications_count > 0 %}
                                             <span class="badge bg-danger rounded-pill ms-2">{{ pending_verifications_count }}</span>
+                                        {% endif %}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'admin_reports' %}">
+                                        Manage Reports
+                                        {% if pending_reports_count > 0 %}
+                                            <span class="badge bg-danger rounded-pill ms-2">{{ pending_reports_count }}</span>
                                         {% endif %}
                                     </a>
                                 </li>

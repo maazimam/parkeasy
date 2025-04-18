@@ -1,5 +1,6 @@
 from .models import Notification, VerificationRequest
 from messaging.models import Message
+from reports.models import Report
 
 
 def notification_count(request):
@@ -69,4 +70,27 @@ def verification_count(request):
     # Return 0 for non-admins or unauthenticated users
     return {
         "pending_verifications_count": 0,
+    }
+
+def report_count(request):
+    """
+    Context processor to add report count to all templates.
+    """
+    if request.user.is_authenticated and request.user.is_staff:
+        try:
+            # Count pending reports
+            pending_reports_count = Report.objects.filter(status="PENDING").count()
+
+            return {
+                "pending_reports_count": pending_reports_count,
+            }
+        except Exception:
+            # Handle any errors
+            return {
+                "pending_reports_count": 0,
+            }
+
+    # Return 0 for non-admins or unauthenticated users
+    return {
+        "pending_reports_count": 0,
     }

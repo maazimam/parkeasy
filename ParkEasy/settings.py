@@ -82,6 +82,7 @@ TEMPLATES = [
                 "messaging.context_processors.unread_messages_count",
                 "accounts.context_processors.notification_count",
                 "accounts.context_processors.verification_count",  # Add this line
+                "accounts.context_processors.report_count",  # Add this line
             ],
         },
     },
