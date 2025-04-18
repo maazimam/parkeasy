@@ -1,13 +1,21 @@
 <div class="listings-container">
   {% for listing in listings %}
   <div
-    class="card shadow-sm mb-2 border-0"
+    class="card shadow-sm mb-2 border-0 position-relative"
     data-location="{{ listing.location }}"
     data-location-name="{{ listing.location_name }}"
     data-price="{{ listing.rent_per_hour }}"
     data-title="{{ listing.title }}"
     data-rating="{{ listing.avg_rating|default:0 }}"
   >
+    {% if user != listing.user %}
+    <a href="{% url 'report_item' 'listing' listing.id %}" 
+       class="report-icon" 
+       title="Report this listing">
+      <i class="fas fa-flag"></i>
+    </a>
+    {% endif %}
+    
     <div class="card-body p-2">
       <!-- Header: Title and Badge -->
       <div class="d-flex align-items-center mb-1">
@@ -213,6 +221,28 @@
   .load-more-btn {
     font-size: 0.8rem;
     padding: 0.25rem 0.75rem;
+  }
+
+  .report-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 0.75rem;
+    color: rgba(220, 53, 69, 0.7); /* Slightly transparent red */
+    z-index: 10;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+  }
+  
+  .report-icon:hover {
+    color: #dc3545; /* Full red on hover */
+    background-color: rgba(220, 53, 69, 0.1);
+    transform: scale(1.1);
   }
 </style>
 
