@@ -40,11 +40,11 @@ function initializeNYCMap(mapElementId, options = {}) {
 // Nominatim API utilities
 
 /**
- * Check if coordinates are within NYC bounds
- * @param {number} lat - Latitude
- * @param {number} lng - Longitude
- * @returns {boolean} - True if coordinates are within NYC bounds
- */
+* Check if coordinates are within NYC bounds
+* @param {number} lat - Latitude
+* @param {number} lng - Longitude
+* @returns {boolean} - True if coordinates are within NYC bounds
+*/
 function isWithinNYC(lat, lng) {
     return (
         lat >= NYC_BOUNDS.min_lat &&
@@ -55,15 +55,15 @@ function isWithinNYC(lat, lng) {
 }
 
 /**
- * Search for a location using Nominatim
- * @param {string} query - Search query
- * @param {Object} options - Options for the search
- * @param {boolean} options.restrictToNYC - Whether to restrict results to NYC
- * @param {Function} options.onSuccess - Callback for successful search
- * @param {Function} options.onOutOfBounds - Callback for when result is out of NYC bounds
- * @param {Function} options.onNotFound - Callback for when no results are found
- * @param {Function} options.onError - Callback for errors
- */
+* Search for a location using Nominatim
+* @param {string} query - Search query
+* @param {Object} options - Options for the search
+* @param {boolean} options.restrictToNYC - Whether to restrict results to NYC
+* @param {Function} options.onSuccess - Callback for successful search
+* @param {Function} options.onOutOfBounds - Callback for when result is out of NYC bounds
+* @param {Function} options.onNotFound - Callback for when no results are found
+* @param {Function} options.onError - Callback for errors
+*/
 function searchLocation(query, options = {}) {
     if (!query) {
         if (options.onError) options.onError("No search query provided");
@@ -162,13 +162,13 @@ function searchLocation(query, options = {}) {
 }
 
 /**
- * Reverse geocode coordinates to get address
- * @param {number} lat - Latitude
- * @param {number} lng - Longitude
- * @param {Object} options - Options for the reverse geocoding
- * @param {Function} options.onSuccess - Callback for successful reverse geocoding
- * @param {Function} options.onError - Callback for errors
- */
+* Reverse geocode coordinates to get address
+* @param {number} lat - Latitude
+* @param {number} lng - Longitude
+* @param {Object} options - Options for the reverse geocoding
+* @param {Function} options.onSuccess - Callback for successful reverse geocoding
+* @param {Function} options.onError - Callback for errors
+*/
 function reverseGeocode(lat, lng, options = {}) {
     const defaultOptions = {
         onSuccess: () => {},
@@ -553,135 +553,135 @@ function addGaragesDirectly(map) {
           addBackupMarkers();
       });
 
-  console.log("Garage data request initiated");
+console.log("Garage data request initiated");
 }
 
 function initializeLocationName() {
-  // Initialize location name if coordinates exist
-  const searchLat = document.getElementById("search-lat").value;
-  const searchLng = document.getElementById("search-lng").value;
+// Initialize location name if coordinates exist
+const searchLat = document.getElementById("search-lat").value;
+const searchLng = document.getElementById("search-lng").value;
 
-  if (searchLat && searchLng && searchLat !== "None" && searchLng !== "None") {
-    console.log("searchLat", searchLat);
-    console.log("searchLng", searchLng);
+if (searchLat && searchLng && searchLat !== "None" && searchLng !== "None") {
+  console.log("searchLat", searchLat);
+  console.log("searchLng", searchLng);
 
-    // Ensure we have valid numbers
-    const lat = parseFloat(searchLat);
-    const lng = parseFloat(searchLng);
+  // Ensure we have valid numbers
+  const lat = parseFloat(searchLat);
+  const lng = parseFloat(searchLng);
 
-    if (!isNaN(lat) && !isNaN(lng)) {
-      const latlng = L.latLng(lat, lng);
+  if (!isNaN(lat) && !isNaN(lng)) {
+    const latlng = L.latLng(lat, lng);
 
-      // Place marker and center map
-      placeMarker(latlng);
-      searchMap.setView(latlng, 15);
+    // Place marker and center map
+    placeMarker(latlng);
+    searchMap.setView(latlng, 15);
 
-      // Get location name for the coordinates
-      reverseGeocode(lat, lng, {
-        onSuccess: (result) => {
-          // Update the search input with the location name
-          document.getElementById("location-search").value = result.displayName;
-          // Expand the filter panel by removing the collapsed class and ensuring content is visible
-          const filterPanel = document.getElementById("filter-panel");
-          if (filterPanel) {
-            // This might be more reliable as it would use the existing toggle logic
-            const toggleButton = document.getElementById("toggle-filters");
-            if (toggleButton && filterPanel.classList.contains("collapsed")) {
-              toggleButton.click();
-            }
+    // Get location name for the coordinates
+    reverseGeocode(lat, lng, {
+      onSuccess: (result) => {
+        // Update the search input with the location name
+        document.getElementById("location-search").value = result.displayName;
+        // Expand the filter panel by removing the collapsed class and ensuring content is visible
+        const filterPanel = document.getElementById("filter-panel");
+        if (filterPanel) {
+          // This might be more reliable as it would use the existing toggle logic
+          const toggleButton = document.getElementById("toggle-filters");
+          if (toggleButton && filterPanel.classList.contains("collapsed")) {
+            toggleButton.click();
           }
-          // Make sure the marker has a popup with the location name
-          if (searchMarker) {
-            searchMarker.bindPopup(result.displayName).openPopup();
-
-            // Also set a default popup in case reverse geocoding fails
-            searchMarker.setPopupContent(result.displayName);
-          }
-        },
-        onError: () => {
-          // If reverse geocoding fails, still show a popup with coordinates
-          if (searchMarker) {
-            const fallbackContent = `Location at ${lat.toFixed(
-              6
-            )}, ${lng.toFixed(6)}`;
-            searchMarker.bindPopup(fallbackContent).openPopup();
-          }
-        },
-      });
-
-      // Fix map rendering
-      setTimeout(() => {
-        searchMap.invalidateSize();
-
-        // Make sure marker is visible after map is properly rendered
-        if (searchMarker) {
-          searchMarker.openPopup();
         }
-      }, 100);
-    }
+        // Make sure the marker has a popup with the location name
+        if (searchMarker) {
+          searchMarker.bindPopup(result.displayName).openPopup();
+
+          // Also set a default popup in case reverse geocoding fails
+          searchMarker.setPopupContent(result.displayName);
+        }
+      },
+      onError: () => {
+        // If reverse geocoding fails, still show a popup with coordinates
+        if (searchMarker) {
+          const fallbackContent = `Location at ${lat.toFixed(
+            6
+          )}, ${lng.toFixed(6)}`;
+          searchMarker.bindPopup(fallbackContent).openPopup();
+        }
+      },
+    });
+
+    // Fix map rendering
+    setTimeout(() => {
+      searchMap.invalidateSize();
+
+      // Make sure marker is visible after map is properly rendered
+      if (searchMarker) {
+        searchMarker.openPopup();
+      }
+    }, 100);
   }
+}
 }
 
 function addListingsToMap() {
-  // TODO: change so that the listings are not depended on the html structure
-  // Add markers for all listings (as in original code)
-  const listings = document.querySelectorAll(".card");
-  console.log("listings", listings);
-  const bounds = [];
+// TODO: change so that the listings are not depended on the html structure
+// Add markers for all listings (as in original code)
+const listings = document.querySelectorAll(".card");
+console.log("listings", listings);
+const bounds = [];
 
-  console.log(`Found ${listings.length} listings to add to map`);
+console.log(`Found ${listings.length} listings to add to map`);
 
-  // Ensure listingLayerGroup exists
-  if (!listingLayerGroup) {
-    listingLayerGroup = L.layerGroup().addTo(searchMap);
-  } else {
-    // Clear existing markers
-    listingLayerGroup.clearLayers();
+// Ensure listingLayerGroup exists
+if (!listingLayerGroup) {
+  listingLayerGroup = L.layerGroup().addTo(searchMap);
+} else {
+  // Clear existing markers
+  listingLayerGroup.clearLayers();
+}
+
+listings.forEach((listing) => {
+  try {
+    console.log("listing", listing);
+    const location = parseLocation(listing.dataset.location);
+    console.log("location", location);
+    const locationName = listing.dataset.locationName;
+    const title = listing.dataset.title;
+    const price = listing.dataset.price;
+    const rating = parseFloat(listing.dataset.rating) || 0;
+
+    console.log(
+      `Adding listing: ${title} at ${location.lat}, ${location.lng}`
+    );
+
+    // Create the marker but add it to the layer group instead of the map
+    const marker = L.marker([location.lat, location.lng], {
+      zIndexOffset: 1000, // Higher z-index to appear above garage markers
+    });
+
+    listingLayerGroup.addLayer(marker);
+    bounds.push([location.lat, location.lng]);
+
+    // Create popup content
+    const ratingHtml = rating
+      ? `<br><strong>Rating:</strong> ${generateStarRating(
+          rating
+        )} (${rating.toFixed(1)})`
+      : `<br><span class="text-muted">No reviews yet ${generateStarRating(
+          0
+        )}</span>`;
+
+    const popupContent = `
+          <strong>${title}</strong><br>
+          ${locationName}<br>
+          $${price}/hour
+          ${ratingHtml}
+      `;
+
+    marker.bindPopup(popupContent);
+  } catch (error) {
+    console.error("Error adding listing marker:", error);
   }
-
-  listings.forEach((listing) => {
-    try {
-      console.log("listing", listing);
-      const location = parseLocation(listing.dataset.location);
-      console.log("location", location);
-      const locationName = listing.dataset.locationName;
-      const title = listing.dataset.title;
-      const price = listing.dataset.price;
-      const rating = parseFloat(listing.dataset.rating) || 0;
-
-      console.log(
-        `Adding listing: ${title} at ${location.lat}, ${location.lng}`
-      );
-
-      // Create the marker but add it to the layer group instead of the map
-      const marker = L.marker([location.lat, location.lng], {
-        zIndexOffset: 1000, // Higher z-index to appear above garage markers
-      });
-
-      listingLayerGroup.addLayer(marker);
-      bounds.push([location.lat, location.lng]);
-
-      // Create popup content
-      const ratingHtml = rating
-        ? `<br><strong>Rating:</strong> ${generateStarRating(
-            rating
-          )} (${rating.toFixed(1)})`
-        : `<br><span class="text-muted">No reviews yet ${generateStarRating(
-            0
-          )}</span>`;
-
-      const popupContent = `
-            <strong>${title}</strong><br>
-            ${locationName}<br>
-            $${price}/hour
-            ${ratingHtml}
-        `;
-
-      marker.bindPopup(popupContent);
-    } catch (error) {
-      console.error("Error adding listing marker:", error);
-    }
-  });
+});
 }
 
 // Function to add parking meters to the map

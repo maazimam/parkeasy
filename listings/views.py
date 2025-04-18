@@ -324,6 +324,13 @@ def view_listings(request):
 
     error_messages = []
     warning_messages = []
+    success_messages = []
+
+    # Add this after initializing the message lists:
+    # Get success message from session if it exists
+    success_message = request.session.pop("success_message", None)
+    if success_message:
+        success_messages.append(success_message)
 
     if filter_type == "single":
         print("filter_type == 'single'")
@@ -612,6 +619,7 @@ def view_listings(request):
         "next_page": int(page_number) + 1 if page_obj.has_next() else None,
         "error_messages": error_messages,
         "warning_messages": warning_messages,
+        "success_messages": success_messages,  # Add this line
         "charger_level_choices": EV_CHARGER_LEVELS,
         "connector_type_choices": EV_CONNECTOR_TYPES,
         "parking_spot_sizes": PARKING_SPOT_SIZES,
