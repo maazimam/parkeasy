@@ -237,6 +237,21 @@ function createMapLegend() {
                 <div style="font-weight: bold; margin-bottom: 5px; text-align: center;">Map Legend</div>
                 
                 <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                    <input type="checkbox" id="toggle-listings" checked style="margin-right: 5px;">
+                    <div style="
+                        background-color: #3388ff; 
+                        width: 20px; 
+                        height: 20px; 
+                        border-radius: 50%;
+                        border: 2px solid white; 
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+                        margin-right: 8px;
+                        margin-left: 3px;
+                    "></div>
+                    <label for="toggle-listings">Available Listings</label>
+                </div>
+
+                <div style="display: flex; align-items: center; margin-bottom: 5px;">
                     <input type="checkbox" id="toggle-garages" style="margin-right: 5px;">
                     <div style="
                         background-color: #2c3e50; 
@@ -256,13 +271,13 @@ function createMapLegend() {
                     <label for="toggle-garages">Parking Garages</label>
                 </div>
                 
-                <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                <div style="display: flex; align-items: center;">
                     <input type="checkbox" id="toggle-meters" style="margin-right: 5px;">
                     <div style="
                         background-color: #e74c3c; 
                         width: 20px; 
                         height: 20px; 
-                        border-radius: 50%;
+                        border-radius: 5px;
                         display: flex; 
                         justify-content: center; 
                         align-items: center; 
@@ -274,21 +289,6 @@ function createMapLegend() {
                         <i class="fas fa-parking" style="color: white; font-size: 10px;"></i>
                     </div>
                     <label for="toggle-meters">Parking Meters</label>
-                </div>
-                
-                <div style="display: flex; align-items: center;">
-                    <input type="checkbox" id="toggle-listings" checked style="margin-right: 5px;">
-                    <div style="
-                        background-color: #3388ff; 
-                        width: 20px; 
-                        height: 20px; 
-                        border-radius: 50%;
-                        border: 2px solid white; 
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-                        margin-right: 8px;
-                        margin-left: 3px;
-                    "></div>
-                    <label for="toggle-listings">Available Listings</label>
                 </div>
             </div>
         `;
@@ -361,31 +361,13 @@ function addGaragesDirectly(map) {
         garageLayerGroup = L.layerGroup();
     }
 
-    // Create marker icon - code remains the same
+    // Create marker icon
     const garageIcon = L.divIcon({
-        html: `<div style="
-          background-color: #2c3e50; 
-          width: 22px;   /* Reduced from 28px */
-          height: 22px;  /* Reduced from 28px */
-          border-radius: 5px;
-          display: flex; 
-          justify-content: center; 
-          align-items: center; 
-          border: 1px solid white; /* Thinner border */
-          box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-      ">
-          <i class="fas fa-car" style="
-              color: white; 
-              font-size: 11px;  /* Reduced from 14px */
-              transform: rotate(-45deg);
-          "></i>
-      </div>`,
+        html: markerTemplates.garage,
         className: 'garage-marker',
-        iconSize: [22, 22],
-        /* Reduced from [28, 28] */
-        iconAnchor: [11, 22],
-        /* Adjusted for new size */
-        popupAnchor: [0, -22] /* Adjusted for new size */
+        iconSize: [18, 18],
+        iconAnchor: [9, 18],
+        popupAnchor: [0, -18]
     });
 
     // Create backup markers to use if API fails
@@ -663,19 +645,31 @@ function addListingsToMap() {
 
       // Create popup content
       const ratingHtml = rating
-        ? `<br><strong>Rating:</strong> ${generateStarRating(
-            rating
-          )} (${rating.toFixed(1)})`
-        : `<br><span class="text-muted">No reviews yet ${generateStarRating(
-            0
-          )}</span>`;
+        ? `<div style="margin-bottom: 8px; display: flex; align-items: center;">
+            <i class="fas fa-star" style="color: #f1c40f; margin-right: 8px;"></i>
+            <span style="color: #34495e; font-size: 13px;">${rating.toFixed(1)} (${generateStarRating(rating)})</span>
+          </div>`
+        : `<div style="margin-bottom: 8px; display: flex; align-items: center;">
+            <i class="fas fa-star" style="color: #bdc3c7; margin-right: 8px;"></i>
+            <span style="color: #7f8c8d; font-size: 13px;">No reviews yet</span>
+          </div>`;
 
       const popupContent = `
-            <strong>${title}</strong><br>
-            ${locationName}<br>
-            $${price}/hour
-            ${ratingHtml}
-        `;
+        <div class="listing-popup" style="padding: 8px; min-width: 200px;">
+          <div style="margin-bottom: 12px;">
+            <h4 style="margin: 0; color: #2c3e50; font-size: 16px;">${title}</h4>
+          </div>
+          <div style="margin-bottom: 10px; display: flex; align-items: flex-start;">
+            <i class="fas fa-map-marker-alt" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
+            <div style="color: #34495e; font-size: 13px;">${locationName}</div>
+          </div>
+          <div style="margin-bottom: 8px; display: flex; align-items: center;">
+            <i class="fas fa-tag" style="color: #7f8c8d; margin-right: 8px;"></i>
+            <span style="color: #34495e; font-size: 13px;">$${Math.abs(price).toFixed(2)}/hour</span>
+          </div>
+          ${ratingHtml}
+        </div>
+      `;
 
       marker.bindPopup(popupContent);
     } catch (error) {
@@ -699,23 +693,11 @@ function addParkingMeters(map) {
 
     // Create marker icon for parking meters
     const meterIcon = L.divIcon({
-        html: `<div style="
-            background-color: #e74c3c; 
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border: 2px solid white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-        ">
-            <i class="fas fa-parking" style="color: white; font-size: 10px;"></i>
-        </div>`,
+        html: markerTemplates.meter,
         className: 'meter-marker',
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-        popupAnchor: [0, -10]
+        iconSize: [18, 18],
+        iconAnchor: [9, 18],
+        popupAnchor: [0, -18]
     });
 
     // Fetch parking meter data from NYC Open Data API

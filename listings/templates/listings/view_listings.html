@@ -1,82 +1,62 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block extra_head %}
+{% extends 'base.html' %} {% load static %} {% block extra_head %}
 <!-- Leaflet CSS -->
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-  crossorigin=""
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <!-- Custom CSS -->
-<link rel="stylesheet" href="{% static 'listings/css/view_listings.css' %}" />
-
-{% endblock %}
-
-{% block title %}All Listings{% endblock %}
-
-{% block content %}
+<link rel="stylesheet" href="{% static 'listings/css/view_listings.css' %}" /> {% endblock %} {% block title %}All Listings{% endblock %} {% block content %}
 <!-- Navbar is already fixed via the added CSS -->
 
 <!-- Main content area divided into panels -->
 <div id="main-content" class="full-width-container">
-  <!-- Left side with filters and list view -->
-  <div id="left-panel">
-    <!-- Top left: Filter panel -->
-    <div id="filter-panel" class="collapsed">
-      <div class="panel-header filter-header">
-        <h5 class="mb-0" id="filter-title"><i class="fas fa-filter me-2"></i>Filter Spots</h5>
-        <div class="d-flex align-items-center">
-          <a href="{% url 'view_listings' %}" class="btn btn-sm btn-outline-secondary me-2">
-            <i class="fas fa-times me-1"></i>Clear
-          </a>
-          <button id="toggle-filters" class="btn btn-sm btn-outline-secondary">
+    <!-- Left side with filters and list view -->
+    <div id="left-panel">
+        <!-- Top left: Filter panel -->
+        <div id="filter-panel" class="collapsed">
+            <div class="panel-header filter-header">
+                <h5 class="mb-0" id="filter-title"><i class="fas fa-filter me-2"></i>Filter Spots</h5>
+                <div class="d-flex align-items-center">
+                    <a href="{% url 'view_listings' %}" class="btn btn-sm btn-outline-secondary me-2">
+                        <i class="fas fa-times me-1"></i>Clear
+                    </a>
+                    <button id="toggle-filters" class="btn btn-sm btn-outline-secondary">
             <i class="fas fa-chevron-down" id="filter-chevron"></i>
           </button>
+                </div>
+            </div>
+
+            <div class="filter-content">
+                {% include "listings/partials/filter_form/filter_form_inline.html" %}
+            </div>
         </div>
-      </div>
-      
-      <div class="filter-content">
-      {% include "listings/partials/filter_form/filter_form_inline.html" %}
-      </div>
-    </div>
-  
-    <!-- Bottom left: List view panel -->
-    <div id="list-panel">
-      <div class="panel-header position-sticky" style="top: 0; z-index: 10; background-color: #f8f9fa;">
-        <h5 class="mb-0">Available Parking Spots</h5>
-        <a href="{% url 'create_listing' %}" class="btn btn-accent btn-sm">
-          <i class="fas fa-plus me-1"></i> Create a new listing
-        </a>
-      </div>
-      
-      <div id="list-view-container" style="height: calc(100% - 41px); overflow-y: auto;">
-        <div id="list-view" class="view-container listings-container active-view">
-          {% include "listings/partials/listing_cards.html" with listing=listing %}
+
+        <!-- Bottom left: List view panel -->
+        <div id="list-panel">
+            <div class="panel-header position-sticky" style="top: 0; z-index: 10; background-color: #f8f9fa;">
+                <h5 class="mb-0">Available Parking Spots</h5>
+                <a href="{% url 'create_listing' %}" class="btn btn-accent btn-sm">
+                    <i class="fas fa-plus me-1"></i> Create a new listing
+                </a>
+            </div>
+
+            <div id="list-view-container" style="height: calc(100% - 41px); overflow-y: auto;">
+                <div id="list-view" class="view-container listings-container active-view">
+                    {% include "listings/partials/listing_cards.html" with listing=listing %}
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
-  
-  <!-- Right side: Map panel -->
-  <div id="map-panel">
-    <div id="map-view" class="view-container active-view">
-      <!-- The map will be initialized here -->
+
+    <!-- Right side: Map panel -->
+    <div id="map-panel">
+        <div id="map-view" class="view-container active-view">
+            <!-- The map will be initialized here -->
+        </div>
     </div>
-  </div>
 </div>
 
-{% include  "listings/partials/filter_form/filter_form_modal.html" %}
-{% endblock %}
-
-{% block scripts %}
+{% include "listings/partials/filter_form/filter_form_modal.html" %} {% endblock %} {% block scripts %}
 <!-- Leaflet JS -->
-<script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-  crossorigin=""
-></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{% static 'listings/js/map_templates.js' %}"></script>
 <script src="{% static 'listings/js/map_utils.js' %}"></script>
 <script src="{% static 'listings/js/view_listings_utils.js' %}"></script>
 <script src="{% static 'listings/js/view_listings.js' %}"></script>
