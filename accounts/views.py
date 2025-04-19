@@ -95,6 +95,10 @@ def verify(request):
             # Create a verification request
             VerificationRequest.objects.create(user=request.user, status="PENDING")
 
+            # Update profile to indicate verification requested
+            profile.verification_requested = True
+            profile.save()
+
             # Return a confirmation page
             context = {
                 "request_sent": True,
