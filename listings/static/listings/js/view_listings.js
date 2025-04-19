@@ -186,30 +186,41 @@ function addListingMarker(listing) {
     if (!mapInitialized) return;
 
     try {
-        // Create the marker and add it to the layer group
+        // Create the marker but add it to the layer group instead of the map
         const marker = L.marker([listing.lat, listing.lng], {
             zIndexOffset: 1000, // Higher z-index to appear above garage markers
         });
 
-        // Add to layer group and tracking array
         listingLayerGroup.addLayer(marker);
         listingMarkers.push(marker);
 
         // Create popup content
         const ratingHtml = listing.rating ?
-            `<br><strong>Rating:</strong> ${generateStarRating(
-          listing.rating
-        )} (${listing.rating.toFixed(1)})` :
-            `<br><span class="text-muted">No reviews yet ${generateStarRating(
-          0
-        )}</span>`;
+            `<div style="margin-bottom: 8px; display: flex; align-items: center;">
+                <i class="fas fa-star" style="color: #f1c40f; margin-right: 8px;"></i>
+                <span style="color: #34495e; font-size: 13px;">${listing.rating.toFixed(1)} (${generateStarRating(listing.rating)})</span>
+              </div>` :
+            `<div style="margin-bottom: 8px; display: flex; align-items: center;">
+                <i class="fas fa-star" style="color: #bdc3c7; margin-right: 8px;"></i>
+                <span style="color: #7f8c8d; font-size: 13px;">No reviews yet</span>
+              </div>`;
 
         const popupContent = `
-      <strong>${listing.title}</strong><br>
-      ${listing.locationName}<br>
-      $${listing.price}/hour
-      ${ratingHtml}
-    `;
+          <div class="listing-popup" style="padding: 8px; min-width: 200px;">
+            <div style="margin-bottom: 12px;">
+              <h4 style="margin: 0; color: #2c3e50; font-size: 16px;">${listing.title}</h4>
+            </div>
+            <div style="margin-bottom: 10px; display: flex; align-items: flex-start;">
+              <i class="fas fa-map-marker-alt" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
+              <div style="color: #34495e; font-size: 13px;">${listing.locationName}</div>
+            </div>
+            <div style="margin-bottom: 8px; display: flex; align-items: center;">
+              <i class="fas fa-tag" style="color: #7f8c8d; margin-right: 8px;"></i>
+              <span style="color: #34495e; font-size: 13px;">$${Math.abs(listing.price).toFixed(2)}/hour</span>
+            </div>
+            ${ratingHtml}
+          </div>
+        `;
 
         marker.bindPopup(popupContent);
     } catch (error) {
