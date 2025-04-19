@@ -40,11 +40,11 @@ function initializeNYCMap(mapElementId, options = {}) {
 // Nominatim API utilities
 
 /**
-* Check if coordinates are within NYC bounds
-* @param {number} lat - Latitude
-* @param {number} lng - Longitude
-* @returns {boolean} - True if coordinates are within NYC bounds
-*/
+ * Check if coordinates are within NYC bounds
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @returns {boolean} - True if coordinates are within NYC bounds
+ */
 function isWithinNYC(lat, lng) {
     return (
         lat >= NYC_BOUNDS.min_lat &&
@@ -55,15 +55,15 @@ function isWithinNYC(lat, lng) {
 }
 
 /**
-* Search for a location using Nominatim
-* @param {string} query - Search query
-* @param {Object} options - Options for the search
-* @param {boolean} options.restrictToNYC - Whether to restrict results to NYC
-* @param {Function} options.onSuccess - Callback for successful search
-* @param {Function} options.onOutOfBounds - Callback for when result is out of NYC bounds
-* @param {Function} options.onNotFound - Callback for when no results are found
-* @param {Function} options.onError - Callback for errors
-*/
+ * Search for a location using Nominatim
+ * @param {string} query - Search query
+ * @param {Object} options - Options for the search
+ * @param {boolean} options.restrictToNYC - Whether to restrict results to NYC
+ * @param {Function} options.onSuccess - Callback for successful search
+ * @param {Function} options.onOutOfBounds - Callback for when result is out of NYC bounds
+ * @param {Function} options.onNotFound - Callback for when no results are found
+ * @param {Function} options.onError - Callback for errors
+ */
 function searchLocation(query, options = {}) {
     if (!query) {
         if (options.onError) options.onError("No search query provided");
@@ -162,13 +162,13 @@ function searchLocation(query, options = {}) {
 }
 
 /**
-* Reverse geocode coordinates to get address
-* @param {number} lat - Latitude
-* @param {number} lng - Longitude
-* @param {Object} options - Options for the reverse geocoding
-* @param {Function} options.onSuccess - Callback for successful reverse geocoding
-* @param {Function} options.onError - Callback for errors
-*/
+ * Reverse geocode coordinates to get address
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @param {Object} options - Options for the reverse geocoding
+ * @param {Function} options.onSuccess - Callback for successful reverse geocoding
+ * @param {Function} options.onError - Callback for errors
+ */
 function reverseGeocode(lat, lng, options = {}) {
     const defaultOptions = {
         onSuccess: () => {},
@@ -605,36 +605,40 @@ if (searchLat && searchLng && searchLat !== "None" && searchLng !== "None") {
 }
 
 function addListingsToMap() {
-// TODO: change so that the listings are not depended on the html structure
-// Add markers for all listings (as in original code)
-const listings = document.querySelectorAll(".card");
-console.log("listings", listings);
-const bounds = [];
+  // TODO: change so that the listings are not depended on the html structure
+  // Add markers for all listings (as in original code)
+  const listings = document.querySelectorAll(".card");
+  console.log("listings", listings);
+  const bounds = [];
 
-console.log(`Found ${listings.length} listings to add to map`);
+  console.log(`Found ${listings.length} listings to add to map`);
 
-// Ensure listingLayerGroup exists
-if (!listingLayerGroup) {
-  listingLayerGroup = L.layerGroup().addTo(searchMap);
-} else {
-  // Clear existing markers
-  listingLayerGroup.clearLayers();
-}
+  // Ensure listingLayerGroup exists
+  if (!listingLayerGroup) {
+    listingLayerGroup = L.layerGroup().addTo(searchMap);
+  } else {
+    // Clear existing markers
+    listingLayerGroup.clearLayers();
+  }
 
-listings.forEach((listing) => {
-  try {
-    console.log("listing", listing);
-    const location = parseLocation(listing.dataset.location);
-    console.log("location", location);
-    const locationName = listing.dataset.locationName;
-    const title = listing.dataset.title;
-    const price = listing.dataset.price;
-    const rating = parseFloat(listing.dataset.rating) || 0;
+  listings.forEach((listing) => {
+    try {
+      console.log("listing", listing);
+      const location = parseLocation(listing.dataset.location);
+      console.log("location", location);
+      const locationName = listing.dataset.locationName;
+      const title = listing.dataset.title;
+      const price = listing.dataset.price;
+      const rating = parseFloat(listing.dataset.rating) || 0;
 
-    console.log(
-      `Adding listing: ${title} at ${location.lat}, ${location.lng}`
-    );
+      console.log(
+        `Adding listing: ${title} at ${location.lat}, ${location.lng}`
+      );
 
+      // Create the marker but add it to the layer group instead of the map
+      const marker = L.marker([location.lat, location.lng], {
+        zIndexOffset: 1000, // Higher z-index to appear above garage markers
+      });
 
       listingLayerGroup.addLayer(marker);
       bounds.push([location.lat, location.lng]);
@@ -667,36 +671,11 @@ listings.forEach((listing) => {
         </div>
       `;
 
-    // Create the marker but add it to the layer group instead of the map
-    const marker = L.marker([location.lat, location.lng], {
-      zIndexOffset: 1000, // Higher z-index to appear above garage markers
-    });
-
-
-    listingLayerGroup.addLayer(marker);
-    bounds.push([location.lat, location.lng]);
-
-    // Create popup content
-    const ratingHtml = rating
-      ? `<br><strong>Rating:</strong> ${generateStarRating(
-          rating
-        )} (${rating.toFixed(1)})`
-      : `<br><span class="text-muted">No reviews yet ${generateStarRating(
-          0
-        )}</span>`;
-
-    const popupContent = `
-          <strong>${title}</strong><br>
-          ${locationName}<br>
-          $${price}/hour
-          ${ratingHtml}
-      `;
-
-    marker.bindPopup(popupContent);
-  } catch (error) {
-    console.error("Error adding listing marker:", error);
-  }
-});
+      marker.bindPopup(popupContent);
+    } catch (error) {
+      console.error("Error adding listing marker:", error);
+    }
+  });
 }
 
 // Function to add parking meters to the map
