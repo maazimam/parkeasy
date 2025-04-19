@@ -159,7 +159,7 @@ class AccountsViewsTest(TestCase):
         test_file = SimpleUploadedFile(
             "document.pdf", b"PDF content", content_type="application/pdf"
         )
-        
+
         # Include the file in your POST data
         response = self.client.post(
             reverse("verify"),
@@ -171,7 +171,7 @@ class AccountsViewsTest(TestCase):
             },
             follow=True,
         )
-        
+
         self.assertIn("request_sent", response.context)
         # Rest of your assertions...
 
