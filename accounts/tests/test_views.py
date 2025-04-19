@@ -155,6 +155,9 @@ class AccountsViewsTest(TestCase):
         """
         A POST request to the verify view with valid user information should create a verification request.
         """
+        # Log in the user with force_login (matches pattern used in other tests)
+        self.client.force_login(self.user)
+
         # Create a test file
         test_file = SimpleUploadedFile(
             "document.pdf", b"PDF content", content_type="application/pdf"
@@ -173,7 +176,10 @@ class AccountsViewsTest(TestCase):
         )
 
         self.assertIn("request_sent", response.context)
-        # Rest of your assertions...
+
+        # Add additional assertions to verify the request was created
+        self.user.profile.refresh_from_db()
+        self.assertTrue(self.user.profile.verification_requested)
 
     def test_verify_view_post_invalid_age(self):
         """
