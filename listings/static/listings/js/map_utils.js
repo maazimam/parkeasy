@@ -565,26 +565,34 @@ function addListingsToMap() {
 
     listings.forEach((listing) => {
         try {
-            console.log("listing", listing);
+            // Skip listings that don't have required data attributes
+            if (!listing.dataset.location || !listing.dataset.title || !listing.dataset.price) {
+                console.warn("Skipping listing with missing required data attributes");
+                return;
+            }
+
             const location = parseLocation(listing.dataset.location);
-            console.log("location", location);
-            const locationName = listing.dataset.locationName;
+            
+            // Skip listings with invalid location data
+            if (!location || !location.lat || !location.lng || 
+                isNaN(location.lat) || isNaN(location.lng)) {
+                console.warn(`Invalid location data for listing: ${listing.dataset.title}`);
+                return;
+            }
+            
+            const locationName = listing.dataset.locationName || listing.dataset.location;
             const title = listing.dataset.title;
             const price = listing.dataset.price;
-            const rating = parseFloat(listing.dataset.rating) || 0;
+            const rating = parseFloat(listing.dataset.rating) || 0; // Rating can default to 0
 
-            console.log(
-                `Adding listing: ${title} at ${location.lat}, ${location.lng}`
-            );
-
-            // Create the marker but add it to the layer group instead of the map
+            // Now create the marker with validated data
             const marker = L.marker([location.lat, location.lng], {
-                zIndexOffset: 1000, // Higher z-index to appear above garage markers
+                zIndexOffset: 1000
             });
-
+            
             listingLayerGroup.addLayer(marker);
             bounds.push([location.lat, location.lng]);
-
+            
             // Create popup content
             const ratingHtml = rating
                 ? `<div style="margin-bottom: 8px; display: flex; align-items: center;">
