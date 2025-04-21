@@ -732,3 +732,7 @@ def user_listings(request, username):
         "username": username,
     }
     return render(request, "listings/user_listings.html", context)
+
+
+def map_legend(request):
+    return render(request, "listings/map_legend.html")
