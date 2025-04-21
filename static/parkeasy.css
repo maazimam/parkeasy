@@ -411,3 +411,13 @@ button.btn-primary.active {
     right: 29px;
     border: none;
 }
+
+/* Make the dropdown hover more forceful by being more specific */
+.navbar .navbar-nav .dropdown:hover .dropdown-menu {
+    display: block !important;
+}
+
+/* Same for the chevron rotation */
+.navbar .navbar-nav .dropdown:hover .chevron-icon {
+    transform: rotate(180deg) !important;
+}
