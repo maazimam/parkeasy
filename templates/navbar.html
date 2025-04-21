@@ -17,7 +17,7 @@
                     
                     {% if user.is_staff %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link custom-dropdown position-relative pe-4" href="#" id="adminDropdown" role="button" aria-expanded="false">
+                            <a class="nav-link custom-dropdown position-relative pe-4" href="#" id="adminDropdown" role="button">
                                 Admin <i class="fas fa-chevron-down ms-1 small text-primary chevron-icon"></i>
                                 {% if pending_verifications_count > 0 or pending_reports_count > 0 %}
                                     <span class="notification-indicator">
@@ -53,7 +53,7 @@
 
                      <!-- Profile dropdown with notifications and messages -->
                      <li class="nav-item dropdown">
-                        <a class="nav-link custom-dropdown position-relative pe-4" href="#" id="profileDropdown" role="button" aria-expanded="false">
+                        <a class="nav-link custom-dropdown position-relative pe-4" href="#" id="profileDropdown" role="button">
                             Profile <i class="fas fa-chevron-down ms-1 small text-primary chevron-icon"></i>
                             {% if total_unread_count > 0 %}
                                 <span class="notification-indicator">
