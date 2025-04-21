@@ -98,13 +98,12 @@ class Listing(models.Model):
                     merged.append(interval)
         coverage_start = start_dt
         for iv_start, iv_end in merged:
-            if iv_start <= coverage_start < iv_end:
-                if iv_end >= end_dt:
-                    return True
-                coverage_start = iv_end
-            elif iv_start > coverage_start:
+            if iv_start <= coverage_start and iv_end >= end_dt:
+                return True
+            if iv_start > coverage_start:
                 return False
-        return False
+            coverage_start = iv_end
+        return coverage_start >= end_dt
 
     # These two properties allow us to access the start and end date and time of a listing
     @property

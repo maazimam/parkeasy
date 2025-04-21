@@ -5,12 +5,9 @@ let searchMap;
 let searchMarker;
 let mapInitialized = false;
 let listingMarkers = []; // Keep track of all listing markers
-let garageMarkers = [];
 let currentMapView = null;
-let garageLayerGroup;
 let listingLayerGroup;
 let currentMap;
-let meterLayerGroup;
 
 // Map-related functions (outside DOMContentLoaded)
 function initializeMap() {
@@ -22,8 +19,6 @@ function initializeMap() {
 
         // Initialize layer groups
         listingLayerGroup = L.layerGroup().addTo(searchMap);
-        garageLayerGroup = L.layerGroup(); // Don't add to map by default
-        meterLayerGroup = L.layerGroup(); // Don't add to map by default
 
         // Add click event to map
         searchMap.on("click", onMapClick);
@@ -31,13 +26,14 @@ function initializeMap() {
         // Add the legend to the search map
         searchMap.addControl(createMapLegend());
 
-        // Initialize garages but don't add to map yet
-        addGaragesDirectly(searchMap);
-
-        // Initialize parking meters but don't add to map yet
-        addParkingMeters(searchMap);
+        // Force map resize
+        setTimeout(() => {
+            searchMap.invalidateSize(true);
+            console.log("Map size invalidated");
+        }, 100);
 
         mapInitialized = true;
+        console.log("Map initialized successfully");
     }
 }
 
@@ -376,17 +372,27 @@ document.addEventListener("DOMContentLoaded", function() {
     initializeEvChargerToggle();
     initializeRecurringPatternToggle();
     initializeMultipleDaysToggle();
+
+    // Initialize map first
     initializeMap();
+
+    // Then add listings to map
+    setTimeout(() => {
+        console.log("Adding listings to map...");
+        addListingsToMap();
+    }, 200);
+
     setMinDates();
-    addListingsToMap();
     initializeLocationName();
     setupSearch();
     setupLoadMoreButton();
     initializePopover();
+
     // Force map resize immediately AND after a short delay
     setTimeout(() => {
         if (searchMap) {
             searchMap.invalidateSize(true);
+            console.log("Map resized");
         }
 
         // Fix any initial spacing issues with the layout
@@ -404,6 +410,7 @@ document.addEventListener("DOMContentLoaded", function() {
     window.addEventListener("resize", function() {
         if (searchMap) {
             searchMap.invalidateSize(true);
+            console.log("Map resized on window resize");
         }
     });
 
