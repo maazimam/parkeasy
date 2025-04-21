@@ -70,7 +70,6 @@ function searchLocation(query, options = {}) {
         return;
     }
 
-    console.log("query", query);
     const defaultOptions = {
         restrictToNYC: true,
         onSuccess: () => {},
@@ -107,7 +106,7 @@ function searchLocation(query, options = {}) {
             mode: "cors", // Try with explicit CORS mode
         })
         .then((response) => {
-            console.log("response", response);
+
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
@@ -135,9 +134,6 @@ function searchLocation(query, options = {}) {
             }
         })
         .catch((error) => {
-            console.log("error", error);
-            console.log("error.message", error.message);
-            console.log("error.name", error.name);
             console.error("Nominatim API error:", error);
 
             // Fallback for CORS issues - use a hardcoded NYC location
@@ -232,8 +228,6 @@ function initializeLocationName() {
     const searchLng = document.getElementById("search-lng").value;
 
     if (searchLat && searchLng && searchLat !== "None" && searchLng !== "None") {
-        console.log("searchLat", searchLat);
-        console.log("searchLng", searchLng);
 
         // Ensure we have valid numbers
         const lat = parseFloat(searchLat);
@@ -289,90 +283,6 @@ function initializeLocationName() {
                 }
             }, 100);
         }
-    }
-}
-
-function addListingsToMap() {
-    console.log("Starting addListingsToMap...");
-    // TODO: change so that the listings are not depended on the html structure
-    // Add markers for all listings (as in original code)
-    const listings = document.querySelectorAll(".card");
-    console.log("Found listings:", listings.length);
-    const bounds = [];
-
-    // Ensure listingLayerGroup exists
-    if (!listingLayerGroup) {
-        console.log("Creating new listingLayerGroup");
-        listingLayerGroup = L.layerGroup().addTo(searchMap);
-    } else {
-        console.log("Clearing existing listingLayerGroup");
-        // Clear existing markers
-        listingLayerGroup.clearLayers();
-    }
-
-    listings.forEach((listing) => {
-        try {
-            console.log("Processing listing:", listing);
-            const location = parseLocation(listing.dataset.location);
-            console.log("Parsed location:", location);
-            const locationName = listing.dataset.locationName;
-            const title = listing.dataset.title;
-            const price = listing.dataset.price;
-            const rating = parseFloat(listing.dataset.rating) || 0;
-
-            console.log(
-                `Adding listing: ${title} at ${location.lat}, ${location.lng}`
-            );
-
-            // Create the marker but add it to the layer group instead of the map
-            const marker = L.marker([location.lat, location.lng], {
-                zIndexOffset: 1000, // Higher z-index to appear above garage markers
-            });
-
-            listingLayerGroup.addLayer(marker);
-            bounds.push([location.lat, location.lng]);
-
-            // Create popup content
-            const ratingHtml = rating ?
-                `<div style="margin-bottom: 8px; display: flex; align-items: center;">
-                    <i class="fas fa-star" style="color: #f1c40f; margin-right: 8px;"></i>
-                    <span style="color: #34495e; font-size: 13px;">${rating.toFixed(1)} (${generateStarRating(rating)})</span>
-                </div>` :
-                `<div style="margin-bottom: 8px; display: flex; align-items: center;">
-                    <i class="fas fa-star" style="color: #bdc3c7; margin-right: 8px;"></i>
-                    <span style="color: #7f8c8d; font-size: 13px;">No reviews yet</span>
-                </div>`;
-
-            const popupContent = `
-                <div class="listing-popup" style="padding: 8px; min-width: 200px;">
-                    <div style="margin-bottom: 12px;">
-                        <h4 style="margin: 0; color: #2c3e50; font-size: 16px;">${title}</h4>
-                    </div>
-                    <div style="margin-bottom: 10px; display: flex; align-items: flex-start;">
-                        <i class="fas fa-map-marker-alt" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
-                        <div style="color: #34495e; font-size: 13px;">${locationName}</div>
-                    </div>
-                    <div style="margin-bottom: 8px; display: flex; align-items: center;">
-                        <i class="fas fa-tag" style="color: #7f8c8d; margin-right: 8px;"></i>
-                        <span style="color: #34495e; font-size: 13px;">$${Math.abs(price).toFixed(2)}/hour</span>
-                    </div>
-                    ${ratingHtml}
-                </div>
-            `;
-
-            marker.bindPopup(popupContent);
-            console.log("Successfully added marker for listing:", title);
-        } catch (error) {
-            console.error("Error adding listing marker:", error);
-        }
-    });
-
-    // Fit map to bounds if we have any markers
-    if (bounds.length > 0) {
-        console.log("Fitting map to bounds");
-        searchMap.fitBounds(bounds);
-    } else {
-        console.log("No bounds to fit to");
     }
 }
 
