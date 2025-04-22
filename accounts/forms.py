@@ -121,9 +121,13 @@ class AdminNotificationForm(forms.Form):
         recipient_type = cleaned_data.get("recipient_type")
         selected_users = cleaned_data.get("selected_users")
 
-        if recipient_type == "SELECTED" and not selected_users:
-            raise forms.ValidationError(
-                "You must select at least one user when choosing 'Selected Users'."
-            )
+        # Check if data is valid so far
+        if not self.errors and recipient_type == "SELECTED":
+            # Check if selected_users is empty (converted to empty list when getting the value)
+            if not selected_users or len(selected_users) == 0:
+                self.add_error(
+                    None,
+                    "You must select at least one user when choosing 'Selected Users'.",
+                )
 
         return cleaned_data
