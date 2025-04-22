@@ -1,4 +1,4 @@
-from datetime import datetime, time, timedelta
+from datetime import datetime, time
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -7,7 +7,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.db import models
 from django.forms import inlineformset_factory
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import (
@@ -24,8 +23,6 @@ from .models import (
     ListingSlot,
 )
 from .utils import (
-    calculate_distance,
-    extract_coordinates,
     filter_listings,
     has_active_filters,
 )
