@@ -1,15 +1,15 @@
 // NYC map bounds and configuration
 const NYC_BOUNDS = {
-  min_lat: 40.477399, // Southernmost point of NYC
-  max_lat: 40.917577, // Northernmost point of NYC
-  min_lng: -74.25909, // Westernmost point of NYC
-  max_lng: -73.700272, // Easternmost point of NYC
+    min_lat: 40.477399, // Southernmost point of NYC
+    max_lat: 40.917577, // Northernmost point of NYC
+    min_lng: -74.25909, // Westernmost point of NYC
+    max_lng: -73.700272, // Easternmost point of NYC
 };
 
 // Create a Leaflet bounds object from the NYC bounds
 const NYC_LEAFLET_BOUNDS = [
-  [NYC_BOUNDS.min_lat, NYC_BOUNDS.min_lng], // Southwest corner
-  [NYC_BOUNDS.max_lat, NYC_BOUNDS.max_lng], // Northeast corner
+    [NYC_BOUNDS.min_lat, NYC_BOUNDS.min_lng], // Southwest corner
+    [NYC_BOUNDS.max_lat, NYC_BOUNDS.max_lng], // Northeast corner
 ];
 
 // NYC center coordinates (approximate)
@@ -17,25 +17,24 @@ const NYC_CENTER = [40.7128, -74.006];
 
 // Function to initialize a map with NYC bounds
 function initializeNYCMap(mapElementId, options = {}) {
-  // Create the map with NYC center
-  const map = L.map(mapElementId, {
-    center: options.center || NYC_CENTER,
-    zoom: options.zoom || 11,
-    maxBounds: NYC_LEAFLET_BOUNDS,
-    minZoom: options.minZoom || 10,
-    ...options,
-  });
+    // Create the map with NYC center
+    const map = L.map(mapElementId, {
+        center: options.center || NYC_CENTER,
+        zoom: options.zoom || 11,
+        maxBounds: NYC_LEAFLET_BOUNDS,
+        minZoom: options.minZoom || 10,
+        ...options,
+    });
 
-  // Add the tile layer
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  }).addTo(map);
+    // Add the tile layer
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
 
-  // Set max bounds with padding to prevent scrolling too far outside NYC
-  map.setMaxBounds(map.getBounds().pad(0.1));
+    // Set max bounds with padding to prevent scrolling too far outside NYC
+    map.setMaxBounds(map.getBounds().pad(0.1));
 
-  return map;
+    return map;
 }
 
 // Nominatim API utilities
@@ -47,12 +46,12 @@ function initializeNYCMap(mapElementId, options = {}) {
  * @returns {boolean} - True if coordinates are within NYC bounds
  */
 function isWithinNYC(lat, lng) {
-  return (
-    lat >= NYC_BOUNDS.min_lat &&
-    lat <= NYC_BOUNDS.max_lat &&
-    lng >= NYC_BOUNDS.min_lng &&
-    lng <= NYC_BOUNDS.max_lng
-  );
+    return (
+        lat >= NYC_BOUNDS.min_lat &&
+        lat <= NYC_BOUNDS.max_lat &&
+        lng >= NYC_BOUNDS.min_lng &&
+        lng <= NYC_BOUNDS.max_lng
+    );
 }
 
 /**
@@ -66,100 +65,100 @@ function isWithinNYC(lat, lng) {
  * @param {Function} options.onError - Callback for errors
  */
 function searchLocation(query, options = {}) {
-  if (!query) {
-    if (options.onError) options.onError("No search query provided");
-    return;
-  }
+    if (!query) {
+        if (options.onError) options.onError("No search query provided");
+        return;
+    }
 
-  console.log("query", query);
-  const defaultOptions = {
-    restrictToNYC: true,
-    onSuccess: () => {},
-    onOutOfBounds: () =>
-      alert(
-        "Location is outside of New York City. Please search for a location within NYC."
-      ),
-    onNotFound: () =>
-      alert("Location not found. Please try a different search term."),
-    onError: (error) => {
-      console.error("Search error:", error);
-      alert("Error searching for location. Please try again.");
-    },
-  };
+    console.log("query", query);
+    const defaultOptions = {
+        restrictToNYC: true,
+        onSuccess: () => {},
+        onOutOfBounds: () =>
+            alert(
+                "Location is outside of New York City. Please search for a location within NYC."
+            ),
+        onNotFound: () =>
+            alert("Location not found. Please try a different search term."),
+        onError: (error) => {
+            console.error("Search error:", error);
+            alert("Error searching for location. Please try again.");
+        },
+    };
 
-  const mergedOptions = { ...defaultOptions, ...options };
+    const mergedOptions = {...defaultOptions, ...options };
 
-  // Build the URL
-  let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+    // Build the URL
+    let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
     query
   )}`;
 
-  // Add viewbox parameter if restricting to NYC
-  if (mergedOptions.restrictToNYC) {
-    url += `&viewbox=${NYC_BOUNDS.min_lng},${NYC_BOUNDS.min_lat},${NYC_BOUNDS.max_lng},${NYC_BOUNDS.max_lat}&bounded=1`;
-  }
+    // Add viewbox parameter if restricting to NYC
+    if (mergedOptions.restrictToNYC) {
+        url += `&viewbox=${NYC_BOUNDS.min_lng},${NYC_BOUNDS.min_lat},${NYC_BOUNDS.max_lng},${NYC_BOUNDS.max_lat}&bounded=1`;
+    }
 
-  // Add CORS headers to the request
-  fetch(url, {
-    headers: {
-      Accept: "application/json",
-      "User-Agent": "ParkEasy NYC Application (https://parkeasy.example.com)",
-    },
-    mode: "cors", // Try with explicit CORS mode
-  })
-    .then((response) => {
-      console.log("response", response);
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then((data) => {
-      if (data && data.length > 0) {
-        const location = data[0];
-        const lat = parseFloat(location.lat);
-        const lng = parseFloat(location.lon);
+    // Add CORS headers to the request
+    fetch(url, {
+            headers: {
+                Accept: "application/json",
+                "User-Agent": "ParkEasy NYC Application (https://parkeasy.example.com)",
+            },
+            mode: "cors", // Try with explicit CORS mode
+        })
+        .then((response) => {
+            console.log("response", response);
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then((data) => {
+            if (data && data.length > 0) {
+                const location = data[0];
+                const lat = parseFloat(location.lat);
+                const lng = parseFloat(location.lon);
 
-        // Check if within NYC bounds if restriction is enabled
-        if (!mergedOptions.restrictToNYC || isWithinNYC(lat, lng)) {
-          mergedOptions.onSuccess({
-            lat,
-            lng,
-            displayName: location.display_name,
-            raw: location,
-          });
-        } else {
-          mergedOptions.onOutOfBounds();
-        }
-      } else {
-        mergedOptions.onNotFound();
-      }
-    })
-    .catch((error) => {
-      console.log("error", error);
-      console.log("error.message", error.message);
-      console.log("error.name", error.name);
-      console.error("Nominatim API error:", error);
+                // Check if within NYC bounds if restriction is enabled
+                if (!mergedOptions.restrictToNYC || isWithinNYC(lat, lng)) {
+                    mergedOptions.onSuccess({
+                        lat,
+                        lng,
+                        displayName: location.display_name,
+                        raw: location,
+                    });
+                } else {
+                    mergedOptions.onOutOfBounds();
+                }
+            } else {
+                mergedOptions.onNotFound();
+            }
+        })
+        .catch((error) => {
+            console.log("error", error);
+            console.log("error.message", error.message);
+            console.log("error.name", error.name);
+            console.error("Nominatim API error:", error);
 
-      // Fallback for CORS issues - use a hardcoded NYC location
-      if (error.message.includes("CORS") || error.name === "TypeError") {
-        console.warn("CORS issue detected, using fallback NYC location");
+            // Fallback for CORS issues - use a hardcoded NYC location
+            if (error.message.includes("CORS") || error.name === "TypeError") {
+                console.warn("CORS issue detected, using fallback NYC location");
 
-        // Use a fallback location in NYC (Times Square)
-        const fallbackLocation = {
-          lat: 40.758,
-          lng: -73.9855,
-          displayName: "Times Square, Manhattan, NYC",
-        };
+                // Use a fallback location in NYC (Times Square)
+                const fallbackLocation = {
+                    lat: 40.758,
+                    lng: -73.9855,
+                    displayName: "Times Square, Manhattan, NYC",
+                };
 
-        alert(
-          "Location search is currently unavailable. Using a default NYC location."
-        );
-        mergedOptions.onSuccess(fallbackLocation);
-      } else {
-        mergedOptions.onError(error);
-      }
-    });
+                alert(
+                    "Location search is currently unavailable. Using a default NYC location."
+                );
+                mergedOptions.onSuccess(fallbackLocation);
+            } else {
+                mergedOptions.onError(error);
+            }
+        });
 }
 
 /**
@@ -171,474 +170,594 @@ function searchLocation(query, options = {}) {
  * @param {Function} options.onError - Callback for errors
  */
 function reverseGeocode(lat, lng, options = {}) {
-  const defaultOptions = {
-    onSuccess: () => {},
-    onError: (error) => {
-      console.error("Reverse geocoding error:", error);
-    },
-  };
+    const defaultOptions = {
+        onSuccess: () => {},
+        onError: (error) => {
+            console.error("Reverse geocoding error:", error);
+        },
+    };
 
-  const mergedOptions = { ...defaultOptions, ...options };
+    const mergedOptions = {...defaultOptions, ...options };
 
-  fetch(
-    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
-    {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "ParkEasy NYC Application (https://parkeasy.example.com)",
-      },
-      mode: "cors", // Try with explicit CORS mode
-    }
-  )
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then((data) => {
-      if (data && data.display_name) {
-        mergedOptions.onSuccess({
-          displayName: data.display_name,
-          raw: data,
-        });
-      } else {
-        mergedOptions.onError("No address found for these coordinates");
-      }
-    })
-    .catch((error) => {
-      console.error("Nominatim API error:", error);
+    fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+                headers: {
+                    Accept: "application/json",
+                    "User-Agent": "ParkEasy NYC Application (https://parkeasy.example.com)",
+                },
+                mode: "cors", // Try with explicit CORS mode
+            }
+        )
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then((data) => {
+            if (data && data.display_name) {
+                mergedOptions.onSuccess({
+                    displayName: data.display_name,
+                    raw: data,
+                });
+            } else {
+                mergedOptions.onError("No address found for these coordinates");
+            }
+        })
+        .catch((error) => {
+            console.error("Nominatim API error:", error);
 
-      // Fallback for CORS issues - generate a simple address
-      if (error.message.includes("CORS") || error.name === "TypeError") {
-        console.warn("CORS issue detected, using fallback address generation");
+            // Fallback for CORS issues - generate a simple address
+            if (error.message.includes("CORS") || error.name === "TypeError") {
+                console.warn("CORS issue detected, using fallback address generation");
 
-        // Create a simple address string using the coordinates
-        const simplifiedAddress = `Location at ${lat.toFixed(4)}, ${lng.toFixed(
+                // Create a simple address string using the coordinates
+                const simplifiedAddress = `Location at ${lat.toFixed(4)}, ${lng.toFixed(
           4
         )}`;
 
-        mergedOptions.onSuccess({
-          displayName: simplifiedAddress,
-          raw: { display_name: simplifiedAddress },
+                mergedOptions.onSuccess({
+                    displayName: simplifiedAddress,
+                    raw: { display_name: simplifiedAddress },
+                });
+            } else {
+                mergedOptions.onError(error);
+            }
         });
-      } else {
-        mergedOptions.onError(error);
-      }
-    });
 }
-
 
 // Create a new map legend with toggle functionality
 function createMapLegend() {
-  const legend = L.control({ position: 'bottomright' });
+    const legend = L.control({ position: 'bottomright' });
 
-  legend.onAdd = function(map) {
-      const div = L.DomUtil.create('div', 'map-legend');
-      div.innerHTML = `
-          <div style="background: white; padding: 8px; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.4); font-size: 12px;">
-              <div style="font-weight: bold; margin-bottom: 5px; text-align: center;">Map Legend</div>
-              
-              <div style="display: flex; align-items: center; margin-bottom: 5px;">
-                  <input type="checkbox" id="toggle-garages" checked style="margin-right: 5px;">
-                  <div style="
-                      background-color: #2c3e50; 
-                      width: 20px; 
-                      height: 20px; 
-                      border-radius: 5px;
-                      display: flex; 
-                      justify-content: center; 
-                      align-items: center; 
-                      border: 2px solid white; 
-                      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-                      margin-right: 8px;
-                      margin-left: 3px;
-                  ">
-                      <i class="fas fa-car" style="color: white; font-size: 10px; transform: rotate(-45deg);"></i>
-                  </div>
-                  <label for="toggle-garages">Parking Garages</label>
-              </div>
-              
-              <div style="display: flex; align-items: center;">
-                  <input type="checkbox" id="toggle-listings" checked style="margin-right: 5px;">
-                  <div style="
-                      background-color: #3388ff; 
-                      width: 20px; 
-                      height: 20px; 
-                      border-radius: 50%;
-                      border: 2px solid white; 
-                      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-                      margin-right: 8px;
-                      margin-left: 3px;
-                  "></div>
-                  <label for="toggle-listings">Available Listings</label>
-              </div>
-          </div>
-      `;
-      
-      // Prevent clicks on the legend from propagating to the map
-      L.DomEvent.disableClickPropagation(div);
-      
-      // Add event listeners to the toggle switches after a slight delay to ensure DOM is ready
-      setTimeout(() => {
-          const toggleGarages = document.getElementById('toggle-garages');
-          const toggleListings = document.getElementById('toggle-listings');
-          
-          if (toggleGarages) {
-              toggleGarages.addEventListener('change', function() {
-                  if (this.checked) {
-                      if (!map.hasLayer(garageLayerGroup)) {
-                          map.addLayer(garageLayerGroup);
-                      }
-                  } else {
-                      if (map.hasLayer(garageLayerGroup)) {
-                          map.removeLayer(garageLayerGroup);
-                      }
-                  }
-              });
-          }
-          
-          if (toggleListings) {
-              toggleListings.addEventListener('change', function() {
-                  if (this.checked) {
-                      if (!map.hasLayer(listingLayerGroup)) {
-                          map.addLayer(listingLayerGroup);
-                      }
-                  } else {
-                      if (map.hasLayer(listingLayerGroup)) {
-                          map.removeLayer(listingLayerGroup);
-                      }
-                  }
-              });
-          }
-      }, 100);
-      
-      return div;
-  };
+    legend.onAdd = function(map) {
+        const div = L.DomUtil.create('div', 'map-legend');
 
-  return legend;
+        // Load the legend HTML from the template
+        fetch('/listings/map_legend/')
+            .then(response => response.text())
+            .then(html => {
+                div.innerHTML = html;
+
+                // Prevent clicks on the legend from propagating to the map
+                L.DomEvent.disableClickPropagation(div);
+
+                // Add event listeners to the toggle switches
+                const toggleGarages = document.getElementById('toggle-garages');
+                const toggleMeters = document.getElementById('toggle-meters');
+                const toggleListings = document.getElementById('toggle-listings');
+
+                if (toggleGarages) {
+                    toggleGarages.addEventListener('change', function() {
+                        if (this.checked) {
+                            if (!map.hasLayer(garageLayerGroup)) {
+                                map.addLayer(garageLayerGroup);
+                            }
+                        } else {
+                            if (map.hasLayer(garageLayerGroup)) {
+                                map.removeLayer(garageLayerGroup);
+                            }
+                        }
+                    });
+                }
+
+                if (toggleMeters) {
+                    toggleMeters.addEventListener('change', function() {
+                        if (this.checked) {
+                            if (!map.hasLayer(meterLayerGroup)) {
+                                map.addLayer(meterLayerGroup);
+                            }
+                        } else {
+                            if (map.hasLayer(meterLayerGroup)) {
+                                map.removeLayer(meterLayerGroup);
+                            }
+                        }
+                    });
+                }
+
+                if (toggleListings) {
+                    toggleListings.addEventListener('change', function() {
+                        if (this.checked) {
+                            if (!map.hasLayer(listingLayerGroup)) {
+                                map.addLayer(listingLayerGroup);
+                            }
+                        } else {
+                            if (map.hasLayer(listingLayerGroup)) {
+                                map.removeLayer(listingLayerGroup);
+                            }
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading map legend:', error);
+            });
+
+        return div;
+    };
+
+    return legend;
 }
 
 // This is a simpler function that directly adds garages to the map
 function addGaragesDirectly(map) {
-  console.log("Adding garages directly to map...");
-  currentMap = map;
-  
-  // Create layer group if it doesn't exist
-  if (!garageLayerGroup) {
-      garageLayerGroup = L.layerGroup().addTo(map);
-  }
+    console.log("Adding garages directly to map...");
+    currentMap = map;
 
-  // Create marker icon - code remains the same
-  const garageIcon = L.divIcon({
-      html: `<div style="
-          background-color: #2c3e50; 
-          width: 22px;   /* Reduced from 28px */
-          height: 22px;  /* Reduced from 28px */
-          border-radius: 5px;
-          display: flex; 
-          justify-content: center; 
-          align-items: center; 
-          border: 1px solid white; /* Thinner border */
-          box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-      ">
-          <i class="fas fa-car" style="
-              color: white; 
-              font-size: 11px;  /* Reduced from 14px */
-              transform: rotate(-45deg);
-          "></i>
-      </div>`,
-      className: 'garage-marker',
-      iconSize: [22, 22],     /* Reduced from [28, 28] */
-      iconAnchor: [11, 22],   /* Adjusted for new size */
-      popupAnchor: [0, -22]   /* Adjusted for new size */
-  });
+    // Create marker icon
+    const garageIcon = L.divIcon({
+        html: markerTemplates.garage,
+        className: 'garage-marker',
+        iconSize: [18, 18],
+        iconAnchor: [9, 18],
+        popupAnchor: [0, -18]
+    });
 
-  // Create backup markers to use if API fails
-  const backupGarages = [
-      {
-          name: "SUTTON 53 PARKING LLC",
-          address: "410 EAST 54 STREET, NEW YORK, NY 10022",
-          phone: "(877) 727-5464",
-          lat: 40.757700,
-          lng: -73.963900
-      },
-      {
-          name: "TIMES SQUARE GARAGE", 
-          address: "224 WEST 49TH STREET, NEW YORK, NY 10019",
-          phone: "(212) 333-7275",
-          lat: 40.760800,
-          lng: -73.984700
-      }
-  ];
+    // Create backup markers to use if API fails
+    const backupGarages = [{
+            name: "SUTTON 53 PARKING LLC",
+            address: "410 EAST 54 STREET, NEW YORK, NY 10022",
+            phone: "(877) 727-5464",
+            lat: 40.757700,
+            lng: -73.963900
+        },
+        {
+            name: "TIMES SQUARE GARAGE",
+            address: "224 WEST 49TH STREET, NEW YORK, NY 10019",
+            phone: "(212) 333-7275",
+            lat: 40.760800,
+            lng: -73.984700
+        }
+    ];
 
-  if (!map) {
-      console.error("Map object is null or undefined in addGaragesDirectly!");
-      return;
-  }
+    if (!map) {
+        console.error("Map object is null or undefined in addGaragesDirectly!");
+        return;
+    }
 
-  // Add each garage marker from backup if needed
-  function addBackupMarkers() {
-      backupGarages.forEach((garage, index) => {
-          try {
-              console.log(`Adding backup garage ${index+1}/${backupGarages.length}: "${garage.name}" at ${garage.lat}, ${garage.lng}`);
+    // Add each garage marker from backup if needed
+    function addBackupMarkers() {
+        backupGarages.forEach((garage, index) => {
+                    try {
+                        console.log(`Adding backup garage ${index+1}/${backupGarages.length}: "${garage.name}" at ${garage.lat}, ${garage.lng}`);
 
-              // Create marker and add to LAYER GROUP instead of map
-              const marker = L.marker([garage.lat, garage.lng], {
-                  icon: garageIcon,
-                  title: garage.name,
-                  zIndexOffset: 100  // Lower z-index to ensure garages stay behind listings
-              });
-              
-              garageLayerGroup.addLayer(marker);
+                        // Create marker and add to LAYER GROUP instead of map
+                        const marker = L.marker([garage.lat, garage.lng], {
+                            icon: garageIcon,
+                            title: garage.name,
+                            zIndexOffset: 100 // Lower z-index to ensure garages stay behind listings
+                        });
 
-              // Create popup content
-              const popupContent = `
-                  <div class="garage-popup">
-                      <h4 class="garage-name">${garage.name}</h4>
-                      <div class="garage-address">
-                          <i class="fas fa-map-marker-alt"></i>
-                          <div>${garage.address}</div>
-                      </div>
-                      <div class="garage-phone">
-                          <i class="fas fa-phone"></i>
-                          <a href="tel:${garage.phone}">${garage.phone}</a>
-                      </div>
-                  </div>
-              `;
+                        garageLayerGroup.addLayer(marker);
 
-              // Bind popup to marker
-              marker.bindPopup(popupContent);
-              
-              // Open popup for first marker
-              if (index === 0) {
-                  setTimeout(() => {
-                      marker.openPopup();
-                  }, 500);
-              }
-          } catch (error) {
-              console.error(`Error adding backup garage ${garage.name}:`, error);
-          }
-      });
-  }
+                        // Create popup content
+                        const popupContent = `
+                    <div class="garage-popup" style="padding: 8px; min-width: 250px;">
+                        <div style="margin-bottom: 12px;">
+                            <h4 style="margin: 0; color: #2c3e50; font-size: 16px;">${garage.name}</h4>
+                        </div>
+                        <div style="margin-bottom: 10px; display: flex; align-items: flex-start;">
+                            <i class="fas fa-map-marker-alt" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
+                            <div style="color: #34495e; font-size: 13px;">
+                                ${garage.address}<br>
+                                <span style="color: #7f8c8d; font-size: 12px;">New York, NY</span>
+                            </div>
+                        </div>
+                        ${garage.phone ? `
+                        <div style="margin-bottom: 10px; display: flex; align-items: center;">
+                            <i class="fas fa-phone" style="color: #7f8c8d; margin-right: 8px;"></i>
+                            <a href="tel:${garage.phone}" style="color: #34495e; text-decoration: none; font-size: 13px;">${garage.phone}</a>
+                        </div>` : ''}
+                    </div>
+                `;
 
-  // Try to fetch garages from NYC Open Data API
-  fetch('https://data.cityofnewyork.us/resource/5bhr-pjxt.json?$limit=50')
-      .then(response => {
-          if (!response.ok) {
-              throw new Error('Network response was not ok');
-          }
-          return response.json();
-      })
-      .then(garages => {
-          console.log(`Fetched ${garages.length} garages from NYC API`);
-          
-          // Add markers for each garage
-          garages.forEach(garage => {
-              // Only add markers if we have coordinates
-              if (garage.latitude && garage.longitude) {
-                  try {
-                      const lat = parseFloat(garage.latitude);
-                      const lng = parseFloat(garage.longitude);
-                      
-                      // Format the address string
-                      const address = [
-                          garage.address_building, 
-                          garage.address_street_name,
-                          garage.address_city, 
-                          garage.address_state,
-                          garage.address_zip
-                      ].filter(Boolean).join(' ');
-                      
-                      // Get capacity info
-                      let capacity = "";
-                      if (garage.detail) {
-                          capacity = garage.detail;
-                      }
-                      
-                      // Create marker and add to LAYER GROUP instead of map
-                      const marker = L.marker([lat, lng], {
-                          icon: garageIcon,
-                          title: garage.business_name,
-                          zIndexOffset: 100  // Lower z-index to ensure garages stay behind listings
-                      });
-                      
-                      garageLayerGroup.addLayer(marker);
-                      
-                      // Create popup content
-                      const popupContent = `
-                          <div class="garage-popup">
-                              <h4 class="garage-name">${garage.business_name}</h4>
-                              <div class="garage-address">
-                                  <i class="fas fa-map-marker-alt"></i>
-                                  <div>${address}</div>
-                              </div>
-                              ${garage.contact_phone ? `
-                              <div class="garage-phone">
-                                  <i class="fas fa-phone"></i>
-                                  <a href="tel:${garage.contact_phone}">${garage.contact_phone}</a>
-                              </div>` : ''}
-                              ${capacity ? `
-                              <div class="garage-details">
-                                  <i class="fas fa-info-circle"></i>
-                                  <div>${capacity}</div>
-                              </div>` : ''}
-                          </div>
-                      `;
-                      
-                      // Bind popup to marker
-                      marker.bindPopup(popupContent);
-                      
-                  } catch (error) {
-                      console.error(`Error adding garage ${garage.business_name}:`, error);
-                  }
-              }
-          });
-          
-          // Center map on NYC after adding garages
-          map.setView([40.7128, -74.0060], 12);
-      })
-      .catch(error => {
-          console.error('Error fetching garage data:', error);
-          
-          // If API fails, add default markers as fallback
-          console.log("API fetch failed, adding backup garage markers");
-          addBackupMarkers();
-      });
+                // Bind popup to marker
+                marker.bindPopup(popupContent);
 
-  console.log("Garage data request initiated");
+                // Open popup for first marker
+                if (index === 0) {
+                    setTimeout(() => {
+                        marker.openPopup();
+                    }, 500);
+                }
+            } catch (error) {
+                console.error(`Error adding backup garage ${garage.name}:`, error);
+            }
+        });
+    }
+
+    // Try to fetch garages from NYC Open Data API
+    fetch('https://data.cityofnewyork.us/resource/5bhr-pjxt.json?$limit=50')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(garages => {
+            console.log(`Fetched ${garages.length} garages from NYC API`);
+
+            // Add markers for each garage
+            garages.forEach(garage => {
+                // Only add markers if we have coordinates
+                if (garage.latitude && garage.longitude) {
+                    try {
+                        const lat = parseFloat(garage.latitude);
+                        const lng = parseFloat(garage.longitude);
+
+                        // Format the address string
+                        const address = [
+                            garage.address_building,
+                            garage.address_street_name,
+                            garage.address_city,
+                            garage.address_state,
+                            garage.address_zip
+                        ].filter(Boolean).join(' ');
+
+                        // Get capacity info
+                        let capacity = "";
+                        if (garage.detail) {
+                            capacity = garage.detail;
+                        }
+
+                        // Create marker and add to LAYER GROUP instead of map
+                        const marker = L.marker([lat, lng], {
+                            icon: garageIcon,
+                            title: garage.business_name,
+                            zIndexOffset: 100 // Lower z-index to ensure garages stay behind listings
+                        });
+
+                        garageLayerGroup.addLayer(marker);
+
+                        // Create popup content
+                        const popupContent = `
+                            <div class="garage-popup" style="padding: 8px; min-width: 250px;">
+                                <div style="margin-bottom: 12px;">
+                                    <h4 style="margin: 0; color: #2c3e50; font-size: 16px;">${garage.business_name}</h4>
+                                </div>
+                                <div style="margin-bottom: 10px; display: flex; align-items: flex-start;">
+                                    <i class="fas fa-map-marker-alt" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
+                                    <div style="color: #34495e; font-size: 13px;">
+                                        ${address}<br>
+                                        <span style="color: #7f8c8d; font-size: 12px;">New York, NY</span>
+                                    </div>
+                                </div>
+                                ${garage.contact_phone ? `
+                                <div style="margin-bottom: 10px; display: flex; align-items: center;">
+                                    <i class="fas fa-phone" style="color: #7f8c8d; margin-right: 8px;"></i>
+                                    <a href="tel:${garage.contact_phone}" style="color: #34495e; text-decoration: none; font-size: 13px;">${garage.contact_phone}</a>
+                                </div>` : ''}
+                                ${capacity ? `
+                                <div style="margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                    <i class="fas fa-car" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
+                                    <div style="color: #34495e; font-size: 13px;">
+                                        <div style="margin-bottom: 4px;">Vehicle Capacity: ${capacity.match(/Vehicle Capacity: (\d+)/)?.[1] || 'N/A'}</div>
+                                        <div>Bicycle Capacity: ${capacity.match(/Bicycle Capacity: (\d+)/)?.[1] || 'N/A'}</div>
+                                    </div>
+                                </div>` : ''}
+                            </div>
+                        `;
+
+                        // Bind popup to marker
+                        marker.bindPopup(popupContent);
+                    } catch (error) {
+                        console.error(`Error adding garage ${garage.business_name}:`, error);
+                    }
+                }
+            });
+
+            // Center map on NYC after adding garages
+            map.setView([40.7128, -74.0060], 12);
+        })
+        .catch(error => {
+            console.error('Error fetching garage data:', error);
+            
+            // If API fails, add default markers as fallback
+            console.log("API fetch failed, adding backup garage markers");
+            addBackupMarkers();
+        });
+
+    console.log("Garage data request initiated");
 }
-
-
 
 function initializeLocationName() {
-  // Initialize location name if coordinates exist
-  const searchLat = document.getElementById("search-lat").value;
-  const searchLng = document.getElementById("search-lng").value;
+    // Initialize location name if coordinates exist
+    const searchLat = document.getElementById("search-lat").value;
+    const searchLng = document.getElementById("search-lng").value;
 
-  if (searchLat && searchLng && searchLat !== "None" && searchLng !== "None") {
-    console.log("searchLat", searchLat);
-    console.log("searchLng", searchLng);
+    if (searchLat && searchLng && searchLat !== "None" && searchLng !== "None") {
+        console.log("searchLat", searchLat);
+        console.log("searchLng", searchLng);
 
-    // Ensure we have valid numbers
-    const lat = parseFloat(searchLat);
-    const lng = parseFloat(searchLng);
+        // Ensure we have valid numbers
+        const lat = parseFloat(searchLat);
+        const lng = parseFloat(searchLng);
 
-    if (!isNaN(lat) && !isNaN(lng)) {
-      const latlng = L.latLng(lat, lng);
+        if (!isNaN(lat) && !isNaN(lng)) {
+            const latlng = L.latLng(lat, lng);
 
-      // Place marker and center map
-      placeMarker(latlng);
-      searchMap.setView(latlng, 15);
+            // Place marker and center map
+            placeMarker(latlng);
+            searchMap.setView(latlng, 15);
 
-      // Get location name for the coordinates
-      reverseGeocode(lat, lng, {
-        onSuccess: (result) => {
-          // Update the search input with the location name
-          document.getElementById("location-search").value = result.displayName;
-          // Expand the filter panel by removing the collapsed class and ensuring content is visible
-          const filterPanel = document.getElementById("filter-panel");
-          if (filterPanel) {
-            // This might be more reliable as it would use the existing toggle logic
-            const toggleButton = document.getElementById("toggle-filters");
-            if (toggleButton && filterPanel.classList.contains("collapsed")) {
-              toggleButton.click();
-            }
-          }
-          // Make sure the marker has a popup with the location name
-          if (searchMarker) {
-            searchMarker.bindPopup(result.displayName).openPopup();
+            // Get location name for the coordinates
+            reverseGeocode(lat, lng, {
+                onSuccess: (result) => {
+                    // Update the search input with the location name
+                    document.getElementById("location-search").value = result.displayName;
+                    // Expand the filter panel by removing the collapsed class and ensuring content is visible
+                    const filterPanel = document.getElementById("filter-panel");
+                    if (filterPanel) {
+                        // This might be more reliable as it would use the existing toggle logic
+                        const toggleButton = document.getElementById("toggle-filters");
+                        if (toggleButton && filterPanel.classList.contains("collapsed")) {
+                            toggleButton.click();
+                        }
+                    }
+                    // Make sure the marker has a popup with the location name
+                    if (searchMarker) {
+                        searchMarker.bindPopup(result.displayName).openPopup();
 
-            // Also set a default popup in case reverse geocoding fails
-            searchMarker.setPopupContent(result.displayName);
-          }
-        },
-        onError: () => {
-          // If reverse geocoding fails, still show a popup with coordinates
-          if (searchMarker) {
-            const fallbackContent = `Location at ${lat.toFixed(
-              6
-            )}, ${lng.toFixed(6)}`;
-            searchMarker.bindPopup(fallbackContent).openPopup();
-          }
-        },
-      });
+                        // Also set a default popup in case reverse geocoding fails
+                        searchMarker.setPopupContent(result.displayName);
+                    }
+                },
+                onError: () => {
+                    // If reverse geocoding fails, still show a popup with coordinates
+                    if (searchMarker) {
+                        const fallbackContent = `Location at ${lat.toFixed(
+                            6
+                        )}, ${lng.toFixed(6)}`;
+                        searchMarker.bindPopup(fallbackContent).openPopup();
+                    }
+                },
+            });
 
-      // Fix map rendering
-      setTimeout(() => {
-        searchMap.invalidateSize();
+            // Fix map rendering
+            setTimeout(() => {
+                searchMap.invalidateSize();
 
-        // Make sure marker is visible after map is properly rendered
-        if (searchMarker) {
-          searchMarker.openPopup();
+                // Make sure marker is visible after map is properly rendered
+                if (searchMarker) {
+                    searchMarker.openPopup();
+                }
+            }, 100);
         }
-      }, 100);
     }
-  }
 }
-
-
 
 function addListingsToMap() {
-  // TODO: change so that the listings are not depended on the html structure
-  // Add markers for all listings (as in original code)
-  const listings = document.querySelectorAll(".card");
-  console.log("listings", listings);
-  const bounds = [];
+    // TODO: change so that the listings are not depended on the html structure
+    // Add markers for all listings (as in original code)
+    const listings = document.querySelectorAll(".card");
+    console.log("listings", listings);
+    const bounds = [];
 
-  console.log(`Found ${listings.length} listings to add to map`);
+    console.log(`Found ${listings.length} listings to add to map`);
 
-  // Ensure listingLayerGroup exists
-  if (!listingLayerGroup) {
-    listingLayerGroup = L.layerGroup().addTo(searchMap);
-  } else {
-    // Clear existing markers
-    listingLayerGroup.clearLayers();
-  }
-
-  listings.forEach((listing) => {
-    try {
-      console.log("listing", listing);
-      const location = parseLocation(listing.dataset.location);
-      console.log("location", location);
-      const locationName = listing.dataset.locationName;
-      const title = listing.dataset.title;
-      const price = listing.dataset.price;
-      const rating = parseFloat(listing.dataset.rating) || 0;
-
-      console.log(
-        `Adding listing: ${title} at ${location.lat}, ${location.lng}`
-      );
-
-      // Create the marker but add it to the layer group instead of the map
-      const marker = L.marker([location.lat, location.lng], {
-        zIndexOffset: 1000, // Higher z-index to appear above garage markers
-      });
-
-      listingLayerGroup.addLayer(marker);
-      bounds.push([location.lat, location.lng]);
-
-      // Create popup content
-      const ratingHtml = rating
-        ? `<br><strong>Rating:</strong> ${generateStarRating(
-            rating
-          )} (${rating.toFixed(1)})`
-        : `<br><span class="text-muted">No reviews yet ${generateStarRating(
-            0
-          )}</span>`;
-
-      const popupContent = `
-            <strong>${title}</strong><br>
-            ${locationName}<br>
-            $${price}/hour
-            ${ratingHtml}
-        `;
-
-      marker.bindPopup(popupContent);
-    } catch (error) {
-      console.error("Error adding listing marker:", error);
+    // Ensure listingLayerGroup exists
+    if (!listingLayerGroup) {
+        listingLayerGroup = L.layerGroup().addTo(searchMap);
+    } else {
+        // Clear existing markers
+        listingLayerGroup.clearLayers();
     }
-  });
+
+    listings.forEach((listing) => {
+        try {
+            // Skip listings that don't have required data attributes
+            if (!listing.dataset.location || !listing.dataset.title || !listing.dataset.price) {
+                console.warn("Skipping listing with missing required data attributes");
+                return;
+            }
+
+            const location = parseLocation(listing.dataset.location);
+            
+            // Skip listings with invalid location data
+            if (!location || !location.lat || !location.lng || 
+                isNaN(location.lat) || isNaN(location.lng)) {
+                console.warn(`Invalid location data for listing: ${listing.dataset.title}`);
+                return;
+            }
+            
+            const locationName = listing.dataset.locationName || listing.dataset.location;
+            const title = listing.dataset.title;
+            const price = listing.dataset.price;
+            const rating = parseFloat(listing.dataset.rating) || 0; // Rating can default to 0
+
+            // Now create the marker with validated data
+            const marker = L.marker([location.lat, location.lng], {
+                zIndexOffset: 1000
+            });
+            
+            listingLayerGroup.addLayer(marker);
+            bounds.push([location.lat, location.lng]);
+            
+            // Create popup content
+            const ratingHtml = rating
+                ? `<div style="margin-bottom: 8px; display: flex; align-items: center;">
+                    <i class="fas fa-star" style="color: #f1c40f; margin-right: 8px;"></i>
+                    <span style="color: #34495e; font-size: 13px;">${rating.toFixed(1)} (${generateStarRating(rating)})</span>
+                  </div>`
+                : `<div style="margin-bottom: 8px; display: flex; align-items: center;">
+                    <i class="fas fa-star" style="color: #bdc3c7; margin-right: 8px;"></i>
+                    <span style="color: #7f8c8d; font-size: 13px;">No reviews yet</span>
+                  </div>`;
+
+            const popupContent = `
+                <div class="listing-popup" style="padding: 8px; min-width: 200px;">
+                    <div style="margin-bottom: 12px;">
+                        <h4 style="margin: 0; color: #2c3e50; font-size: 16px;">${title}</h4>
+                    </div>
+                    <div style="margin-bottom: 10px; display: flex; align-items: flex-start;">
+                        <i class="fas fa-map-marker-alt" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
+                        <div style="color: #34495e; font-size: 13px;">${locationName}</div>
+                    </div>
+                    <div style="margin-bottom: 8px; display: flex; align-items: center;">
+                        <i class="fas fa-tag" style="color: #7f8c8d; margin-right: 8px;"></i>
+                        <span style="color: #34495e; font-size: 13px;">$${Math.abs(price).toFixed(2)}/hour</span>
+                    </div>
+                    ${ratingHtml}
+                </div>
+            `;
+
+            marker.bindPopup(popupContent);
+        } catch (error) {
+            console.error("Error adding listing marker:", error);
+        }
+    });
 }
 
+// Function to add parking meters to the map
+function addParkingMeters(map) {
+    console.log("Adding parking meters to map...");
+    currentMap = map;
 
+    // Create layer group if it doesn't exist
+    if (!meterLayerGroup) {
+        console.log("Creating new meter layer group");
+        meterLayerGroup = L.layerGroup();
+    } else {
+        console.log("Using existing meter layer group");
+    }
+
+    // Create marker icon for parking meters
+    const meterIcon = L.divIcon({
+        html: markerTemplates.meter,
+        className: 'meter-marker',
+        iconSize: [18, 18],
+        iconAnchor: [9, 18],
+        popupAnchor: [0, -18]
+    });
+
+    // Fetch parking meter data from NYC Open Data API
+    fetch('https://data.cityofnewyork.us/resource/693u-uax6.json?$limit=120&$select=meter_number,status,on_street,from_street,to_street,lat,long,meter_hours,pay_by_cell_number,side_of_street&$where=status=\'Active\'')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(meters => {
+            console.log(`Fetched ${meters.length} parking meters from NYC API`);
+
+            // Filter out commercial parking meters
+            const regularMeters = meters.filter(meter => !meter.meter_hours?.includes('Com'));
+            console.log(`Filtered to ${regularMeters.length} regular parking meters`);
+
+            // Add markers for each meter
+            regularMeters.forEach(meter => {
+                try {
+                    const lat = parseFloat(meter.lat);
+                    const lng = parseFloat(meter.long);
+
+                    // Format the hours string to be more readable
+                    let hours = meter.meter_hours || 'No hours specified';
+                   
+                    // First, standardize the format
+                    hours = hours.replace('2 HR Pas', '2-Hour Parking');
+                    hours = hours.replace('2HR Pas', '2-Hour Parking');
+                    hours = hours.replace('6HR Pas', '6-Hour Parking');
+                   
+                    // Convert days to full names
+                    hours = hours.replace('Mon-Sat', 'Monday to Saturday');
+                    hours = hours.replace('Mon-Fri', 'Monday to Friday');
+                    hours = hours.replace('Mon-Thur', 'Monday to Thursday');
+                   
+                    // Convert all times to 12-hour format
+                    const timeReplacements = {
+                        '0700': '7:00 AM', '0800': '8:00 AM', '0830': '8:30 AM',
+                        '0900': '9:00 AM', '1000': '10:00 AM', '1200': '12:00 PM',
+                        '1600': '4:00 PM', '1800': '6:00 PM', '1900': '7:00 PM',
+                        '2200': '10:00 PM', '2400': '12:00 AM'
+                    };
+                   
+                    // Replace all time occurrences
+                    Object.entries(timeReplacements).forEach(([oldTime, newTime]) => {
+                        hours = hours.replace(new RegExp(oldTime, 'g'), newTime);
+                    });
+                   
+                    // Standardize separators
+                    hours = hours.replace(/\s*\/\s*/g, ' | ');
+                    hours = hours.replace(/\s*-\s*/g, ' - ');
+                   
+                    // Clean up any double spaces
+                    hours = hours.replace(/\s+/g, ' ');
+                   
+                    // Format the final string
+                    hours = hours.split(' | ').map(period => {
+                        return period.trim();
+                    }).join(' | ');
+
+                    // Create marker and add to layer group
+                    const marker = L.marker([lat, lng], {
+                        icon: meterIcon,
+                        title: `Parking Meter ${meter.meter_number}`,
+                        zIndexOffset: 200
+                    });
+
+                    meterLayerGroup.addLayer(marker);
+
+                    // Create popup content
+                    const popupContent = `
+                        <div class="meter-popup" style="padding: 8px; min-width: 200px;">
+                            <div style="margin-bottom: 8px;">
+                                <h4 style="margin: 0; color: #2c3e50; font-size: 14px;">Meter #${meter.meter_number}</h4>
+                            </div>
+                            <div style="margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                <i class="fas fa-map-marker-alt" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
+                                <div style="color: #34495e; font-size: 13px;">
+                                    ${meter.on_street}<br>
+                                    <span style="color: #7f8c8d; font-size: 12px;">Between ${meter.from_street} and ${meter.to_street}</span>
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                <i class="fas fa-clock" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
+                                <div style="color: #34495e; font-size: 13px;">${hours}</div>
+                            </div>
+                            ${meter.pay_by_cell_number ? `
+                            <div style="margin-bottom: 8px; display: flex; align-items: center;">
+                                <i class="fas fa-mobile-alt" style="color: #7f8c8d; margin-right: 8px;"></i>
+                                <span style="color: #34495e; font-size: 12px;">Pay by Phone: ${meter.pay_by_cell_number}</span>
+                            </div>
+                            ` : ''}
+                            <div style="display: flex; align-items: center;">
+                                <i class="fas fa-road" style="color: #7f8c8d; margin-right: 8px;"></i>
+                                <span style="color: #34495e; font-size: 12px;">Side: ${meter.side_of_street || 'Not specified'}</span>
+                            </div>
+                        </div>
+                    `;
+
+                    marker.bindPopup(popupContent);
+                    console.log(`Added meter ${meter.meter_number} at ${lat}, ${lng}`);
+                } catch (error) {
+                    console.error(`Error adding meter ${meter.meter_number}:`, error);
+                }
+            });
+
+            console.log(`Successfully added ${meters.length} active parking meters to the map`);
+        })
+        .catch(error => {
+            console.error('Error fetching parking meter data:', error);
+        });
+}
