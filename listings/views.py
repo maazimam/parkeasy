@@ -791,3 +791,5 @@ def user_listings(request, username):
 def my_listings(request):
     """Shortcut to view the logged-in user's listings"""
     return redirect("user_listings", username=request.user.username)
+def map_legend(request):
+    return render(request, "listings/map_legend.html")

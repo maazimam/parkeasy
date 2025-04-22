@@ -18,4 +18,5 @@ urlpatterns = [
         views.user_listings_api,
         name="user_listings_api",
     ),
+    path("map_legend/", views.map_legend, name="map_legend"),
 ]

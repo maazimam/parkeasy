@@ -40,11 +40,11 @@ function initializeNYCMap(mapElementId, options = {}) {
 // Nominatim API utilities
 
 /**
-* Check if coordinates are within NYC bounds
-* @param {number} lat - Latitude
-* @param {number} lng - Longitude
-* @returns {boolean} - True if coordinates are within NYC bounds
-*/
+ * Check if coordinates are within NYC bounds
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @returns {boolean} - True if coordinates are within NYC bounds
+ */
 function isWithinNYC(lat, lng) {
     return (
         lat >= NYC_BOUNDS.min_lat &&
@@ -55,15 +55,15 @@ function isWithinNYC(lat, lng) {
 }
 
 /**
-* Search for a location using Nominatim
-* @param {string} query - Search query
-* @param {Object} options - Options for the search
-* @param {boolean} options.restrictToNYC - Whether to restrict results to NYC
-* @param {Function} options.onSuccess - Callback for successful search
-* @param {Function} options.onOutOfBounds - Callback for when result is out of NYC bounds
-* @param {Function} options.onNotFound - Callback for when no results are found
-* @param {Function} options.onError - Callback for errors
-*/
+ * Search for a location using Nominatim
+ * @param {string} query - Search query
+ * @param {Object} options - Options for the search
+ * @param {boolean} options.restrictToNYC - Whether to restrict results to NYC
+ * @param {Function} options.onSuccess - Callback for successful search
+ * @param {Function} options.onOutOfBounds - Callback for when result is out of NYC bounds
+ * @param {Function} options.onNotFound - Callback for when no results are found
+ * @param {Function} options.onError - Callback for errors
+ */
 function searchLocation(query, options = {}) {
     if (!query) {
         if (options.onError) options.onError("No search query provided");
@@ -162,13 +162,13 @@ function searchLocation(query, options = {}) {
 }
 
 /**
-* Reverse geocode coordinates to get address
-* @param {number} lat - Latitude
-* @param {number} lng - Longitude
-* @param {Object} options - Options for the reverse geocoding
-* @param {Function} options.onSuccess - Callback for successful reverse geocoding
-* @param {Function} options.onError - Callback for errors
-*/
+ * Reverse geocode coordinates to get address
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @param {Object} options - Options for the reverse geocoding
+ * @param {Function} options.onSuccess - Callback for successful reverse geocoding
+ * @param {Function} options.onError - Callback for errors
+ */
 function reverseGeocode(lat, lng, options = {}) {
     const defaultOptions = {
         onSuccess: () => {},
@@ -232,118 +232,66 @@ function createMapLegend() {
 
     legend.onAdd = function(map) {
         const div = L.DomUtil.create('div', 'map-legend');
-        div.innerHTML = `
-            <div style="background: white; padding: 8px; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.4); font-size: 12px;">
-                <div style="font-weight: bold; margin-bottom: 5px; text-align: center;">Map Legend</div>
-                
-                <div style="display: flex; align-items: center; margin-bottom: 5px;">
-                    <input type="checkbox" id="toggle-listings" checked style="margin-right: 5px;">
-                    <div style="
-                        background-color: #3388ff; 
-                        width: 20px; 
-                        height: 20px; 
-                        border-radius: 50%;
-                        border: 2px solid white; 
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-                        margin-right: 8px;
-                        margin-left: 3px;
-                    "></div>
-                    <label for="toggle-listings">Available Listings</label>
-                </div>
 
-                <div style="display: flex; align-items: center; margin-bottom: 5px;">
-                    <input type="checkbox" id="toggle-garages" style="margin-right: 5px;">
-                    <div style="
-                        background-color: #2c3e50; 
-                        width: 20px; 
-                        height: 20px; 
-                        border-radius: 5px;
-                        display: flex; 
-                        justify-content: center; 
-                        align-items: center; 
-                        border: 2px solid white; 
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-                        margin-right: 8px;
-                        margin-left: 3px;
-                    ">
-                        <i class="fas fa-car" style="color: white; font-size: 10px; transform: rotate(-45deg);"></i>
-                    </div>
-                    <label for="toggle-garages">Parking Garages</label>
-                </div>
-                
-                <div style="display: flex; align-items: center;">
-                    <input type="checkbox" id="toggle-meters" style="margin-right: 5px;">
-                    <div style="
-                        background-color: #e74c3c; 
-                        width: 20px; 
-                        height: 20px; 
-                        border-radius: 5px;
-                        display: flex; 
-                        justify-content: center; 
-                        align-items: center; 
-                        border: 2px solid white; 
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-                        margin-right: 8px;
-                        margin-left: 3px;
-                    ">
-                        <i class="fas fa-parking" style="color: white; font-size: 10px;"></i>
-                    </div>
-                    <label for="toggle-meters">Parking Meters</label>
-                </div>
-            </div>
-        `;
+        // Load the legend HTML from the template
+        fetch('/listings/map_legend/')
+            .then(response => response.text())
+            .then(html => {
+                div.innerHTML = html;
 
-        // Prevent clicks on the legend from propagating to the map
-        L.DomEvent.disableClickPropagation(div);
+                // Prevent clicks on the legend from propagating to the map
+                L.DomEvent.disableClickPropagation(div);
 
-        // Add event listeners to the toggle switches
-        setTimeout(() => {
-            const toggleGarages = document.getElementById('toggle-garages');
-            const toggleMeters = document.getElementById('toggle-meters');
-            const toggleListings = document.getElementById('toggle-listings');
+                // Add event listeners to the toggle switches
+                const toggleGarages = document.getElementById('toggle-garages');
+                const toggleMeters = document.getElementById('toggle-meters');
+                const toggleListings = document.getElementById('toggle-listings');
 
-            if (toggleGarages) {
-                toggleGarages.addEventListener('change', function() {
-                    if (this.checked) {
-                        if (!map.hasLayer(garageLayerGroup)) {
-                            map.addLayer(garageLayerGroup);
+                if (toggleGarages) {
+                    toggleGarages.addEventListener('change', function() {
+                        if (this.checked) {
+                            if (!map.hasLayer(garageLayerGroup)) {
+                                map.addLayer(garageLayerGroup);
+                            }
+                        } else {
+                            if (map.hasLayer(garageLayerGroup)) {
+                                map.removeLayer(garageLayerGroup);
+                            }
                         }
-                    } else {
-                        if (map.hasLayer(garageLayerGroup)) {
-                            map.removeLayer(garageLayerGroup);
-                        }
-                    }
-                });
-            }
+                    });
+                }
 
-            if (toggleMeters) {
-                toggleMeters.addEventListener('change', function() {
-                    if (this.checked) {
-                        if (!map.hasLayer(meterLayerGroup)) {
-                            map.addLayer(meterLayerGroup);
+                if (toggleMeters) {
+                    toggleMeters.addEventListener('change', function() {
+                        if (this.checked) {
+                            if (!map.hasLayer(meterLayerGroup)) {
+                                map.addLayer(meterLayerGroup);
+                            }
+                        } else {
+                            if (map.hasLayer(meterLayerGroup)) {
+                                map.removeLayer(meterLayerGroup);
+                            }
                         }
-                    } else {
-                        if (map.hasLayer(meterLayerGroup)) {
-                            map.removeLayer(meterLayerGroup);
-                        }
-                    }
-                });
-            }
+                    });
+                }
 
-            if (toggleListings) {
-                toggleListings.addEventListener('change', function() {
-                    if (this.checked) {
-                        if (!map.hasLayer(listingLayerGroup)) {
-                            map.addLayer(listingLayerGroup);
+                if (toggleListings) {
+                    toggleListings.addEventListener('change', function() {
+                        if (this.checked) {
+                            if (!map.hasLayer(listingLayerGroup)) {
+                                map.addLayer(listingLayerGroup);
+                            }
+                        } else {
+                            if (map.hasLayer(listingLayerGroup)) {
+                                map.removeLayer(listingLayerGroup);
+                            }
                         }
-                    } else {
-                        if (map.hasLayer(listingLayerGroup)) {
-                            map.removeLayer(listingLayerGroup);
-                        }
-                    }
-                });
-            }
-        }, 100);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading map legend:', error);
+            });
 
         return div;
     };
@@ -355,11 +303,6 @@ function createMapLegend() {
 function addGaragesDirectly(map) {
     console.log("Adding garages directly to map...");
     currentMap = map;
-
-    // Create layer group if it doesn't exist
-    if (!garageLayerGroup) {
-        garageLayerGroup = L.layerGroup();
-    }
 
     // Create marker icon
     const garageIcon = L.divIcon({
@@ -409,24 +352,24 @@ function addGaragesDirectly(map) {
 
                         // Create popup content
                         const popupContent = `
-                  <div class="garage-popup" style="padding: 8px; min-width: 250px;">
-                      <div style="margin-bottom: 12px;">
-                          <h4 style="margin: 0; color: #2c3e50; font-size: 16px;">${garage.name}</h4>
-                      </div>
-                      <div style="margin-bottom: 10px; display: flex; align-items: flex-start;">
-                          <i class="fas fa-map-marker-alt" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
-                          <div style="color: #34495e; font-size: 13px;">
-                              ${garage.address}<br>
-                              <span style="color: #7f8c8d; font-size: 12px;">New York, NY</span>
-                          </div>
-                      </div>
-                      ${garage.phone ? `
-                      <div style="margin-bottom: 10px; display: flex; align-items: center;">
-                          <i class="fas fa-phone" style="color: #7f8c8d; margin-right: 8px;"></i>
-                          <a href="tel:${garage.phone}" style="color: #34495e; text-decoration: none; font-size: 13px;">${garage.phone}</a>
-                      </div>` : ''}
-                  </div>
-              `;
+                    <div class="garage-popup" style="padding: 8px; min-width: 250px;">
+                        <div style="margin-bottom: 12px;">
+                            <h4 style="margin: 0; color: #2c3e50; font-size: 16px;">${garage.name}</h4>
+                        </div>
+                        <div style="margin-bottom: 10px; display: flex; align-items: flex-start;">
+                            <i class="fas fa-map-marker-alt" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
+                            <div style="color: #34495e; font-size: 13px;">
+                                ${garage.address}<br>
+                                <span style="color: #7f8c8d; font-size: 12px;">New York, NY</span>
+                            </div>
+                        </div>
+                        ${garage.phone ? `
+                        <div style="margin-bottom: 10px; display: flex; align-items: center;">
+                            <i class="fas fa-phone" style="color: #7f8c8d; margin-right: 8px;"></i>
+                            <a href="tel:${garage.phone}" style="color: #34495e; text-decoration: none; font-size: 13px;">${garage.phone}</a>
+                        </div>` : ''}
+                    </div>
+                `;
 
                 // Bind popup to marker
                 marker.bindPopup(popupContent);
@@ -452,251 +395,237 @@ function addGaragesDirectly(map) {
             return response.json();
         })
         .then(garages => {
-                console.log(`Fetched ${garages.length} garages from NYC API`);
+            console.log(`Fetched ${garages.length} garages from NYC API`);
 
-                // Add markers for each garage
-                garages.forEach(garage => {
-                            // Only add markers if we have coordinates
-                            if (garage.latitude && garage.longitude) {
-                                try {
-                                    const lat = parseFloat(garage.latitude);
-                                    const lng = parseFloat(garage.longitude);
+            // Add markers for each garage
+            garages.forEach(garage => {
+                // Only add markers if we have coordinates
+                if (garage.latitude && garage.longitude) {
+                    try {
+                        const lat = parseFloat(garage.latitude);
+                        const lng = parseFloat(garage.longitude);
 
-                                    // Format the address string
-                                    const address = [
-                                        garage.address_building,
-                                        garage.address_street_name,
-                                        garage.address_city,
-                                        garage.address_state,
-                                        garage.address_zip
-                                    ].filter(Boolean).join(' ');
+                        // Format the address string
+                        const address = [
+                            garage.address_building,
+                            garage.address_street_name,
+                            garage.address_city,
+                            garage.address_state,
+                            garage.address_zip
+                        ].filter(Boolean).join(' ');
 
-                                    // Get capacity info
-                                    let capacity = "";
-                                    if (garage.detail) {
-                                        capacity = garage.detail;
-                                    }
+                        // Get capacity info
+                        let capacity = "";
+                        if (garage.detail) {
+                            capacity = garage.detail;
+                        }
 
-                                    // Create marker and add to LAYER GROUP instead of map
-                                    const marker = L.marker([lat, lng], {
-                                        icon: garageIcon,
-                                        title: garage.business_name,
-                                        zIndexOffset: 100 // Lower z-index to ensure garages stay behind listings
-                                    });
+                        // Create marker and add to LAYER GROUP instead of map
+                        const marker = L.marker([lat, lng], {
+                            icon: garageIcon,
+                            title: garage.business_name,
+                            zIndexOffset: 100 // Lower z-index to ensure garages stay behind listings
+                        });
 
-                                    garageLayerGroup.addLayer(marker);
+                        garageLayerGroup.addLayer(marker);
 
-                                    // Create popup content
-                                    const popupContent = `
-                          <div class="garage-popup" style="padding: 8px; min-width: 250px;">
-                              <div style="margin-bottom: 12px;">
-                                  <h4 style="margin: 0; color: #2c3e50; font-size: 16px;">${garage.business_name}</h4>
-                              </div>
-                              <div style="margin-bottom: 10px; display: flex; align-items: flex-start;">
-                                  <i class="fas fa-map-marker-alt" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
-                                  <div style="color: #34495e; font-size: 13px;">
-                                      ${address}<br>
-                                      <span style="color: #7f8c8d; font-size: 12px;">New York, NY</span>
-                                  </div>
-                              </div>
-                              ${garage.contact_phone ? `
-                              <div style="margin-bottom: 10px; display: flex; align-items: center;">
-                                  <i class="fas fa-phone" style="color: #7f8c8d; margin-right: 8px;"></i>
-                                  <a href="tel:${garage.contact_phone}" style="color: #34495e; text-decoration: none; font-size: 13px;">${garage.contact_phone}</a>
-                              </div>` : ''}
-                              ${capacity ? `
-                              <div style="margin-bottom: 8px; display: flex; align-items: flex-start;">
-                                  <i class="fas fa-car" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
-                                  <div style="color: #34495e; font-size: 13px;">
-                                      <div style="margin-bottom: 4px;">Vehicle Capacity: ${capacity.match(/Vehicle Capacity: (\d+)/)?.[1] || 'N/A'}</div>
-                                      <div>Bicycle Capacity: ${capacity.match(/Bicycle Capacity: (\d+)/)?.[1] || 'N/A'}</div>
-                                  </div>
-                              </div>` : ''}
-                          </div>
-                      `;
-                      
-                      // Bind popup to marker
-                      marker.bindPopup(popupContent);
-                      
-                  } catch (error) {
-                      console.error(`Error adding garage ${garage.business_name}:`, error);
-                  }
-              }
-          });
-          
-          // Center map on NYC after adding garages
-          map.setView([40.7128, -74.0060], 12);
-      })
-      .catch(error => {
-          console.error('Error fetching garage data:', error);
-          
-          // If API fails, add default markers as fallback
-          console.log("API fetch failed, adding backup garage markers");
-          addBackupMarkers();
-      });
+                        // Create popup content
+                        const popupContent = `
+                            <div class="garage-popup" style="padding: 8px; min-width: 250px;">
+                                <div style="margin-bottom: 12px;">
+                                    <h4 style="margin: 0; color: #2c3e50; font-size: 16px;">${garage.business_name}</h4>
+                                </div>
+                                <div style="margin-bottom: 10px; display: flex; align-items: flex-start;">
+                                    <i class="fas fa-map-marker-alt" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
+                                    <div style="color: #34495e; font-size: 13px;">
+                                        ${address}<br>
+                                        <span style="color: #7f8c8d; font-size: 12px;">New York, NY</span>
+                                    </div>
+                                </div>
+                                ${garage.contact_phone ? `
+                                <div style="margin-bottom: 10px; display: flex; align-items: center;">
+                                    <i class="fas fa-phone" style="color: #7f8c8d; margin-right: 8px;"></i>
+                                    <a href="tel:${garage.contact_phone}" style="color: #34495e; text-decoration: none; font-size: 13px;">${garage.contact_phone}</a>
+                                </div>` : ''}
+                                ${capacity ? `
+                                <div style="margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                    <i class="fas fa-car" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
+                                    <div style="color: #34495e; font-size: 13px;">
+                                        <div style="margin-bottom: 4px;">Vehicle Capacity: ${capacity.match(/Vehicle Capacity: (\d+)/)?.[1] || 'N/A'}</div>
+                                        <div>Bicycle Capacity: ${capacity.match(/Bicycle Capacity: (\d+)/)?.[1] || 'N/A'}</div>
+                                    </div>
+                                </div>` : ''}
+                            </div>
+                        `;
 
-console.log("Garage data request initiated");
+                        // Bind popup to marker
+                        marker.bindPopup(popupContent);
+                    } catch (error) {
+                        console.error(`Error adding garage ${garage.business_name}:`, error);
+                    }
+                }
+            });
+
+            // Center map on NYC after adding garages
+            map.setView([40.7128, -74.0060], 12);
+        })
+        .catch(error => {
+            console.error('Error fetching garage data:', error);
+            
+            // If API fails, add default markers as fallback
+            console.log("API fetch failed, adding backup garage markers");
+            addBackupMarkers();
+        });
+
+    console.log("Garage data request initiated");
 }
 
 function initializeLocationName() {
-// Initialize location name if coordinates exist
-const searchLat = document.getElementById("search-lat").value;
-const searchLng = document.getElementById("search-lng").value;
+    // Initialize location name if coordinates exist
+    const searchLat = document.getElementById("search-lat").value;
+    const searchLng = document.getElementById("search-lng").value;
 
-if (searchLat && searchLng && searchLat !== "None" && searchLng !== "None") {
-  console.log("searchLat", searchLat);
-  console.log("searchLng", searchLng);
+    if (searchLat && searchLng && searchLat !== "None" && searchLng !== "None") {
+        console.log("searchLat", searchLat);
+        console.log("searchLng", searchLng);
 
-  // Ensure we have valid numbers
-  const lat = parseFloat(searchLat);
-  const lng = parseFloat(searchLng);
+        // Ensure we have valid numbers
+        const lat = parseFloat(searchLat);
+        const lng = parseFloat(searchLng);
 
-  if (!isNaN(lat) && !isNaN(lng)) {
-    const latlng = L.latLng(lat, lng);
+        if (!isNaN(lat) && !isNaN(lng)) {
+            const latlng = L.latLng(lat, lng);
 
-    // Place marker and center map
-    placeMarker(latlng);
-    searchMap.setView(latlng, 15);
+            // Place marker and center map
+            placeMarker(latlng);
+            searchMap.setView(latlng, 15);
 
-    // Get location name for the coordinates
-    reverseGeocode(lat, lng, {
-      onSuccess: (result) => {
-        // Update the search input with the location name
-        document.getElementById("location-search").value = result.displayName;
-        // Expand the filter panel by removing the collapsed class and ensuring content is visible
-        const filterPanel = document.getElementById("filter-panel");
-        if (filterPanel) {
-          // This might be more reliable as it would use the existing toggle logic
-          const toggleButton = document.getElementById("toggle-filters");
-          if (toggleButton && filterPanel.classList.contains("collapsed")) {
-            toggleButton.click();
-          }
+            // Get location name for the coordinates
+            reverseGeocode(lat, lng, {
+                onSuccess: (result) => {
+                    // Update the search input with the location name
+                    document.getElementById("location-search").value = result.displayName;
+                    // Expand the filter panel by removing the collapsed class and ensuring content is visible
+                    const filterPanel = document.getElementById("filter-panel");
+                    if (filterPanel) {
+                        // This might be more reliable as it would use the existing toggle logic
+                        const toggleButton = document.getElementById("toggle-filters");
+                        if (toggleButton && filterPanel.classList.contains("collapsed")) {
+                            toggleButton.click();
+                        }
+                    }
+                    // Make sure the marker has a popup with the location name
+                    if (searchMarker) {
+                        searchMarker.bindPopup(result.displayName).openPopup();
+
+                        // Also set a default popup in case reverse geocoding fails
+                        searchMarker.setPopupContent(result.displayName);
+                    }
+                },
+                onError: () => {
+                    // If reverse geocoding fails, still show a popup with coordinates
+                    if (searchMarker) {
+                        const fallbackContent = `Location at ${lat.toFixed(
+                            6
+                        )}, ${lng.toFixed(6)}`;
+                        searchMarker.bindPopup(fallbackContent).openPopup();
+                    }
+                },
+            });
+
+            // Fix map rendering
+            setTimeout(() => {
+                searchMap.invalidateSize();
+
+                // Make sure marker is visible after map is properly rendered
+                if (searchMarker) {
+                    searchMarker.openPopup();
+                }
+            }, 100);
         }
-        // Make sure the marker has a popup with the location name
-        if (searchMarker) {
-          searchMarker.bindPopup(result.displayName).openPopup();
-
-          // Also set a default popup in case reverse geocoding fails
-          searchMarker.setPopupContent(result.displayName);
-        }
-      },
-      onError: () => {
-        // If reverse geocoding fails, still show a popup with coordinates
-        if (searchMarker) {
-          const fallbackContent = `Location at ${lat.toFixed(
-            6
-          )}, ${lng.toFixed(6)}`;
-          searchMarker.bindPopup(fallbackContent).openPopup();
-        }
-      },
-    });
-
-    // Fix map rendering
-    setTimeout(() => {
-      searchMap.invalidateSize();
-
-      // Make sure marker is visible after map is properly rendered
-      if (searchMarker) {
-        searchMarker.openPopup();
-      }
-    }, 100);
-  }
-}
+    }
 }
 
 function addListingsToMap() {
-// TODO: change so that the listings are not depended on the html structure
-// Add markers for all listings (as in original code)
-const listings = document.querySelectorAll(".card");
-console.log("listings", listings);
-const bounds = [];
+    // TODO: change so that the listings are not depended on the html structure
+    // Add markers for all listings (as in original code)
+    const listings = document.querySelectorAll(".card");
+    console.log("listings", listings);
+    const bounds = [];
 
-console.log(`Found ${listings.length} listings to add to map`);
+    console.log(`Found ${listings.length} listings to add to map`);
 
-// Ensure listingLayerGroup exists
-if (!listingLayerGroup) {
-  listingLayerGroup = L.layerGroup().addTo(searchMap);
-} else {
-  // Clear existing markers
-  listingLayerGroup.clearLayers();
-}
+    // Ensure listingLayerGroup exists
+    if (!listingLayerGroup) {
+        listingLayerGroup = L.layerGroup().addTo(searchMap);
+    } else {
+        // Clear existing markers
+        listingLayerGroup.clearLayers();
+    }
 
-listings.forEach((listing) => {
-  try {
-    console.log("listing", listing);
-    const location = parseLocation(listing.dataset.location);
-    console.log("location", location);
-    const locationName = listing.dataset.locationName;
-    const title = listing.dataset.title;
-    const price = listing.dataset.price;
-    const rating = parseFloat(listing.dataset.rating) || 0;
+    listings.forEach((listing) => {
+        try {
+            // Skip listings that don't have required data attributes
+            if (!listing.dataset.location || !listing.dataset.title || !listing.dataset.price) {
+                console.warn("Skipping listing with missing required data attributes");
+                return;
+            }
 
-    console.log(
-      `Adding listing: ${title} at ${location.lat}, ${location.lng}`
-    );
+            const location = parseLocation(listing.dataset.location);
+            
+            // Skip listings with invalid location data
+            if (!location || !location.lat || !location.lng || 
+                isNaN(location.lat) || isNaN(location.lng)) {
+                console.warn(`Invalid location data for listing: ${listing.dataset.title}`);
+                return;
+            }
+            
+            const locationName = listing.dataset.locationName || listing.dataset.location;
+            const title = listing.dataset.title;
+            const price = listing.dataset.price;
+            const rating = parseFloat(listing.dataset.rating) || 0; // Rating can default to 0
 
+            // Now create the marker with validated data
+            const marker = L.marker([location.lat, location.lng], {
+                zIndexOffset: 1000
+            });
+            
+            listingLayerGroup.addLayer(marker);
+            bounds.push([location.lat, location.lng]);
+            
+            // Create popup content
+            const ratingHtml = rating
+                ? `<div style="margin-bottom: 8px; display: flex; align-items: center;">
+                    <i class="fas fa-star" style="color: #f1c40f; margin-right: 8px;"></i>
+                    <span style="color: #34495e; font-size: 13px;">${rating.toFixed(1)} (${generateStarRating(rating)})</span>
+                  </div>`
+                : `<div style="margin-bottom: 8px; display: flex; align-items: center;">
+                    <i class="fas fa-star" style="color: #bdc3c7; margin-right: 8px;"></i>
+                    <span style="color: #7f8c8d; font-size: 13px;">No reviews yet</span>
+                  </div>`;
 
-      listingLayerGroup.addLayer(marker);
-      bounds.push([location.lat, location.lng]);
+            const popupContent = `
+                <div class="listing-popup" style="padding: 8px; min-width: 200px;">
+                    <div style="margin-bottom: 12px;">
+                        <h4 style="margin: 0; color: #2c3e50; font-size: 16px;">${title}</h4>
+                    </div>
+                    <div style="margin-bottom: 10px; display: flex; align-items: flex-start;">
+                        <i class="fas fa-map-marker-alt" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
+                        <div style="color: #34495e; font-size: 13px;">${locationName}</div>
+                    </div>
+                    <div style="margin-bottom: 8px; display: flex; align-items: center;">
+                        <i class="fas fa-tag" style="color: #7f8c8d; margin-right: 8px;"></i>
+                        <span style="color: #34495e; font-size: 13px;">$${Math.abs(price).toFixed(2)}/hour</span>
+                    </div>
+                    ${ratingHtml}
+                </div>
+            `;
 
-      // Create popup content
-      const ratingHtml = rating
-        ? `<div style="margin-bottom: 8px; display: flex; align-items: center;">
-            <i class="fas fa-star" style="color: #f1c40f; margin-right: 8px;"></i>
-            <span style="color: #34495e; font-size: 13px;">${rating.toFixed(1)} (${generateStarRating(rating)})</span>
-          </div>`
-        : `<div style="margin-bottom: 8px; display: flex; align-items: center;">
-            <i class="fas fa-star" style="color: #bdc3c7; margin-right: 8px;"></i>
-            <span style="color: #7f8c8d; font-size: 13px;">No reviews yet</span>
-          </div>`;
-
-      const popupContent = `
-        <div class="listing-popup" style="padding: 8px; min-width: 200px;">
-          <div style="margin-bottom: 12px;">
-            <h4 style="margin: 0; color: #2c3e50; font-size: 16px;">${title}</h4>
-          </div>
-          <div style="margin-bottom: 10px; display: flex; align-items: flex-start;">
-            <i class="fas fa-map-marker-alt" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
-            <div style="color: #34495e; font-size: 13px;">${locationName}</div>
-          </div>
-          <div style="margin-bottom: 8px; display: flex; align-items: center;">
-            <i class="fas fa-tag" style="color: #7f8c8d; margin-right: 8px;"></i>
-            <span style="color: #34495e; font-size: 13px;">$${Math.abs(price).toFixed(2)}/hour</span>
-          </div>
-          ${ratingHtml}
-        </div>
-      `;
-
-    // Create the marker but add it to the layer group instead of the map
-    const marker = L.marker([location.lat, location.lng], {
-      zIndexOffset: 1000, // Higher z-index to appear above garage markers
+            marker.bindPopup(popupContent);
+        } catch (error) {
+            console.error("Error adding listing marker:", error);
+        }
     });
-
-
-    listingLayerGroup.addLayer(marker);
-    bounds.push([location.lat, location.lng]);
-
-    // Create popup content
-    const ratingHtml = rating
-      ? `<br><strong>Rating:</strong> ${generateStarRating(
-          rating
-        )} (${rating.toFixed(1)})`
-      : `<br><span class="text-muted">No reviews yet ${generateStarRating(
-          0
-        )}</span>`;
-
-    const popupContent = `
-          <strong>${title}</strong><br>
-          ${locationName}<br>
-          $${price}/hour
-          ${ratingHtml}
-      `;
-
-    marker.bindPopup(popupContent);
-  } catch (error) {
-    console.error("Error adding listing marker:", error);
-  }
-});
 }
 
 // Function to add parking meters to the map
@@ -744,17 +673,17 @@ function addParkingMeters(map) {
 
                     // Format the hours string to be more readable
                     let hours = meter.meter_hours || 'No hours specified';
-                    
+                   
                     // First, standardize the format
                     hours = hours.replace('2 HR Pas', '2-Hour Parking');
                     hours = hours.replace('2HR Pas', '2-Hour Parking');
                     hours = hours.replace('6HR Pas', '6-Hour Parking');
-                    
+                   
                     // Convert days to full names
                     hours = hours.replace('Mon-Sat', 'Monday to Saturday');
                     hours = hours.replace('Mon-Fri', 'Monday to Friday');
                     hours = hours.replace('Mon-Thur', 'Monday to Thursday');
-                    
+                   
                     // Convert all times to 12-hour format
                     const timeReplacements = {
                         '0700': '7:00 AM', '0800': '8:00 AM', '0830': '8:30 AM',
@@ -762,19 +691,19 @@ function addParkingMeters(map) {
                         '1600': '4:00 PM', '1800': '6:00 PM', '1900': '7:00 PM',
                         '2200': '10:00 PM', '2400': '12:00 AM'
                     };
-                    
+                   
                     // Replace all time occurrences
                     Object.entries(timeReplacements).forEach(([oldTime, newTime]) => {
                         hours = hours.replace(new RegExp(oldTime, 'g'), newTime);
                     });
-                    
+                   
                     // Standardize separators
                     hours = hours.replace(/\s*\/\s*/g, ' | ');
                     hours = hours.replace(/\s*-\s*/g, ' - ');
-                    
+                   
                     // Clean up any double spaces
                     hours = hours.replace(/\s+/g, ' ');
-                    
+                   
                     // Format the final string
                     hours = hours.split(' | ').map(period => {
                         return period.trim();

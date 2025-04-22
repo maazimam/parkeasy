@@ -5,25 +5,38 @@ let searchMap;
 let searchMarker;
 let mapInitialized = false;
 let listingMarkers = []; // Keep track of all listing markers
-let garageMarkers = [];
 let currentMapView = null;
-let garageLayerGroup;
 let listingLayerGroup;
 let currentMap;
+let garageLayerGroup;
 let meterLayerGroup;
 
 // Map-related functions (outside DOMContentLoaded)
 function initializeMap() {
     if (!mapInitialized) {
         console.log("Initializing search map...");
+
+        // Ensure map container is visible
+        const mapContainer = document.getElementById("map-view");
+        if (mapContainer) {
+            mapContainer.style.display = "block";
+            mapContainer.style.height = "100%";
+            mapContainer.style.width = "100%";
+        }
+
         // Use our NYC-bounded map initialization instead of the original code
-        searchMap = initializeNYCMap("map-view");
+        searchMap = initializeNYCMap("map-view", {
+            center: NYC_CENTER,
+            zoom: 12,
+            minZoom: 10
+        });
+
         currentMapView = searchMap; // Store map reference
 
         // Initialize layer groups
         listingLayerGroup = L.layerGroup().addTo(searchMap);
-        garageLayerGroup = L.layerGroup(); // Don't add to map by default
-        meterLayerGroup = L.layerGroup(); // Don't add to map by default
+        garageLayerGroup = L.layerGroup();
+        meterLayerGroup = L.layerGroup();
 
         // Add click event to map
         searchMap.on("click", onMapClick);
@@ -31,13 +44,18 @@ function initializeMap() {
         // Add the legend to the search map
         searchMap.addControl(createMapLegend());
 
-        // Initialize garages but don't add to map yet
+        // Add garages and meters to the map
         addGaragesDirectly(searchMap);
-
-        // Initialize parking meters but don't add to map yet
         addParkingMeters(searchMap);
 
+        // Force map resize
+        setTimeout(() => {
+            searchMap.invalidateSize(true);
+            console.log("Map size invalidated");
+        }, 100);
+
         mapInitialized = true;
+        console.log("Map initialized successfully");
     }
 }
 
@@ -343,7 +361,18 @@ document.addEventListener("DOMContentLoaded", function() {
     const mapView = document.getElementById("map-view");
 
     if (listView) listView.classList.add("active-view");
-    if (mapView) mapView.classList.add("active-view");
+    if (mapView) {
+        mapView.classList.add("active-view");
+        // Ensure map container is visible and properly sized
+        mapView.style.display = "block";
+        mapView.style.height = "100%";
+        mapView.style.width = "100%";
+        mapView.style.position = "absolute";
+        mapView.style.top = "0";
+        mapView.style.left = "0";
+        mapView.style.right = "0";
+        mapView.style.bottom = "0";
+    }
 
     // Filter panel expand/collapse functionality
     const filterHeader = document.querySelector(".filter-header");
@@ -376,17 +405,27 @@ document.addEventListener("DOMContentLoaded", function() {
     initializeEvChargerToggle();
     initializeRecurringPatternToggle();
     initializeMultipleDaysToggle();
+
+    // Initialize map first
     initializeMap();
+
+    // Then add listings to map
+    setTimeout(() => {
+        console.log("Adding listings to map...");
+        addListingsToMap();
+    }, 200);
+
     setMinDates();
-    addListingsToMap();
     initializeLocationName();
     setupSearch();
     setupLoadMoreButton();
     initializePopover();
+
     // Force map resize immediately AND after a short delay
     setTimeout(() => {
         if (searchMap) {
             searchMap.invalidateSize(true);
+            console.log("Map resized");
         }
 
         // Fix any initial spacing issues with the layout
@@ -404,6 +443,7 @@ document.addEventListener("DOMContentLoaded", function() {
     window.addEventListener("resize", function() {
         if (searchMap) {
             searchMap.invalidateSize(true);
+            console.log("Map resized on window resize");
         }
     });
 
