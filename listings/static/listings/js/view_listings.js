@@ -571,32 +571,6 @@ function unhighlightMarkerFromListing(listingId) {
   }
 }
 
-function highlightListingFromMarker(listingId) {
-  console.log("Highlighting listing card for:", listingId);
-  const card = document.querySelector(`.card[data-id="${listingId}"]`);
-  if (card) {
-    card.classList.add("highlighted-listing");
-    card.style.boxShadow = "0 0 10px rgba(0, 123, 255, 0.5)";
-    card.style.border = "2px solid #007bff";
-    console.log("Card highlighted successfully");
-  } else {
-    console.warn("Card not found for listing:", listingId);
-  }
-}
-
-function unhighlightListingFromMarker(listingId) {
-  console.log("Unhighlighting listing card for:", listingId);
-  const card = document.querySelector(`.card[data-id="${listingId}"]`);
-  if (card) {
-    card.classList.remove("highlighted-listing");
-    card.style.boxShadow = "";
-    card.style.border = "";
-    console.log("Card unhighlighted successfully");
-  } else {
-    console.warn("Card not found for listing:", listingId);
-  }
-}
-
 function setupListingHighlighting() {
   console.log("Setting up listing highlighting");
   const cards = document.querySelectorAll(".card");
@@ -622,7 +596,8 @@ function setupListingHighlighting() {
 
     card._mouseleaveHandler = function () {
       console.log("Card mouseleave for listing:", listingId);
-      unhighlightMarkerFromListing(listingId);
+      // To Do: Migh add later
+      // unhighlightMarkerFromListing(listingId);
     };
 
     // Add the event listeners
