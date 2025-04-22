@@ -296,7 +296,7 @@ function createMapLegend() {
             <div style="background: white; padding: 8px; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.4); font-size: 12px;">
                 <div style="font-weight: bold; margin-bottom: 5px; text-align: center;">Map Legend</div>
                 
-                <div style="display: flex; align-items: center;">
+                <div style="display: flex; align-items: center; margin-bottom: 5px;">
                     <input type="checkbox" id="toggle-listings" checked style="margin-right: 5px;">
                     <div style="
                         background-color: #3388ff; 
@@ -310,6 +310,21 @@ function createMapLegend() {
                     "></div>
                     <label for="toggle-listings">Available Listings</label>
                 </div>
+                
+                <div style="display: flex; align-items: center;">
+                    <input type="checkbox" id="location-picker-toggle" style="margin-right: 5px;">
+                    <div style="
+                        background-color: #ff5733; 
+                        width: 20px; 
+                        height: 20px; 
+                        border-radius: 50%;
+                        border: 2px solid white; 
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+                        margin-right: 8px;
+                        margin-left: 3px;
+                    "></div>
+                    <label for="location-picker-toggle">Use Location Picker</label>
+                </div>
             </div>
         `;
 
@@ -319,17 +334,29 @@ function createMapLegend() {
         // Add event listener to the listings toggle switch
         setTimeout(() => {
             const toggleListings = document.getElementById('toggle-listings');
+            const locationPickerToggle = document.getElementById('location-picker-toggle');
 
             if (toggleListings) {
                 toggleListings.addEventListener('change', function() {
                     if (this.checked) {
-                        if (!map.hasLayer(listingLayerGroup)) {
+                        if (map.hasLayer && !map.hasLayer(listingLayerGroup)) {
                             map.addLayer(listingLayerGroup);
                         }
                     } else {
-                        if (map.hasLayer(listingLayerGroup)) {
+                        if (map.hasLayer && map.hasLayer(listingLayerGroup)) {
                             map.removeLayer(listingLayerGroup);
                         }
+                    }
+                });
+            }
+            
+            if (locationPickerToggle) {
+                locationPickerToggle.addEventListener('change', function() {
+                    // Simple toggle - just change the cursor
+                    if (this.checked) {
+                        document.getElementById(map._container.id).style.cursor = 'crosshair';
+                    } else {
+                        document.getElementById(map._container.id).style.cursor = '';
                     }
                 });
             }

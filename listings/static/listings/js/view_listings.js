@@ -4,7 +4,7 @@ console.log("view_listings.js loaded");
 let searchMap;
 let searchMarker;
 let mapInitialized = false;
-let listingMarkers = []; // Keep track of all listing markers
+let listingMarkers = {}; // Keep track of all listing markers
 let currentMapView = null;
 let listingLayerGroup;
 let currentMap;
@@ -151,6 +151,11 @@ function loadMoreListings() {
         endMessage.innerHTML = "<p>No more listings to display</p>";
         listingsContainer.appendChild(endMessage);
       }
+
+      // After adding new listings, update the event listeners
+      setTimeout(() => {
+        setupListingHighlighting();
+      }, 100);
     })
     .catch((error) => {
       console.error("Error loading more listings:", error);
@@ -182,44 +187,10 @@ function addListingMarker(listing) {
     });
 
     listingLayerGroup.addLayer(marker);
-    listingMarkers.push(marker);
+    listingMarkers[listing.id] = marker;
 
-    // Create popup content
-    const ratingHtml = listing.rating
-      ? `<div style="margin-bottom: 8px; display: flex; align-items: center;">
-                <i class="fas fa-star" style="color: #f1c40f; margin-right: 8px;"></i>
-                <span style="color: #34495e; font-size: 13px;">${listing.rating.toFixed(
-                  1
-                )} (${generateStarRating(listing.rating)})</span>
-              </div>`
-      : `<div style="margin-bottom: 8px; display: flex; align-items: center;">
-                <i class="fas fa-star" style="color: #bdc3c7; margin-right: 8px;"></i>
-                <span style="color: #7f8c8d; font-size: 13px;">No reviews yet</span>
-              </div>`;
-
-    const popupContent = `
-          <div class="listing-popup" style="padding: 8px; min-width: 200px;">
-            <div style="margin-bottom: 12px;">
-              <h4 style="margin: 0; color: #2c3e50; font-size: 16px;">${
-                listing.title
-              }</h4>
-            </div>
-            <div style="margin-bottom: 10px; display: flex; align-items: flex-start;">
-              <i class="fas fa-map-marker-alt" style="color: #7f8c8d; margin-right: 8px; margin-top: 3px;"></i>
-              <div style="color: #34495e; font-size: 13px;">${
-                listing.location_name
-              }</div>
-            </div>
-            <div style="margin-bottom: 8px; display: flex; align-items: center;">
-              <i class="fas fa-tag" style="color: #7f8c8d; margin-right: 8px;"></i>
-              <span style="color: #34495e; font-size: 13px;">$${Math.abs(
-                listing.price
-              ).toFixed(2)}/hour</span>
-            </div>
-            ${ratingHtml}
-          </div>
-        `;
-
+    // Generate popup content using a dedicated function
+    const popupContent = generateListingPopupContent(listing);
     marker.bindPopup(popupContent);
   } catch (error) {
     console.error("Error adding listing marker:", error);
@@ -227,7 +198,12 @@ function addListingMarker(listing) {
 }
 
 function onMapClick(e) {
-  // Only update if we're in search mode (not viewing listings)
+  // Only update if the location picker is enabled
+  const locationPickerToggle = document.getElementById('location-picker-toggle');
+  if (!locationPickerToggle || !locationPickerToggle.checked) {
+    return; // Exit if toggle doesn't exist or isn't checked
+  }
+  
   placeMarker(e.latlng);
   updateCoordinates(e.latlng.lat, e.latlng.lng);
 
@@ -249,7 +225,7 @@ function placeMarker(latlng) {
     draggable: true,
     icon: L.divIcon({
       className: "search-marker-icon",
-      html: '<div style="background-color: #ff3b30; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white;"></div>',
+      html: createMarkerIconHtml(),
       iconSize: [20, 20],
       iconAnchor: [10, 10],
     }),
@@ -419,6 +395,11 @@ document.addEventListener("DOMContentLoaded", function () {
   if (applyAdvancedFiltersBtn) {
     applyAdvancedFiltersBtn.addEventListener("click", applyAdvancedFilters);
   }
+
+  // After other initialization, call setupListingHighlighting
+  setTimeout(() => {
+    setupListingHighlighting();
+  }, 1000); // Give time for map and listings to initialize
 });
 
 function setupSearch() {
@@ -474,6 +455,9 @@ function performSearch() {
       document.getElementById("search-lat").value = result.lat;
       document.getElementById("search-lng").value = result.lng;
 
+      // Update the location search input value
+      searchInput.value = result.displayName;
+
       // Fix map rendering
       setTimeout(() => {
         searchMap.invalidateSize();
@@ -514,8 +498,100 @@ function fetchAllListingMarkers() {
         const markerGroup = L.featureGroup(Object.values(listingMarkers));
         searchMap.fitBounds(markerGroup.getBounds());
       }
+
+      // Call setupListingHighlighting after all markers are loaded
+      setTimeout(() => {
+        setupListingHighlighting();
+        console.log("Highlighting setup completed after markers loaded");
+      }, 100);
     })
     .catch((error) => {
       console.error("Error loading listing markers:", error);
     });
+}
+
+// Functions to handle highlighting
+function highlightMarkerFromListing(listingId) {
+  console.log("Highlighting marker for listing:", listingId);
+  const marker = listingMarkers[listingId];
+  if (marker) {
+    marker.setZIndexOffset(2000); // Bring to front
+    marker.openPopup();
+    console.log("Marker highlighted successfully");
+  } else {
+    console.warn("Marker not found for listing:", listingId);
+    console.log("Available marker IDs:", Object.keys(listingMarkers));
+  }
+}
+
+function unhighlightMarkerFromListing(listingId) {
+  console.log("Unhighlighting marker for listing:", listingId);
+  const marker = listingMarkers[listingId];
+  if (marker) {
+    marker.setZIndexOffset(1000);
+    marker.closePopup();
+    console.log("Marker unhighlighted successfully");
+  } else {
+    console.warn("Marker not found for listing:", listingId);
+  }
+}
+
+function highlightListingFromMarker(listingId) {
+  console.log("Highlighting listing card for:", listingId);
+  const card = document.querySelector(`.card[data-id="${listingId}"]`);
+  if (card) {
+    card.classList.add("highlighted-listing");
+    card.style.boxShadow = "0 0 10px rgba(0, 123, 255, 0.5)";
+    card.style.border = "2px solid #007bff";
+    console.log("Card highlighted successfully");
+  } else {
+    console.warn("Card not found for listing:", listingId);
+  }
+}
+
+function unhighlightListingFromMarker(listingId) {
+  console.log("Unhighlighting listing card for:", listingId);
+  const card = document.querySelector(`.card[data-id="${listingId}"]`);
+  if (card) {
+    card.classList.remove("highlighted-listing");
+    card.style.boxShadow = "";
+    card.style.border = "";
+    console.log("Card unhighlighted successfully");
+  } else {
+    console.warn("Card not found for listing:", listingId);
+  }
+}
+
+function setupListingHighlighting() {
+  console.log("Setting up listing highlighting");
+  const cards = document.querySelectorAll(".card");
+  console.log(`Found ${cards.length} listing cards`);
+
+  cards.forEach((card) => {
+    const listingId = card.dataset.id;
+    console.log(`Setting up highlighting for card ID: ${listingId}`);
+
+    // Remove any existing event listeners
+    if (card._mouseenterHandler) {
+      card.removeEventListener("mouseenter", card._mouseenterHandler);
+    }
+    if (card._mouseleaveHandler) {
+      card.removeEventListener("mouseleave", card._mouseleaveHandler);
+    }
+
+    // Create new event handlers
+    card._mouseenterHandler = function () {
+      console.log("Card mouseenter for listing:", listingId);
+      highlightMarkerFromListing(listingId);
+    };
+
+    card._mouseleaveHandler = function () {
+      console.log("Card mouseleave for listing:", listingId);
+      unhighlightMarkerFromListing(listingId);
+    };
+
+    // Add the event listeners
+    card.addEventListener("mouseenter", card._mouseenterHandler);
+    card.addEventListener("mouseleave", card._mouseleaveHandler);
+  });
 }
