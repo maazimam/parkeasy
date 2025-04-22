@@ -468,10 +468,10 @@ def map_view_listings(request):
                 "location_name": listing.location_name or "",
                 "has_ev_charger": listing.has_ev_charger,
                 "charger_level": (
-                    listing.ev_charger_level if listing.has_ev_charger else None
+                    listing.charger_level if listing.has_ev_charger else None
                 ),
                 "connector_type": (
-                    listing.ev_connector_type if listing.has_ev_charger else None
+                    listing.connector_type if listing.has_ev_charger else None
                 ),
                 "size": listing.parking_spot_size,
             }
