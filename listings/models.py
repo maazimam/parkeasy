@@ -77,11 +77,25 @@ class Listing(models.Model):
         Return True if this listing's combined ListingSlot intervals
         cover the entire range [start_dt, end_dt).
         """
+        # Debug output
+        # print(f"\nChecking availability for: {start_dt} to {end_dt}")
+
         # Ensure input datetimes are timezone-aware
         if timezone.is_naive(start_dt):
             start_dt = timezone.make_aware(start_dt)
         if timezone.is_naive(end_dt):
             end_dt = timezone.make_aware(end_dt)
+
+        # # Output all available slots for debugging
+        # print(f"Available slots for listing #{self.id} ({self.title}):")
+        # for slot in self.slots.all():
+        #     slot_start = dt.datetime.combine(slot.start_date, slot.start_time)
+        #     slot_end = dt.datetime.combine(slot.end_date, slot.end_time)
+        #     if timezone.is_naive(slot_start):
+        #         slot_start = timezone.make_aware(slot_start)
+        #     if timezone.is_naive(slot_end):
+        #         slot_end = timezone.make_aware(slot_end)
+        #     print(f"  - {slot_start} to {slot_end}")
 
         intervals = []
         for slot in self.slots.all():
@@ -96,6 +110,7 @@ class Listing(models.Model):
                 slot_end = timezone.make_aware(slot_end)
 
             intervals.append((slot_start, slot_end))
+
         intervals.sort(key=lambda iv: iv[0])
         merged = []
         for interval in intervals:
@@ -108,14 +123,34 @@ class Listing(models.Model):
                     merged[-1] = (last_start, max(last_end, this_end))
                 else:
                     merged.append(interval)
+
+        # # Debug the merged intervals
+        # print("Merged intervals:")
+        # for iv_start, iv_end in merged:
+        #     print(f"  - {iv_start} to {iv_end}")
+
+        # FIX: Modified logic to specifically check if any interval contains the request
+        # Check if any single interval fully contains our booking request
+        for iv_start, iv_end in merged:
+            if iv_start <= start_dt and iv_end >= end_dt:
+                # print(f"✓ Found containing interval: {iv_start} to {iv_end}")
+                return True
+
+        # If no single interval contains our request, use the original algorithm
         coverage_start = start_dt
         for iv_start, iv_end in merged:
+            # print(f"Checking if {iv_start}-{iv_end} advances coverage from {coverage_start}")
             if iv_start <= coverage_start and iv_end >= end_dt:
+                # print("✓ Interval covers remaining range")
                 return True
             if iv_start > coverage_start:
+                # print(f"✗ Gap in coverage between {coverage_start} and {iv_start}")
                 return False
             coverage_start = iv_end
-        return coverage_start >= end_dt
+
+        result = coverage_start >= end_dt
+        # print(f"Final coverage check: {coverage_start} >= {end_dt} = {result}")
+        return result
 
     # These two properties allow us to access the start and end date and time of a listing
     @property

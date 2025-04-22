@@ -8,17 +8,35 @@ let listingMarkers = {}; // Keep track of all listing markers
 let currentMapView = null;
 let listingLayerGroup;
 let currentMap;
+let garageLayerGroup;
+let meterLayerGroup;
 
 // Map-related functions (outside DOMContentLoaded)
 function initializeMap() {
-  if (!mapInitialized) {
-    console.log("Initializing search map...");
-    // Use our NYC-bounded map initialization instead of the original code
-    searchMap = initializeNYCMap("map-view");
-    currentMapView = searchMap; // Store map reference
+    if (!mapInitialized) {
+        console.log("Initializing search map...");
 
-    // Initialize layer groups
-    listingLayerGroup = L.layerGroup().addTo(searchMap);
+        // Ensure map container is visible
+        const mapContainer = document.getElementById("map-view");
+        if (mapContainer) {
+            mapContainer.style.display = "block";
+            mapContainer.style.height = "100%";
+            mapContainer.style.width = "100%";
+        }
+
+        // Use our NYC-bounded map initialization instead of the original code
+        searchMap = initializeNYCMap("map-view", {
+            center: NYC_CENTER,
+            zoom: 12,
+            minZoom: 10
+        });
+
+        currentMapView = searchMap; // Store map reference
+
+        // Initialize layer groups
+        listingLayerGroup = L.layerGroup().addTo(searchMap);
+        garageLayerGroup = L.layerGroup();
+        meterLayerGroup = L.layerGroup();
 
     // Add click event to map
     searchMap.on("click", onMapClick);
@@ -26,11 +44,15 @@ function initializeMap() {
     // Add the legend to the search map
     searchMap.addControl(createMapLegend());
 
-    // Force map resize
-    setTimeout(() => {
-      searchMap.invalidateSize(true);
-      console.log("Map size invalidated");
-    }, 100);
+        // Add garages and meters to the map
+        addGaragesDirectly(searchMap);
+        addParkingMeters(searchMap);
+
+        // Force map resize
+        setTimeout(() => {
+            searchMap.invalidateSize(true);
+            console.log("Map size invalidated");
+        }, 100);
 
     mapInitialized = true;
     console.log("Map initialized successfully");
@@ -318,9 +340,22 @@ document.addEventListener("DOMContentLoaded", function () {
   if (listView) listView.classList.add("active-view");
   if (mapView) mapView.classList.add("active-view");
 
-  // Filter panel expand/collapse functionality
-  const filterHeader = document.querySelector(".filter-header");
-  const toggleFiltersBtn = document.getElementById("toggle-filters");
+    if (listView) listView.classList.add("active-view");
+    if (mapView) {
+        mapView.classList.add("active-view");
+        // Ensure map container is visible and properly sized
+        mapView.style.display = "block";
+        mapView.style.height = "100%";
+        mapView.style.width = "100%";
+        mapView.style.position = "absolute";
+        mapView.style.top = "0";
+        mapView.style.left = "0";
+        mapView.style.right = "0";
+        mapView.style.bottom = "0";
+    }
+
+    const filterHeader = document.querySelector(".filter-header");
+    const toggleFiltersBtn = document.getElementById("toggle-filters");
 
   // Add click event to both header and toggle button
   if (filterHeader) {

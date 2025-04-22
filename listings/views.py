@@ -17,6 +17,58 @@ from .models import (EV_CHARGER_LEVELS, EV_CONNECTOR_TYPES, PARKING_SPOT_SIZES,
 from .utils import (calculate_distance, extract_coordinates, filter_listings,
                     has_active_filters)
 
+# Add this new function for API support
+from django.http import JsonResponse
+from django.template.loader import render_to_string
+
+
+def user_listings_api(request, username):
+    """API endpoint for paginated user listings"""
+    page = int(request.GET.get("page", 1))
+    listings_per_page = 10
+    start = (page - 1) * listings_per_page
+    end = start + listings_per_page
+
+    # Get the host user
+    host = get_object_or_404(User, username=username)
+
+    # Use the same logic as user_listings to get sorted listings
+    current_datetime = datetime.now()
+    listings = Listing.objects.filter(user=host).distinct()
+    available_listings = []
+    unavailable_listings = []
+
+    for listing in listings:
+        is_available = listing.slots.filter(
+            models.Q(end_date__gt=current_datetime.date())
+            | models.Q(
+                end_date=current_datetime.date(), end_time__gt=current_datetime.time()
+            )
+        ).exists()
+        listing.user_profile_available = is_available
+        if is_available:
+            available_listings.append(listing)
+        else:
+            unavailable_listings.append(listing)
+
+    # Sort and combine
+    available_listings.sort(key=lambda x: -x.created_at.timestamp())
+    unavailable_listings.sort(key=lambda x: -x.created_at.timestamp())
+    sorted_listings = available_listings + unavailable_listings
+
+    # Slice for pagination
+    page_listings = sorted_listings[start:end]
+
+    # Render HTML for these listings
+    html = render_to_string(
+        "listings/partials/listing_cards.html",
+        {"listings": page_listings, "is_public_view": True},
+        request=request,
+    )
+
+    return JsonResponse({"html": html, "has_more": len(sorted_listings) > end})
+
+
 # Define an inline formset for editing (extra=0)
 ListingSlotFormSetEdit = inlineformset_factory(
     Listing, ListingSlot, form=ListingSlotForm, extra=0, can_delete=True
@@ -506,5 +558,16 @@ def user_listings(request, username):
         "is_public_view": True,
         "source": "user_listings",
         "username": username,
+        "total_count": len(sorted_listings),  # Add this line
     }
     return render(request, "listings/user_listings.html", context)
+
+
+@login_required
+def my_listings(request):
+    """Shortcut to view the logged-in user's listings"""
+    return redirect("user_listings", username=request.user.username)
+
+
+def map_legend(request):
+    return render(request, "listings/map_legend.html")
