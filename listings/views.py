@@ -10,12 +10,25 @@ from django.forms import inlineformset_factory
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import (ListingForm, ListingSlotForm, ListingSlotFormSet,
-                    validate_non_overlapping_slots)
-from .models import (EV_CHARGER_LEVELS, EV_CONNECTOR_TYPES, PARKING_SPOT_SIZES,
-                     Listing, ListingSlot)
-from .utils import (calculate_distance, extract_coordinates, filter_listings,
-                    has_active_filters)
+from .forms import (
+    ListingForm,
+    ListingSlotForm,
+    ListingSlotFormSet,
+    validate_non_overlapping_slots,
+)
+from .models import (
+    EV_CHARGER_LEVELS,
+    EV_CONNECTOR_TYPES,
+    PARKING_SPOT_SIZES,
+    Listing,
+    ListingSlot,
+)
+from .utils import (
+    calculate_distance,
+    extract_coordinates,
+    filter_listings,
+    has_active_filters,
+)
 
 # Add this new function for API support
 from django.http import JsonResponse
@@ -365,7 +378,9 @@ def view_listings(request):
     if success_message:
         success_messages.append(success_message)
 
-    processed_listings, filter_errors, filter_warnings = filter_listings(all_listings, request)
+    processed_listings, filter_errors, filter_warnings = filter_listings(
+        all_listings, request
+    )
     error_messages.extend(filter_errors)
     warning_messages.extend(filter_warnings)
 
@@ -438,26 +453,34 @@ def map_view_listings(request):
             slots__end_time__gt=current_datetime.time(),
         )
     ).distinct()
-    processed_listings, filter_errors, filter_warnings = filter_listings(all_listings, request)
+    processed_listings, filter_errors, filter_warnings = filter_listings(
+        all_listings, request
+    )
 
     # Transform listings into a JSON-serializable format
     markers = []
     for listing in processed_listings:
-        markers.append({
-            'id': listing.id,
-            'title': listing.title,
-            'lat': listing.latitude,
-            'lng': listing.longitude,
-            'price': str(listing.rent_per_hour),
-            'rating': float(listing.avg_rating or 0),
-            'location_name': listing.location_name or "",
-            'has_ev_charger': listing.has_ev_charger,
-            'charger_level': listing.ev_charger_level if listing.has_ev_charger else None,
-            'connector_type': listing.ev_connector_type if listing.has_ev_charger else None,
-            'size': listing.parking_spot_size,
-        })
+        markers.append(
+            {
+                "id": listing.id,
+                "title": listing.title,
+                "lat": listing.latitude,
+                "lng": listing.longitude,
+                "price": str(listing.rent_per_hour),
+                "rating": float(listing.avg_rating or 0),
+                "location_name": listing.location_name or "",
+                "has_ev_charger": listing.has_ev_charger,
+                "charger_level": (
+                    listing.ev_charger_level if listing.has_ev_charger else None
+                ),
+                "connector_type": (
+                    listing.ev_connector_type if listing.has_ev_charger else None
+                ),
+                "size": listing.parking_spot_size,
+            }
+        )
 
-    return JsonResponse({'markers': markers})
+    return JsonResponse({"markers": markers})
 
 
 def manage_listings(request):

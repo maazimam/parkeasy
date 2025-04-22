@@ -171,18 +171,18 @@ def has_active_filters(request):
 def filter_listings(all_listings, request):
     """
     Filter listings based on request parameters.
-    
+
     Args:
         all_listings: Initial queryset of listings
         request: The HTTP request containing filter parameters
         current_datetime: Current datetime for reference
-        
+
     Returns:
         tuple: (filtered_listings, error_messages, warning_messages)
     """
     error_messages = []
     warning_messages = []
-    
+
     # Apply price filter
     max_price = request.GET.get("max_price")
     if max_price:
@@ -191,23 +191,23 @@ def filter_listings(all_listings, request):
             all_listings = all_listings.filter(rent_per_hour__lte=max_price_val)
         except ValueError:
             pass
-    
+
     filter_type = request.GET.get("filter_type", "single")
-    
+
     # Single date/time filter
     if filter_type == "single":
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
         start_time = request.GET.get("start_time")
         end_time = request.GET.get("end_time")
-        
+
         if any([start_date, end_date, start_time, end_time]):
             try:
                 user_start_str = f"{start_date} {start_time}"
                 user_end_str = f"{end_date} {end_time}"
                 user_start_dt = datetime.strptime(user_start_str, "%Y-%m-%d %H:%M")
                 user_end_dt = datetime.strptime(user_end_str, "%Y-%m-%d %H:%M")
-                
+
                 filtered = []
                 for listing in all_listings:
                     if listing.is_available_for_range(user_start_dt, user_end_dt):
@@ -215,7 +215,7 @@ def filter_listings(all_listings, request):
                 all_listings = filtered
             except ValueError:
                 pass
-    
+
     # Multiple date/time ranges filter
     elif filter_type == "multiple":
         try:
@@ -248,7 +248,7 @@ def filter_listings(all_listings, request):
                 if available_for_all:
                     filtered.append(listing)
             all_listings = filtered
-    
+
     # Recurring pattern filter
     elif filter_type == "recurring":
         r_start_date = request.GET.get("recurring_start_date")
@@ -264,13 +264,13 @@ def filter_listings(all_listings, request):
                 start_date_obj = datetime.strptime(r_start_date, "%Y-%m-%d").date()
                 s_time = datetime.strptime(r_start_time, "%H:%M").time()
                 e_time = datetime.strptime(r_end_time, "%H:%M").time()
-                
+
                 if s_time >= e_time and not overnight:
                     error_messages.append(
                         "Start time must be before end time unless overnight booking is selected"
                     )
                     continue_with_filter = False
-                
+
                 if pattern == "daily":
                     r_end_date = request.GET.get("recurring_end_date")
                     if not r_end_date:
@@ -302,7 +302,7 @@ def filter_listings(all_listings, request):
                                     )
                                     e_dt = datetime.combine(end_date_for_slot, e_time)
                                     intervals.append((s_dt, e_dt))
-                
+
                 elif pattern == "weekly":
                     try:
                         weeks_str = request.GET.get("recurring_weeks")
@@ -363,11 +363,12 @@ def filter_listings(all_listings, request):
 
             if not continue_with_filter:
                 from django.db.models import QuerySet
+
                 if isinstance(all_listings, QuerySet):
                     all_listings = all_listings.none()
                 else:
                     all_listings = []
-    
+
     # Apply EV charger filters
     if request.GET.get("has_ev_charger") == "on":
         all_listings = all_listings.filter(has_ev_charger=True)
@@ -386,7 +387,7 @@ def filter_listings(all_listings, request):
         all_listings = all_listings.filter(
             parking_spot_size=request.GET["parking_spot_size"]
         )
-    
+
     # Apply location-based filtering
     processed_listings = []
     search_lat = request.GET.get("lat")
@@ -426,5 +427,5 @@ def filter_listings(all_listings, request):
         processed_listings.sort(
             key=lambda x: x.distance if x.distance is not None else float("inf")
         )
-    
+
     return processed_listings, error_messages, warning_messages

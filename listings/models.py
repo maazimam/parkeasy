@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Max, Min
 from django.utils import timezone
+
 # extract coordinates from location string
 from .utils import extract_coordinates
 
@@ -50,7 +51,7 @@ class Listing(models.Model):
     def latitude(self):
         """Returns the latitude of the listing."""
         return extract_coordinates(self.location)[0]
-    
+
     @property
     def longitude(self):
         """Returns the longitude of the listing."""
