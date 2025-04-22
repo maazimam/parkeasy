@@ -5,6 +5,9 @@ from django.db import models
 from django.db.models import Max, Min
 from django.utils import timezone
 
+# extract coordinates from location string
+from .utils import extract_coordinates
+
 from .utils import simplify_location
 
 EV_CHARGER_LEVELS = [
@@ -43,6 +46,16 @@ class Listing(models.Model):
     def location_name(self):
         """Returns a simplified version of the location string."""
         return simplify_location(self.location)
+
+    @property
+    def latitude(self):
+        """Returns the latitude of the listing."""
+        return extract_coordinates(self.location)[0]
+
+    @property
+    def longitude(self):
+        """Returns the longitude of the listing."""
+        return extract_coordinates(self.location)[1]
 
     @property
     def avg_rating(self):

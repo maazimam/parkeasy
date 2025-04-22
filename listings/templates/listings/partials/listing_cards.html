@@ -7,6 +7,7 @@
     data-price="{{ listing.rent_per_hour }}"
     data-title="{{ listing.title }}"
     data-rating="{{ listing.avg_rating|default:0 }}"
+    data-id="{{ listing.id }}"
   >
     {% if user != listing.user %}
     <a href="{% url 'report_item' 'listing' listing.id %}" 
