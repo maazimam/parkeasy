@@ -28,16 +28,17 @@ from .utils import calculate_distance, extract_coordinates, has_active_filters
 from django.http import JsonResponse
 from django.template.loader import render_to_string
 
+
 def user_listings_api(request, username):
     """API endpoint for paginated user listings"""
-    page = int(request.GET.get('page', 1))
+    page = int(request.GET.get("page", 1))
     listings_per_page = 10
     start = (page - 1) * listings_per_page
     end = start + listings_per_page
-    
+
     # Get the host user
     host = get_object_or_404(User, username=username)
-    
+
     # Use the same logic as user_listings to get sorted listings
     current_datetime = datetime.now()
     listings = Listing.objects.filter(user=host).distinct()
@@ -61,21 +62,19 @@ def user_listings_api(request, username):
     available_listings.sort(key=lambda x: -x.created_at.timestamp())
     unavailable_listings.sort(key=lambda x: -x.created_at.timestamp())
     sorted_listings = available_listings + unavailable_listings
-    
+
     # Slice for pagination
     page_listings = sorted_listings[start:end]
-    
+
     # Render HTML for these listings
     html = render_to_string(
-        'listings/partials/listing_cards.html',
-        {'listings': page_listings, 'is_public_view': True},
-        request=request
+        "listings/partials/listing_cards.html",
+        {"listings": page_listings, "is_public_view": True},
+        request=request,
     )
-    
-    return JsonResponse({
-        'html': html,
-        'has_more': len(sorted_listings) > end
-    })
+
+    return JsonResponse({"html": html, "has_more": len(sorted_listings) > end})
+
 
 # Define an inline formset for editing (extra=0)
 ListingSlotFormSetEdit = inlineformset_factory(
@@ -791,4 +790,4 @@ def user_listings(request, username):
 @login_required
 def my_listings(request):
     """Shortcut to view the logged-in user's listings"""
-    return redirect('user_listings', username=request.user.username)
+    return redirect("user_listings", username=request.user.username)
