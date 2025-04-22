@@ -518,7 +518,15 @@ function fetchAllListingMarkers() {
     : "";
   console.log("queryString", queryString, "lol");
 
-  fetch(`/listings/map-view-listings/${queryString}`)
+  fetch(`/listings/map-view-listings/${queryString}`,{
+    method: 'GET', // or your actual method, e.g., POST
+    mode: 'cors', // explicitly allow CORS
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'ParkEasy NYC Application (https://parkeasy.example.com)'
+    }
+  })
     .then((response) => response.json())
     .then((data) => {
       console.log(`Loaded ${data.markers.length} markers for map`);
