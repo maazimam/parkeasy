@@ -83,17 +83,19 @@
                         </div>
                     </div>
 
-                    <div class="col-md-4 charger-level-container">
-                        <div class="mb-3">
+                    <div class="col-md-4">
+                        <div class="mb-3 charger-level-container">
                             <label for="{{ form.charger_level.id_for_label }}" class="form-label">
                                 <i class="fas fa-bolt text-primary me-1"></i> Charger Level
                             </label>
                             {{ form.charger_level }}
                         </div>
                     </div>
+                </div>
 
-                    <div class="col-md-4 connector-type-container">
-                        <div class="mb-3">
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="mb-3 connector-type-container">
                             <label for="{{ form.connector_type.id_for_label }}" class="form-label">
                                 <i class="fas fa-plug text-primary me-1"></i> Connector Type
                             </label>
@@ -208,6 +210,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <!-- NYC Map Bounds -->
 <script src="{% static 'listings/js/map_utils.js' %}"></script>
-<script src="{% static 'listings/js/listing-form-shared.js' %}"></script>
+<script src="{% static 'listings/js/listing-form-shared.js' %}?v=4"></script>
 <script src="{% static 'listings/js/create_listings.js' %}"></script>
 {% endblock %}
