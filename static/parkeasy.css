@@ -421,3 +421,16 @@ button.btn-primary.active {
 .navbar .navbar-nav .dropdown:hover .chevron-icon {
     transform: rotate(180deg) !important;
 }
+
+
+/* Error page styling */
+.error-page-icon {
+    font-size: 5rem;
+    color: var(--color-primary);
+    opacity: 0.8;
+}
+
+.error-page-heading {
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+}
