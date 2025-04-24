@@ -331,62 +331,68 @@ class ComposeMessagingTests(TestCase):
     def test_admin_message_form(self):
         """Test that users can access the admin message form"""
         self.client.login(username="stranger", password="strangerpass")
-        
+
         # Even users with no relationships should be able to access admin message form
         response = self.client.get(reverse("compose_admin_message"))
-        
+
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["is_admin_message"])
-        self.assertIsInstance(response.context["form"].fields["recipient"].widget, forms.HiddenInput)
-        
+        self.assertIsInstance(
+            response.context["form"].fields["recipient"].widget, forms.HiddenInput
+        )
+
     def test_send_admin_message(self):
         """Test sending a message to admin"""
         self.client.login(username="stranger", password="strangerpass")
-        
+
         data = {
             "subject": "Help Request",
             "body": "I need assistance with my account",
         }
-        
+
         response = self.client.post(reverse("compose_admin_message"), data)
-        
+
         # Should redirect to inbox
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse("inbox"))
-        
+
         # Should create message to admin
-        message = Message.objects.filter(sender=self.unrelated_user, recipient=self.admin_user).first()
+        message = Message.objects.filter(
+            sender=self.unrelated_user, recipient=self.admin_user
+        ).first()
         self.assertIsNotNone(message)
         self.assertEqual(message.subject, "[USER SUPPORT MESSAGE] Help Request")
         self.assertEqual(message.body, "I need assistance with my account")
-        
+
     def test_admin_can_message_anyone(self):
         """Test that admin users can message anyone"""
         self.client.login(username="admin", password="adminpass")
-        
+
         # Admin should be able to access compose page
         response = self.client.get(reverse("compose_message"))
-        
+
         self.assertEqual(response.status_code, 200)
-        
+
         # All users should be in available recipients
         recipients_ids = [user.id for user in response.context["available_recipients"]]
         self.assertIn(self.owner.id, recipients_ids)
         self.assertIn(self.renter.id, recipients_ids)
         self.assertIn(self.unrelated_user.id, recipients_ids)
-        
+
         # Admin should be able to message any user
         data = {
             "recipient": self.unrelated_user.id,
             "subject": "Admin message",
             "body": "This is an admin message",
         }
-        
+
         response = self.client.post(reverse("compose_message"), data)
-        
+
         self.assertEqual(response.status_code, 302)
         self.assertTrue(
-            Message.objects.filter(sender=self.admin_user, recipient=self.unrelated_user).exists()
+            Message.objects.filter(
+                sender=self.admin_user, recipient=self.unrelated_user
+            ).exists()
         )
 
     def test_reply_to_admin_message(self):
@@ -398,15 +404,15 @@ class ComposeMessagingTests(TestCase):
             subject="Admin notification",
             body="Important information",
         )
-        
+
         self.client.login(username="stranger", password="strangerpass")
-        
+
         # View the message
         response = self.client.get(reverse("message_detail", args=[admin_message.id]))
-        
+
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Reply to Admin")
-        
+
     def test_admin_sees_admin_label(self):
         """Test that admin username is labeled with [ADMIN]"""
         # Create an admin message
@@ -416,11 +422,11 @@ class ComposeMessagingTests(TestCase):
             subject="Admin notification",
             body="Important information",
         )
-        
+
         self.client.login(username="stranger", password="strangerpass")
-        
+
         # View the message
         response = self.client.get(reverse("message_detail", args=[admin_message.id]))
-        
+
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "[ADMIN]")
