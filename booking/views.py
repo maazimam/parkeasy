@@ -562,6 +562,24 @@ def my_bookings(request):
     # Combine all lists in priority order
     sorted_bookings = approved_unreviewed + other_bookings + approved_reviewed
 
+    # Process booking slots
+    for booking in sorted_bookings:
+        # Get all slots for this booking
+        slots = booking.slots.all().order_by("start_date", "start_time")
+
+        # Format the slots information for display
+        slots_info = []
+        for slot in slots:
+            slot_info = {
+                "date": slot.start_date,
+                "start_time": slot.start_time,
+                "end_time": slot.end_time,
+            }
+            slots_info.append(slot_info)
+
+        # Add slots_info attribute to the booking object
+        booking.slots_info = slots_info
+
     return render(request, "booking/my_bookings.html", {"bookings": sorted_bookings})
 
 
