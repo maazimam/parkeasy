@@ -196,7 +196,7 @@
                     <a href="{% url 'view_listings' %}" class="btn btn-secondary">
                         <i class="fas fa-times me-1"></i> Cancel
                     </a>
-                    <button type="submit" class="btn btn-primary px-4">
+                    <button type="submit" class="btn btn-primary px-4" id="createListingBtn">
               <i class="fas fa-check me-1"></i> Post Parking Spot
             </button>
                 </div>
@@ -212,4 +212,5 @@
 <script src="{% static 'listings/js/map_utils.js' %}"></script>
 <script src="{% static 'listings/js/listing-form-shared.js' %}?v=4"></script>
 <script src="{% static 'listings/js/create_listings.js' %}"></script>
+<script src="{% static 'listings/js/prevent_duplicate_submit.js' %}"></script>
 {% endblock %}
