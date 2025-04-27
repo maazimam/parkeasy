@@ -94,6 +94,7 @@ body .container .card-body .badge.bg-pastel-info {
   border: 1px solid rgba(216, 59, 1, 0.3); /* Subtle border in same color */
   transition: all 0.2s ease;
   font-weight: 500; /* Slightly bolder */
+  transform: translateX(-8px); /* Shift left by 8px */
 }
 
 /* Enhanced hover effects with matching color - without underline */
@@ -102,4 +103,10 @@ body .container .card-body .badge.bg-pastel-info {
   box-shadow: 0 2px 4px rgba(216, 59, 1, 0.15); /* Subtle shadow on hover */
   transform: translateY(-1px); /* Slight lift effect */
   border-color: rgba(216, 59, 1, 0.5); /* Darker border on hover */
+}
+
+/* Move car icon to the left */
+.car-icon-shifted {
+  position: relative;
+  left: -6px; /* Adjust this value to move more or less to the left */
 }
