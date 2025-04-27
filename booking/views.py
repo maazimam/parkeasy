@@ -514,6 +514,10 @@ def review_booking(request, booking_id):
             review.listing = booking.listing
             review.user = request.user
             review.save()
+
+            # Notify the listing owner about the new review
+            notify_owner_listing_reviewed(review)
+
             return redirect("my_bookings")
     else:
         form = ReviewForm()
@@ -586,5 +590,22 @@ def notify_user_booking_approved(booking):
         recipient=booking.user,
         subject=f"Booking Approved for {listing_title}",
         content=f"Your booking request for the spot '{listing_title}' by {owner_username} has been approved.",
+        notification_type="BOOKING",
+    )
+
+
+def notify_owner_listing_reviewed(review):
+    """Create a notification for the owner when their listing is reviewed."""
+    listing = review.listing
+    owner = listing.user
+    reviewer_username = review.user.username
+    review_rating = review.rating
+
+    # Create notification for the owner
+    Notification.objects.create(
+        sender=review.user,
+        recipient=owner,
+        subject=f"New Review for {listing.title}",
+        content=f"User {reviewer_username} left a {review_rating}-star review for your listing '{listing.title}'.",
         notification_type="BOOKING",
     )

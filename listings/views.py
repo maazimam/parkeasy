@@ -481,12 +481,74 @@ def map_view_listings(request):
 
 
 def manage_listings(request):
+    from datetime import timedelta
+    from django.db.models import Sum
+    from django.utils import timezone
+
+    # Get the current date and calculate the first day of current and previous months
+    today = timezone.now().date()
+    first_day_current_month = today.replace(day=1)
+    last_month = first_day_current_month - timedelta(days=1)
+    first_day_last_month = last_month.replace(day=1)
+
+    # Get all listings owned by the user
     owner_listings = Listing.objects.filter(user=request.user)
+
+    # Initialize variables for overall statistics
+    total_earnings = 0
+    current_month_earnings = 0
+    last_month_earnings = 0
+
     for listing in owner_listings:
+        # Get approved bookings for this listing
         listing.pending_bookings = listing.booking_set.filter(status="PENDING")
         listing.approved_bookings = listing.booking_set.filter(status="APPROVED")
+
+        # Calculate total earnings for this listing
+        listing_earnings = (
+            listing.booking_set.filter(status="APPROVED").aggregate(Sum("total_price"))[
+                "total_price__sum"
+            ]
+            or 0
+        )
+        listing.total_earnings = listing_earnings
+        total_earnings += listing_earnings
+
+        # Calculate current month earnings for this listing
+        listing_current_month = (
+            listing.booking_set.filter(
+                status="APPROVED", created_at__gte=first_day_current_month
+            ).aggregate(Sum("total_price"))["total_price__sum"]
+            or 0
+        )
+        listing.current_month_earnings = listing_current_month
+        current_month_earnings += listing_current_month
+
+        # Calculate last month earnings for this listing
+        listing_last_month = (
+            listing.booking_set.filter(
+                status="APPROVED",
+                created_at__gte=first_day_last_month,
+                created_at__lt=first_day_current_month,
+            ).aggregate(Sum("total_price"))["total_price__sum"]
+            or 0
+        )
+        listing.last_month_earnings = listing_last_month
+        last_month_earnings += listing_last_month
+
+    # Prepare earnings context for the template
+    earnings_summary = {
+        "total": total_earnings,
+        "current_month": current_month_earnings,
+        "last_month": last_month_earnings,
+        "current_month_name": today.strftime("%B"),
+        "last_month_name": last_month.strftime("%B"),
+    }
+
     return render(
-        request, "listings/manage_listings.html", {"listings": owner_listings}
+        request,
+        "listings/manage_listings.html",
+        {"listings": owner_listings, "earnings_summary": earnings_summary},
     )
 
 
