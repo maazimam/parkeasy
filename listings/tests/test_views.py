@@ -1,3 +1,4 @@
+import json
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from unittest.mock import patch
@@ -7,7 +8,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from booking.models import Booking, BookingSlot
-from listings.models import Listing, ListingSlot
+from listings.models import Listing, ListingSlot, BookmarkedListing
 
 from ..utils import extract_coordinates
 
@@ -1425,3 +1426,106 @@ class SpotSizeFilterTest(TestCase):
 #############################
 # End of tests.
 #############################
+
+
+class BookmarkFunctionalityTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        # Create test users
+        self.user = User.objects.create_user(username="testuser", password="testpass")
+        self.owner = User.objects.create_user(username="owner", password="ownerpass")
+
+        # Create test listings
+        self.listing = Listing.objects.create(
+            user=self.owner,
+            title="Test Listing",
+            location="Test Location [40.712776, -74.005974]",
+            rent_per_hour=15.00,
+            description="Test description",
+            parking_spot_size="STANDARD",
+        )
+
+        # Add slots to make listing appear in searches
+        tomorrow = (datetime.now() + timedelta(days=1)).date()
+        ListingSlot.objects.create(
+            listing=self.listing,
+            start_date=tomorrow,
+            start_time="09:00",
+            end_date=tomorrow,
+            end_time="17:00",
+        )
+
+    def test_toggle_bookmark(self):
+        """Test adding and removing bookmarks"""
+        self.client.login(username="testuser", password="testpass")
+
+        # Test adding bookmark
+        response = self.client.post(
+            reverse("toggle_bookmark", args=[self.listing.id]),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            BookmarkedListing.objects.filter(
+                user=self.user, listing=self.listing
+            ).exists()
+        )
+
+        # Test removing bookmark
+        response = self.client.post(
+            reverse("toggle_bookmark", args=[self.listing.id]),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            BookmarkedListing.objects.filter(
+                user=self.user, listing=self.listing
+            ).exists()
+        )
+
+    def test_bookmarks_page_display(self):
+        """Test bookmarks page shows correct listings"""
+        self.client.login(username="testuser", password="testpass")
+
+        # Create a bookmark
+        BookmarkedListing.objects.create(user=self.user, listing=self.listing)
+
+        # Use the correct URL name 'bookmarked_listings' instead of 'bookmarks'
+        response = self.client.get(reverse("bookmarked_listings"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(self.listing, response.context["listings"])
+        self.assertContains(response, "Test Listing")
+
+    def test_duplicate_prevention(self):
+        """Test that bookmarking the same listing multiple times doesn't create duplicates"""
+        self.client.login(username="testuser", password="testpass")
+
+        # Send multiple bookmark requests for the same listing
+        for _ in range(3):
+            self.client.post(
+                reverse("toggle_bookmark", args=[self.listing.id]),
+                HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+            )
+
+        # There should only be one bookmark
+        bookmarks = BookmarkedListing.objects.filter(
+            user=self.user, listing=self.listing
+        )
+        self.assertEqual(bookmarks.count(), 1)
+
+    def test_bookmark_ajax_response_includes_correct_data(self):
+        """Test that AJAX response contains all necessary data for the frontend"""
+        self.client.login(username="testuser", password="testpass")
+
+        response = self.client.post(
+            reverse("toggle_bookmark", args=[self.listing.id]),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+
+        # Check expected fields - updated to match actual implementation
+        self.assertIn("is_bookmarked", data)
+        self.assertIn("message", data)
+        self.assertEqual(data["is_bookmarked"], True)
