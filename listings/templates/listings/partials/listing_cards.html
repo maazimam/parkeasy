@@ -1,7 +1,9 @@
 <div class="listings-container">
   {% for listing in listings %}
   <div
-    class="card shadow-sm mb-2 border-0 position-relative"
+    class="card mb-3 listing-card shadow-sm mb-2 border-0 position-relative"
+    id="card-{{ listing.id }}"
+    data-listing-id="{{ listing.id }}"
     data-location="{{ listing.location }}"
     data-location-name="{{ listing.location_name }}"
     data-price="{{ listing.rent_per_hour }}"
@@ -9,14 +11,24 @@
     data-rating="{{ listing.avg_rating|default:0 }}"
     data-id="{{ listing.id }}"
   >
+  
+    <!-- Add the report flag icon here -->
     {% if user != listing.user %}
     <a href="{% url 'report_item' 'listing' listing.id %}" 
        class="report-icon" 
        title="Report this listing">
       <i class="fas fa-flag"></i>
     </a>
+
+    <!-- Replace the current bookmark icon line: -->
+    <a href="{% url 'toggle_bookmark' listing.id %}" 
+       class="bookmark-icon ajax-bookmark {% if listing.id in bookmarked_listings or is_bookmarks_page %}active{% endif %}"
+       data-listing-id="{{ listing.id }}"
+       data-card-id="listing-card-{{ listing.id }}">
+      <i class="{% if listing.id in bookmarked_listings or is_bookmarks_page %}fas{% else %}far{% endif %} fa-bookmark"></i>
+    </a>
     {% endif %}
-    
+  
     <div class="card-body p-2">
       <!-- Header: Title and Badge -->
       <div class="d-flex align-items-center mb-1">
@@ -118,30 +130,40 @@
           <div class="d-flex flex-column h-100 justify-content-end">
             {% if user != listing.user %}
             <div class="d-grid gap-2">
-              {% if not is_public_view or listing.user_profile_available %}
-              <!-- Regular "Book Now" button -->
-              <a
-                href="{% url 'book_listing' listing.id %}?source={% if source %}{{ source }}{% else %}view_listings{% endif %}&username={% if username %}{{ username }}{% endif %}"
-                class="btn btn-primary btn-sm"
-              >
-                <i class="fas fa-calendar-check me-1"></i> Book Now
-              </a>
-              {% elif is_public_view %}
-              <!-- "No Longer Available" message (only in public_view) -->
-              <div class="alert alert-secondary py-2 mb-0 text-center">
-                <i class="fas fa-ban me-1"></i> No Longer Available
-              </div>
+              {% if listing.user_profile_available %}
+                <!-- Show Book Now button if listing is available -->
+                <a href="{% url 'book_listing' listing.id %}?source={% if source %}{{ source }}{% else %}view_listings{% endif %}&username={% if username %}{{ username }}{% endif %}"
+                   class="btn btn-primary btn-sm">
+                  <i class="fas fa-calendar-check me-1"></i> Book Now
+                </a>
+              {% else %}
+                <!-- No Longer Available message for unavailable listings on any page -->
+                <div class="alert alert-secondary py-2 mb-0 text-center">
+                  <i class="fas fa-ban me-1"></i> No Longer Available
+                </div>
               {% endif %}
 
-              <a
-                href="{% url 'listing_reviews' listing.id %}"
-                class="btn btn-secondary btn-sm"
-              >
+              <a href="{% url 'listing_reviews' listing.id %}"
+                 class="btn btn-secondary btn-sm">
                 <i class="fas fa-comment me-1"></i> Reviews
               </a>
             </div>
             {% else %}
-            <div class="d-grid">
+            <div class="d-grid gap-2">
+              {% if listing.user_profile_available %}
+              <!-- Edit Listing tag as link -->
+              <a href="{% url 'edit_listing' listing.id %}" 
+                  class="alert alert-success py-2 mb-0 text-center text-decoration-none d-block">
+                <i class="fas fa-edit me-1"></i> Edit Listing
+              </a>
+              {% else %}
+              <!-- No Longer Availasble tag (remains non-clickable) -->
+              <div class="alert alert-secondary py-2 mb-0 text-center">
+                <i class="fas fa-ban me-1"></i> No Longer Available
+              </div>
+              {% endif %}
+              
+              <!-- Reviews button -->
               <a
                 href="{% url 'listing_reviews' listing.id %}"
                 class="btn btn-secondary btn-sm"
@@ -244,6 +266,34 @@
     color: #dc3545; /* Full red on hover */
     background-color: rgba(220, 53, 69, 0.1);
     transform: scale(1.1);
+  }
+
+  .bookmark-icon {
+    position: absolute;
+    top: 8px;
+    right: 32px; /* Position next to report icon */
+    font-size: 0.85rem; /* Slightly larger */
+    color: rgba(222, 170, 12, 0.9); /* Darker gold with less transparency */
+    z-index: 10;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    text-decoration: none; /* Add this line to remove the underline */
+  }
+
+  .bookmark-icon:hover {
+    color: #ffc107; /* Bright yellow on hover */
+    background-color: rgba(255, 193, 7, 0.15); /* Light yellow background */
+    transform: scale(1.1); /* Small zoom effect */
+  }
+
+  .bookmark-icon.active {
+    color: #ffc107; /* Bright yellow when active */
+    text-shadow: 0 0 3px rgba(255, 193, 7, 0.4); /* Subtle glow effect */
   }
 </style>
 

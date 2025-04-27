@@ -103,6 +103,12 @@ def book_listing(request, listing_id):
         error_messages.append("You cannot book your own parking spot.")
         return redirect("view_listings")
 
+    # Create initial data with user's email
+    initial_data = {}
+    if request.user.is_authenticated:
+        initial_data["email"] = request.user.email
+
+    # Create form with initial data
     if request.method == "POST":
         booking_form = BookingForm(request.POST)
         is_recurring = request.POST.get("is_recurring") == "true"
@@ -336,7 +342,7 @@ def book_listing(request, listing_id):
             )
             error_messages.append("Please fix the errors below.")
     else:
-        booking_form = BookingForm()
+        booking_form = BookingForm(initial=initial_data)
         slot_formset = BookingSlotFormSet(
             form_kwargs={"listing": listing}, prefix="form"
         )
@@ -524,22 +530,57 @@ def review_booking(request, booking_id):
 
 @login_required
 def my_bookings(request):
-    user_bookings = Booking.objects.filter(user=request.user).order_by("-created_at")
-    now_naive = dt.datetime.now()
-    for booking in user_bookings:
+    # Get all bookings for current user
+    all_bookings = Booking.objects.filter(user=request.user)
+
+    # Create separate lists for different priorities
+    approved_unreviewed = []
+    other_bookings = []
+    approved_reviewed = []
+
+    # Sort bookings into categories
+    for booking in all_bookings:
+        # Check if booking has been reviewed
+        has_review = hasattr(booking, "review")
+
+        if booking.status == "APPROVED":
+            if has_review:
+                # Lowest priority: Approved bookings that have been reviewed
+                approved_reviewed.append(booking)
+            else:
+                # Highest priority: Approved bookings that haven't been reviewed
+                approved_unreviewed.append(booking)
+        else:
+            # Medium priority: Other bookings (pending/declined)
+            other_bookings.append(booking)
+
+    # Sort each category
+    approved_unreviewed.sort(key=lambda x: x.updated_at, reverse=True)
+    other_bookings.sort(key=lambda x: x.created_at, reverse=True)
+    approved_reviewed.sort(key=lambda x: x.updated_at, reverse=True)
+
+    # Combine all lists in priority order
+    sorted_bookings = approved_unreviewed + other_bookings + approved_reviewed
+
+    # Process booking slots
+    for booking in sorted_bookings:
+        # Get all slots for this booking
+        slots = booking.slots.all().order_by("start_date", "start_time")
+
+        # Format the slots information for display
         slots_info = []
-        for slot in booking.slots.all():
-            slot_dt = dt.datetime.combine(slot.start_date, slot.start_time)
-            has_started = now_naive >= slot_dt
-            slots_info.append(
-                {
-                    "booking_datetime": slot_dt,
-                    "has_started": has_started,
-                    "slot": slot,
-                }
-            )
+        for slot in slots:
+            slot_info = {
+                "date": slot.start_date,
+                "start_time": slot.start_time,
+                "end_time": slot.end_time,
+            }
+            slots_info.append(slot_info)
+
+        # Add slots_info attribute to the booking object
         booking.slots_info = slots_info
-    return render(request, "booking/my_bookings.html", {"bookings": user_bookings})
+
+    return render(request, "booking/my_bookings.html", {"bookings": sorted_bookings})
 
 
 def notify_owner_booking_created(booking):
