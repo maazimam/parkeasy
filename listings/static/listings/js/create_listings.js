@@ -523,4 +523,84 @@ document.addEventListener("DOMContentLoaded", function () {
   if (typeof ListingFormUtils !== "undefined") {
     ListingFormUtils.initializeEvChargerFields();
   }
+
+  // Recurring listing functionality
+  const toggleRecurringBtn = document.getElementById('toggle-recurring');
+  const recurringPatternContainer = document.getElementById('recurring-pattern-container');
+  const isRecurringField = document.getElementById('is_recurring');
+  const patternDaily = document.getElementById('pattern_daily');
+  const patternWeekly = document.getElementById('pattern_weekly');
+  const dailyPatternFields = document.getElementById('daily-pattern-fields');
+  const weeklyPatternFields = document.getElementById('weekly-pattern-fields');
+
+  // Modified toggle-recurring event listener
+  if (toggleRecurringBtn) {
+    const toggleInfoText = document.querySelector('#toggle-info-text');
+    const singleInfoText = document.querySelector('#single-info-text');
+    
+    toggleRecurringBtn.addEventListener('click', function() {
+      // Check the current state using the hidden field
+      if (isRecurringField.value !== 'true') {
+        // Switch to recurring mode
+        recurringPatternContainer.style.display = 'block';
+        slotFormsContainer.style.display = 'none'; // Hide all slot forms
+        addSlotBtn.style.display = 'none';
+        toggleRecurringBtn.innerHTML = '<i class="fas fa-calendar-day me-1"></i> Single Availability';
+        toggleRecurringBtn.classList.replace('btn-outline-primary', 'btn-outline-secondary');
+        isRecurringField.value = 'true';
+        
+        // Change the info text
+        if (toggleInfoText) {
+          toggleInfoText.innerHTML = '<i class="fas fa-info-circle"></i> Create a listing in a single interval or multiple different intervals.';
+        }
+        if (singleInfoText) {
+          singleInfoText.style.display = 'none';
+        }
+        
+        // Enable recurring form fields
+        recurringPatternContainer.querySelectorAll('input, select').forEach(field => {
+          field.disabled = false;
+        });
+      } else {
+        // Switch back to single mode
+        recurringPatternContainer.style.display = 'none';
+        slotFormsContainer.style.display = 'block'; // Show all slot forms
+        addSlotBtn.style.display = 'inline-block';
+        toggleRecurringBtn.innerHTML = '<i class="fas fa-redo me-1"></i> Make Recurring';
+        toggleRecurringBtn.classList.replace('btn-outline-secondary', 'btn-outline-primary');
+        isRecurringField.value = 'false';
+        
+        // Restore original info text
+        if (toggleInfoText) {
+          toggleInfoText.innerHTML = '<i class="fas fa-info-circle"></i> Create multiple availability slots following a pattern';
+        }
+        if (singleInfoText) {
+          singleInfoText.style.display = 'block';
+        }
+        
+        // Disable recurring form fields to prevent validation issues
+        recurringPatternContainer.querySelectorAll('input:not([type=hidden]), select').forEach(field => {
+          field.disabled = true;
+        });
+      }
+    });
+  }
+
+  // Pattern toggle functionality
+  if (patternDaily && patternWeekly) {
+    patternDaily.addEventListener('change', function() {
+      if (this.checked) {
+        dailyPatternFields.style.display = 'block';
+        weeklyPatternFields.style.display = 'none';
+      }
+    });
+
+    patternWeekly.addEventListener('change', function() {
+      if (this.checked) {
+        dailyPatternFields.style.display = 'none';
+        weeklyPatternFields.style.display = 'block';
+      }
+    });
+  }
+
 }); // End DOMContentLoaded
