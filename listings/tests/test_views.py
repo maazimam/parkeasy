@@ -168,6 +168,118 @@ class CreateListingViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
 
+###################################
+# Tests for create_listing view with recurring listings.
+###################################
+class RecurringListingCreationTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="testuser", password="password")
+        self.client.login(username="testuser", password="password")
+        self.create_url = reverse("create_listing")
+        self.tomorrow = datetime.now().date() + timedelta(days=1)
+        self.next_week = self.tomorrow + timedelta(days=7)
+
+        # Basic listing data for all tests
+        self.listing_data = {
+            "title": "Test Recurring Listing",
+            "location": "Test Location [40.712776, -74.005974]",
+            "rent_per_hour": "15.00",
+            "description": "A test recurring listing",
+            "parking_spot_size": "STANDARD",
+            "has_ev_charger": "",
+            "is_recurring": "true",
+        }
+
+    def test_create_daily_recurring_listing(self):
+        """Test creating a listing with daily recurring slots"""
+        data = self.listing_data.copy()
+        data.update(
+            {
+                "recurring_pattern": "daily",
+                "recurring_start_date": self.tomorrow.strftime("%Y-%m-%d"),
+                "recurring_end_date": self.next_week.strftime("%Y-%m-%d"),
+                "recurring_start_time": "09:00",
+                "recurring_end_time": "17:00",
+            }
+        )
+
+        response = self.client.post(self.create_url, data)
+
+        # Check redirect on success
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("view_listings"))
+
+        # Verify listing was created
+        listing = Listing.objects.get(title="Test Recurring Listing")
+        self.assertEqual(listing.user, self.user)
+
+        # Check that slots were created
+        days_difference = (self.next_week - self.tomorrow).days + 1
+        slots = ListingSlot.objects.filter(listing=listing)
+        self.assertEqual(slots.count(), days_difference)
+
+    def test_create_weekly_recurring_listing(self):
+        """Test creating a listing with weekly recurring slots"""
+        data = self.listing_data.copy()
+        data.update(
+            {
+                "recurring_pattern": "weekly",
+                "recurring_start_date": self.tomorrow.strftime("%Y-%m-%d"),
+                "recurring_start_time": "09:00",
+                "recurring_end_time": "17:00",
+                "recurring_weeks": "3",
+            }
+        )
+
+        response = self.client.post(self.create_url, data)
+
+        # Check redirect on success
+        self.assertEqual(response.status_code, 302)
+
+        # Verify listing was created
+        listing = Listing.objects.filter(title="Test Recurring Listing").first()
+        self.assertIsNotNone(listing)
+
+        # Check that slots were created (3 weeks)
+        slots = ListingSlot.objects.filter(listing=listing)
+        self.assertEqual(slots.count(), 3)
+
+        # Verify weekly pattern (dates should be 7 days apart)
+        dates = [slot.start_date for slot in slots.order_by("start_date")]
+        self.assertEqual((dates[1] - dates[0]).days, 7)
+        self.assertEqual((dates[2] - dates[1]).days, 7)
+
+    def test_create_overnight_recurring_listing(self):
+        """Test creating a listing with overnight recurring slots"""
+        data = self.listing_data.copy()
+        data.update(
+            {
+                "recurring_pattern": "weekly",
+                "recurring_start_date": self.tomorrow.strftime("%Y-%m-%d"),
+                "recurring_start_time": "18:00",
+                "recurring_end_time": "09:00",
+                "recurring_overnight": "on",
+                "recurring_weeks": "2",
+            }
+        )
+
+        response = self.client.post(self.create_url, data)
+
+        # Check redirect on success
+        self.assertEqual(response.status_code, 302)
+
+        # Verify listing was created
+        listing = Listing.objects.filter(title="Test Recurring Listing").first()
+        self.assertIsNotNone(listing)
+
+        # Check overnight slots
+        slots = ListingSlot.objects.filter(listing=listing)
+        for slot in slots:
+            # End date should be day after start date for overnight
+            self.assertEqual((slot.end_date - slot.start_date).days, 1)
+
+
 #############################
 # Tests for edit_listing view.
 #############################
