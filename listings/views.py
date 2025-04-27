@@ -695,5 +695,3 @@ def my_listings(request):
 
 def map_legend(request):
     return render(request, "listings/map_legend.html")
-
-#TRY TO FORCE NEW PUSH
