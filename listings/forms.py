@@ -25,6 +25,11 @@ class ListingForm(forms.ModelForm):
         help_text="Select the type of vehicle your parking spot can accommodate",
     )
 
+    # Add this field to provide time choices to the form
+    time_choices = forms.ChoiceField(
+        choices=HALF_HOUR_CHOICES, required=False, widget=forms.HiddenInput()
+    )
+
     class Meta:
         model = Listing
         fields = [
@@ -112,6 +117,56 @@ class ListingForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+# Add this class after your ListingForm class
+
+
+# Form for recurring listing creation
+class RecurringListingForm(forms.Form):
+    recurring_start_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+                "class": "form-control",
+                "min": datetime.today().date().strftime("%Y-%m-%d"),
+            }
+        ),
+    )
+    recurring_end_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+                "class": "form-control",
+                "min": datetime.today().date().strftime("%Y-%m-%d"),
+            }
+        ),
+    )
+    recurring_start_time = forms.ChoiceField(
+        choices=HALF_HOUR_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    recurring_end_time = forms.ChoiceField(
+        choices=HALF_HOUR_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    recurring_overnight = forms.BooleanField(required=False)
+    recurring_pattern = forms.ChoiceField(
+        choices=[("daily", "Daily"), ("weekly", "Weekly")],
+        required=False,
+        widget=forms.RadioSelect(),
+    )
+    recurring_weeks = forms.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=52,
+        initial=4,
+        widget=forms.NumberInput(attrs={"class": "form-control"}),
+    )
 
 
 # 2. ListingSlotForm: For each availability interval.

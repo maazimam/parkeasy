@@ -13,6 +13,7 @@ from .forms import (
     ListingForm,
     ListingSlotForm,
     ListingSlotFormSet,
+    RecurringListingForm,
     validate_non_overlapping_slots,
 )
 from .models import (
@@ -25,6 +26,7 @@ from .models import (
 from .utils import (
     filter_listings,
     has_active_filters,
+    generate_recurring_listing_slots,
 )
 
 # Add this new function for API support
@@ -141,42 +143,144 @@ def create_listing(request):
     alert_message = ""
     if request.method == "POST":
         listing_form = ListingForm(request.POST)
-        slot_formset = ListingSlotFormSet(request.POST, prefix="form")
-        if listing_form.is_valid() and slot_formset.is_valid():
-            try:
-                validate_non_overlapping_slots(slot_formset)
-            except Exception:
-                alert_message = "Overlapping slots detected. Please correct."
-                return render(
-                    request,
-                    "listings/create_listing.html",
-                    {
-                        "form": listing_form,
-                        "slot_formset": slot_formset,
-                        "alert_message": alert_message,
-                    },
-                )
+        recurring_form = RecurringListingForm(request.POST)
+
+        # Check if recurring creation is requested
+        is_recurring = request.POST.get("is_recurring") == "true"
+
+        if listing_form.is_valid():
             new_listing = listing_form.save(commit=False)
             new_listing.user = request.user
             new_listing.save()
-            slot_formset.instance = new_listing
-            slot_formset.save()
-            # Merge continuous slots if they are present.
-            merge_listing_slots(new_listing)
-            messages.success(request, "Listing created successfully!")
-            return redirect("view_listings")
+
+            if is_recurring:
+                # Handle recurring pattern
+                pattern = request.POST.get("recurring_pattern", "daily")
+                start_date = request.POST.get("recurring_start_date")
+                start_time = request.POST.get("recurring_start_time")
+                end_time = request.POST.get("recurring_end_time")
+                is_overnight = request.POST.get("recurring_overnight") == "on"
+
+                try:
+                    # Validate inputs
+                    if not all([start_date, start_time, end_time]):
+                        raise ValueError(
+                            "Start date, start time, and end time are required"
+                        )
+
+                    start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+                    start_time_obj = datetime.strptime(start_time, "%H:%M").time()
+                    end_time_obj = datetime.strptime(end_time, "%H:%M").time()
+
+                    if start_time_obj >= end_time_obj and not is_overnight:
+                        raise ValueError(
+                            "Start time must be before end time unless overnight is selected"
+                        )
+
+                    if pattern == "daily":
+                        end_date = request.POST.get("recurring_end_date")
+                        if not end_date:
+                            raise ValueError("End date is required for daily pattern")
+                        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+                        if end_date < start_date:
+                            raise ValueError("End date must be on or after start date")
+
+                        # Generate slots
+                        slots = generate_recurring_listing_slots(
+                            start_date,
+                            start_time_obj,
+                            end_time_obj,
+                            "daily",
+                            is_overnight,
+                            end_date=end_date,
+                        )
+
+                    elif pattern == "weekly":
+                        weeks = request.POST.get("recurring_weeks")
+                        if not weeks:
+                            raise ValueError(
+                                "Number of weeks is required for weekly pattern"
+                            )
+
+                        weeks = int(weeks)
+                        if weeks <= 0 or weeks > 52:
+                            raise ValueError("Number of weeks must be between 1 and 52")
+
+                        # Generate slots
+                        slots = generate_recurring_listing_slots(
+                            start_date,
+                            start_time_obj,
+                            end_time_obj,
+                            "weekly",
+                            is_overnight,
+                            weeks=weeks,
+                        )
+
+                    # Create each slot
+                    for slot in slots:
+                        ListingSlot.objects.create(
+                            listing=new_listing,
+                            start_date=slot["start_date"],
+                            start_time=slot["start_time"],
+                            end_date=slot["end_date"],
+                            end_time=slot["end_time"],
+                        )
+
+                    # Merge overlapping slots if necessary
+                    merge_listing_slots(new_listing)
+
+                    messages.success(
+                        request,
+                        f"Listing created successfully with {len(slots)} availability slots!",
+                    )
+                    return redirect("view_listings")
+
+                except ValueError as e:
+                    # Delete the listing we just created to avoid orphaned records
+                    new_listing.delete()
+                    alert_message = f"Error creating recurring listing: {str(e)}"
+
+            else:
+                # Handle regular (non-recurring) creation
+                slot_formset = ListingSlotFormSet(
+                    request.POST, prefix="form", instance=new_listing
+                )
+                if slot_formset.is_valid():
+                    try:
+                        validate_non_overlapping_slots(slot_formset)
+                        slot_formset.save()
+                        merge_listing_slots(new_listing)
+                        messages.success(request, "Listing created successfully!")
+                        return redirect("view_listings")
+                    except Exception as e:
+                        # Delete the listing we just created to avoid orphaned records
+                        new_listing.delete()
+                        alert_message = f"Overlapping slots detected: {str(e)}"
+                else:
+                    # Delete the listing we just created to avoid orphaned records
+                    new_listing.delete()
+                    alert_message = "Please correct the errors in the slot form."
         else:
-            alert_message = "Please correct the errors below."
+            alert_message = "Please correct the errors in the listing form."
+
+        # If we get here, there was an error
+        slot_formset = ListingSlotFormSet(request.POST, prefix="form")
+
     else:
         listing_form = ListingForm()
+        recurring_form = RecurringListingForm()
         slot_formset = ListingSlotFormSet(prefix="form")
+
     return render(
         request,
         "listings/create_listing.html",
         {
             "form": listing_form,
+            "recurring_form": recurring_form,
             "slot_formset": slot_formset,
             "alert_message": alert_message,
+            "half_hour_choices": HALF_HOUR_CHOICES,
         },
     )
 
