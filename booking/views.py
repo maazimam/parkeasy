@@ -106,7 +106,7 @@ def book_listing(request, listing_id):
     # Create initial data with user's email
     initial_data = {}
     if request.user.is_authenticated:
-        initial_data['email'] = request.user.email
+        initial_data["email"] = request.user.email
 
     # Create form with initial data
     if request.method == "POST":
@@ -532,17 +532,17 @@ def review_booking(request, booking_id):
 def my_bookings(request):
     # Get all bookings for current user
     all_bookings = Booking.objects.filter(user=request.user)
-    
+
     # Create separate lists for different priorities
     approved_unreviewed = []
     other_bookings = []
     approved_reviewed = []
-    
+
     # Sort bookings into categories
     for booking in all_bookings:
         # Check if booking has been reviewed
-        has_review = hasattr(booking, 'review')
-        
+        has_review = hasattr(booking, "review")
+
         if booking.status == "APPROVED":
             if has_review:
                 # Lowest priority: Approved bookings that have been reviewed
@@ -553,16 +553,16 @@ def my_bookings(request):
         else:
             # Medium priority: Other bookings (pending/declined)
             other_bookings.append(booking)
-    
+
     # Sort each category
     approved_unreviewed.sort(key=lambda x: x.updated_at, reverse=True)
     other_bookings.sort(key=lambda x: x.created_at, reverse=True)
     approved_reviewed.sort(key=lambda x: x.updated_at, reverse=True)
-    
+
     # Combine all lists in priority order
     sorted_bookings = approved_unreviewed + other_bookings + approved_reviewed
-    
-    return render(request, 'booking/my_bookings.html', {'bookings': sorted_bookings})
+
+    return render(request, "booking/my_bookings.html", {"bookings": sorted_bookings})
 
 
 def notify_owner_booking_created(booking):
