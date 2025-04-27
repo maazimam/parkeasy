@@ -9,6 +9,13 @@ from django.db import models
 from django.forms import inlineformset_factory
 from django.shortcuts import get_object_or_404, redirect, render
 
+# Add this new function for API support
+from django.http import JsonResponse
+from django.template.loader import render_to_string
+
+# Add this import at the top of your file, with your other imports
+from django.urls import reverse
+
 from .forms import (
     ListingForm,
     ListingSlotForm,
@@ -21,62 +28,14 @@ from .models import (
     PARKING_SPOT_SIZES,
     Listing,
     ListingSlot,
+    BookmarkedListing,
 )
 from .utils import (
     filter_listings,
     has_active_filters,
 )
 
-# Add this new function for API support
-from django.http import JsonResponse
-from django.template.loader import render_to_string
 
-
-def user_listings_api(request, username):
-    """API endpoint for paginated user listings"""
-    page = int(request.GET.get("page", 1))
-    listings_per_page = 10
-    start = (page - 1) * listings_per_page
-    end = start + listings_per_page
-
-    # Get the host user
-    host = get_object_or_404(User, username=username)
-
-    # Use the same logic as user_listings to get sorted listings
-    current_datetime = datetime.now()
-    listings = Listing.objects.filter(user=host).distinct()
-    available_listings = []
-    unavailable_listings = []
-
-    for listing in listings:
-        is_available = listing.slots.filter(
-            models.Q(end_date__gt=current_datetime.date())
-            | models.Q(
-                end_date=current_datetime.date(), end_time__gt=current_datetime.time()
-            )
-        ).exists()
-        listing.user_profile_available = is_available
-        if is_available:
-            available_listings.append(listing)
-        else:
-            unavailable_listings.append(listing)
-
-    # Sort and combine
-    available_listings.sort(key=lambda x: -x.created_at.timestamp())
-    unavailable_listings.sort(key=lambda x: -x.created_at.timestamp())
-    sorted_listings = available_listings + unavailable_listings
-
-    # Slice for pagination
-    page_listings = sorted_listings[start:end]
-
-    # Render HTML for these listings
-    html = render_to_string(
-        "listings/partials/listing_cards.html",
-        {"listings": page_listings, "is_public_view": True},
-        request=request,
-    )
-
-    return JsonResponse({"html": html, "has_more": len(sorted_listings) > end})
 
 
 # Define an inline formset for editing (extra=0)
@@ -405,6 +364,15 @@ def view_listings(request):
     page_number = request.GET.get("page", 1)
     page_obj = paginator.get_page(page_number)
 
+    # Add this code to get bookmarked listings
+    bookmarked_listings = []
+    if request.user.is_authenticated:
+        # Get IDs of listings bookmarked by the user
+        bookmarked_listings = list(
+            BookmarkedListing.objects.filter(user=request.user)
+            .values_list('listing__id', flat=True)
+        )
+
     context = {
         "listings": page_obj,
         "half_hour_choices": HALF_HOUR_CHOICES,
@@ -434,6 +402,7 @@ def view_listings(request):
         "parking_spot_sizes": PARKING_SPOT_SIZES,
         "has_active_filters": has_active_filters(request),
         "is_public_view": False,
+        'bookmarked_listings': bookmarked_listings,
     }
 
     if request.GET.get("ajax") == "1":
@@ -572,13 +541,41 @@ def user_listings(request, username):
     # Combine the lists - available first, then unavailable
     sorted_listings = available_listings + unavailable_listings
 
+    # Add pagination
+    paginator = Paginator(sorted_listings, 10)  # 10 per page
+    page = request.GET.get('page', 1)
+    listings_page = paginator.get_page(page)
+
+    # Handle AJAX requests
+    if request.GET.get('ajax') == '1':
+        html = render_to_string(
+            'listings/partials/listing_cards.html',
+            {'listings': listings_page, 'is_public_view': True},
+            request=request
+        )
+        return JsonResponse({
+            'html': html,
+            'has_next': listings_page.has_next(),
+            'next_page': listings_page.next_page_number() if listings_page.has_next() else None
+        })
+
+    # Add this code to get bookmarked listings
+    bookmarked_listings = []
+    if request.user.is_authenticated:
+        # Get IDs of listings bookmarked by the user
+        bookmarked_listings = list(
+            BookmarkedListing.objects.filter(user=request.user)
+            .values_list('listing__id', flat=True)
+        )
+
     context = {
-        "listings": sorted_listings,
+        "listings": listings_page,  # Change from sorted_listings to listings_page
         "host": host,
         "is_public_view": True,
         "source": "user_listings",
         "username": username,
-        "total_count": len(sorted_listings),  # Add this line
+        "total_count": len(sorted_listings),
+        'bookmarked_listings': bookmarked_listings,
     }
     return render(request, "listings/user_listings.html", context)
 
@@ -591,3 +588,112 @@ def my_listings(request):
 
 def map_legend(request):
     return render(request, "listings/map_legend.html")
+
+
+@login_required
+def toggle_bookmark(request, listing_id):
+    listing = get_object_or_404(Listing, id=listing_id)
+    
+    # Don't allow users to bookmark their own listings
+    if listing.user == request.user:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'error': 'Cannot bookmark your own listing'}, status=400)
+        messages.error(request, "You cannot bookmark your own listing.")
+        return redirect('view_listings')
+    
+    # Check if already bookmarked
+    try:
+        bookmark = BookmarkedListing.objects.get(user=request.user, listing=listing)
+        # If found, remove the bookmark
+        bookmark.delete()
+        is_bookmarked = False
+        message = "Listing removed from bookmarks."
+    except BookmarkedListing.DoesNotExist:
+        # If not found, create a new bookmark - even if unavailable
+        BookmarkedListing.objects.create(user=request.user, listing=listing)
+        is_bookmarked = True
+        message = "Listing added to bookmarks."
+    
+    # Return JSON for AJAX requests
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'is_bookmarked': is_bookmarked,
+            'message': message
+        })
+    
+    # For non-AJAX requests, redirect back
+    messages.success(request, message)
+    next_url = request.META.get('HTTP_REFERER', reverse('view_listings'))
+    return redirect(next_url)
+
+
+@login_required
+def bookmarked_listings(request):
+    """Show all bookmarked listings for the current user"""
+    # Get current datetime for availability check
+    current_datetime = datetime.now()
+    
+    # Get all bookmarked listings
+    bookmarks = BookmarkedListing.objects.filter(user=request.user)
+    all_listings = [bookmark.listing for bookmark in bookmarks]
+    
+    # Create two separate lists - available and unavailable
+    available_listings = []
+    unavailable_listings = []
+    
+    for listing in all_listings:
+        # Check if listing has any future availability slots
+        is_available = listing.slots.filter(
+            models.Q(end_date__gt=current_datetime.date()) 
+            | models.Q(
+                end_date=current_datetime.date(), end_time__gt=current_datetime.time()
+            )
+        ).exists()
+        
+        # Set property that template checks for availability
+        listing.user_profile_available = is_available
+        
+        # Sort listings into appropriate lists
+        if is_available:
+            available_listings.append(listing)
+        else:
+            unavailable_listings.append(listing)
+    
+    # Sort each list by creation date (newest first)
+    available_listings.sort(key=lambda x: -x.created_at.timestamp())
+    unavailable_listings.sort(key=lambda x: -x.created_at.timestamp())
+    
+    # Combine the lists - available first, then unavailable
+    sorted_listings = available_listings + unavailable_listings
+    
+    # Add pagination
+    paginator = Paginator(sorted_listings, 10)  # 10 per page
+    page = request.GET.get('page', 1)
+    listings_page = paginator.get_page(page)
+    
+    # Handle AJAX requests for load more functionality
+    if request.GET.get('ajax') == '1':
+        html = render_to_string(
+            'listings/partials/listing_cards.html',
+            {
+                'listings': listings_page, 
+                'is_bookmarks_page': True,
+                'bookmarked_listings': [listing.id for listing in all_listings]
+            },
+            request=request
+        )
+        return JsonResponse({
+            'html': html,
+            'has_next': listings_page.has_next(),
+            'next_page': listings_page.next_page_number() if listings_page.has_next() else None
+        })
+    
+    # Standard page load context
+    context = {
+        'listings': listings_page,
+        'bookmarked_listings': [listing.id for listing in all_listings],
+        'is_bookmarks_page': True,
+        'title': 'My Bookmarked Listings',
+        'total_count': len(sorted_listings)
+    }
+    return render(request, 'listings/bookmarked_listings.html', context)
