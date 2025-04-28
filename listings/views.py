@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -8,6 +8,8 @@ from django.core.paginator import Paginator
 from django.db import models
 from django.forms import inlineformset_factory
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.db.models import Sum
 
 # Add this new function for API support
 from django.http import JsonResponse
@@ -545,37 +547,81 @@ def map_view_listings(request):
     return JsonResponse({"markers": markers})
 
 
+@login_required
 def manage_listings(request):
-    # Get all the user's listings
-    all_listings = Listing.objects.filter(user=request.user)
+    # Calculate date boundaries
+    today = timezone.now().date()
+    first_day_current_month = today.replace(day=1)
+    last_month = first_day_current_month - timedelta(days=1)
+    first_day_last_month = last_month.replace(day=1)
 
-    # Create separate lists for different priorities
+    # Fetch all listings owned by this user
+    listings = Listing.objects.filter(user=request.user)
+
+    # Initialize earnings totals
+    total_earnings = 0
+    current_month_earnings = 0
+    last_month_earnings = 0
+
+    # Compute per-listing stats and accumulate earnings
+    for listing in listings:
+        listing.pending_bookings = listing.booking_set.filter(status="PENDING")
+        listing.approved_bookings = listing.booking_set.filter(status="APPROVED")
+
+        # Total earnings to date
+        earned = (
+            listing.approved_bookings.aggregate(Sum("total_price"))["total_price__sum"]
+            or 0
+        )
+        listing.total_earnings = earned
+        total_earnings += earned
+
+        # Earnings this month
+        earned_current = (
+            listing.approved_bookings.filter(
+                created_at__gte=first_day_current_month
+            ).aggregate(Sum("total_price"))["total_price__sum"]
+            or 0
+        )
+        listing.current_month_earnings = earned_current
+        current_month_earnings += earned_current
+
+        # Earnings last month
+        earned_last = (
+            listing.approved_bookings.filter(
+                created_at__gte=first_day_last_month,
+                created_at__lt=first_day_current_month,
+            ).aggregate(Sum("total_price"))["total_price__sum"]
+            or 0
+        )
+        listing.last_month_earnings = earned_last
+        last_month_earnings += earned_last
+
+    earnings_summary = {
+        "total": total_earnings,
+        "current_month": current_month_earnings,
+        "last_month": last_month_earnings,
+        "current_month_name": today.strftime("%B"),
+        "last_month_name": last_month.strftime("%B"),
+    }
+
+    # Priority grouping
     listings_with_pending = []
     listings_with_active = []
     other_listings = []
 
-    # Sort listings into appropriate priority groups
-    for listing in all_listings:
-        # Check for pending bookings
-        pending_bookings = listing.booking_set.filter(status="PENDING")
-        listing.pending_bookings = pending_bookings
-
-        # Check for approved/active bookings
-        approved_bookings = listing.booking_set.filter(status="APPROVED")
-        listing.approved_bookings = approved_bookings
-
-        # Assign to priority groups
-        if pending_bookings.exists():
+    for listing in listings:
+        if listing.pending_bookings.exists():
             listings_with_pending.append(listing)
-        elif approved_bookings.exists():
+        elif listing.approved_bookings.exists():
             listings_with_active.append(listing)
         else:
             other_listings.append(listing)
 
     # Sort each group by creation date (newest first)
-    listings_with_pending.sort(key=lambda x: -x.created_at.timestamp())
-    listings_with_active.sort(key=lambda x: -x.created_at.timestamp())
-    other_listings.sort(key=lambda x: -x.created_at.timestamp())
+    listings_with_pending.sort(key=lambda x: x.created_at, reverse=True)
+    listings_with_active.sort(key=lambda x: x.created_at, reverse=True)
+    other_listings.sort(key=lambda x: x.created_at, reverse=True)
 
     # Combine in priority order
     prioritized_listings = listings_with_pending + listings_with_active + other_listings
@@ -588,6 +634,7 @@ def manage_listings(request):
         "listings/manage_listings.html",
         {
             "listings": prioritized_listings,
+            "earnings_summary": earnings_summary,
             "success_message": success_message,
         },
     )
