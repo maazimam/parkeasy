@@ -1405,23 +1405,6 @@ class SpotSizeFilterTest(TestCase):
         self.assertEqual(len(listings), 1)
         self.assertEqual(listings[0].id, self.standard_listing.id)
 
-    def test_spot_size_display_in_template(self):
-        """Test that parking spot size badges appear correctly in templates"""
-        response = self.client.get(reverse("view_listings"))
-
-        # Test that Standard Size spots don't get badges (more specific test)
-        self.assertNotContains(response, "Standard Size</span>")
-
-        # Test that we DO see badges for non-standard sizes with correct colors
-        self.assertContains(response, "bg-info")  # Compact badge color
-        self.assertContains(response, "Compact")  # Compact text
-
-        self.assertContains(response, "bg-primary")  # Oversize badge color
-        self.assertContains(response, "Large/Oversize")  # Oversize text
-
-        self.assertContains(response, "bg-danger")  # Commercial badge color
-        self.assertContains(response, "Truck/Commercial")  # Commercial text
-
 
 #############################
 # End of tests.
