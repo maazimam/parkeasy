@@ -100,52 +100,65 @@ def merge_listing_slots(listing):
 @login_required
 def create_listing(request):
     alert_message = ""
+    is_recurring = False
+
     if request.method == "POST":
+        # Get the form mode
+        is_recurring = request.POST.get("is_recurring") == "true"
         listing_form = ListingForm(request.POST)
         recurring_form = RecurringListingForm(request.POST)
 
-        # Check if recurring creation is requested
-        is_recurring = request.POST.get("is_recurring") == "true"
+        # VALIDATE ALL FORMS BEFORE CREATING ANY DATABASE OBJECTS
+        if is_recurring:
+            # Check both forms are valid for recurring mode
+            forms_valid = listing_form.is_valid() and recurring_form.is_valid()
+            slot_formset = ListingSlotFormSet(
+                prefix="form"
+            )  # Empty formset for template
+        else:
+            # Check both forms are valid for single mode
+            slot_formset = ListingSlotFormSet(request.POST, prefix="form")
+            forms_valid = listing_form.is_valid() and slot_formset.is_valid()
 
-        if listing_form.is_valid():
+            # Additional validation for non-overlapping slots
+            if forms_valid:
+                # Use our modified validation function that adds field errors
+                if not validate_non_overlapping_slots(slot_formset):
+                    forms_valid = False
+                    # No need for alert_message since errors are added to fields
+
+        # ONLY CREATE DATABASE OBJECTS IF ALL VALIDATIONS PASS
+        if forms_valid:
+            # Now we can safely create the listing
             new_listing = listing_form.save(commit=False)
             new_listing.user = request.user
             new_listing.save()
 
             if is_recurring:
-                # Handle recurring pattern
-                pattern = request.POST.get("recurring_pattern", "daily")
-                start_date = request.POST.get("recurring_start_date")
-                start_time = request.POST.get("recurring_start_time")
-                end_time = request.POST.get("recurring_end_time")
-                is_overnight = request.POST.get("recurring_overnight") == "on"
-
                 try:
-                    # Validate inputs
-                    if not all([start_date, start_time, end_time]):
-                        raise ValueError(
-                            "Start date, start time, and end time are required"
-                        )
+                    # Process recurring pattern
+                    pattern = recurring_form.cleaned_data.get("recurring_pattern")
+                    start_date = recurring_form.cleaned_data.get("recurring_start_date")
+                    start_time = recurring_form.cleaned_data.get("recurring_start_time")
+                    end_time = recurring_form.cleaned_data.get("recurring_end_time")
+                    is_overnight = recurring_form.cleaned_data.get(
+                        "recurring_overnight", False
+                    )
 
-                    start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-                    start_time_obj = datetime.strptime(start_time, "%H:%M").time()
-                    end_time_obj = datetime.strptime(end_time, "%H:%M").time()
-
-                    if start_time_obj >= end_time_obj and not is_overnight:
-                        raise ValueError(
-                            "Start time must be before end time unless overnight is selected"
-                        )
+                    # Convert times
+                    start_time_obj = (
+                        datetime.strptime(start_time, "%H:%M").time()
+                        if isinstance(start_time, str)
+                        else start_time
+                    )
+                    end_time_obj = (
+                        datetime.strptime(end_time, "%H:%M").time()
+                        if isinstance(end_time, str)
+                        else end_time
+                    )
 
                     if pattern == "daily":
-                        end_date = request.POST.get("recurring_end_date")
-                        if not end_date:
-                            raise ValueError("End date is required for daily pattern")
-                        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
-
-                        if end_date < start_date:
-                            raise ValueError("End date must be on or after start date")
-
-                        # Generate slots
+                        end_date = recurring_form.cleaned_data.get("recurring_end_date")
                         slots = generate_recurring_listing_slots(
                             start_date,
                             start_time_obj,
@@ -154,19 +167,8 @@ def create_listing(request):
                             is_overnight,
                             end_date=end_date,
                         )
-
                     elif pattern == "weekly":
-                        weeks = request.POST.get("recurring_weeks")
-                        if not weeks:
-                            raise ValueError(
-                                "Number of weeks is required for weekly pattern"
-                            )
-
-                        weeks = int(weeks)
-                        if weeks <= 0 or weeks > 52:
-                            raise ValueError("Number of weeks must be between 1 and 52")
-
-                        # Generate slots
+                        weeks = recurring_form.cleaned_data.get("recurring_weeks")
                         slots = generate_recurring_listing_slots(
                             start_date,
                             start_time_obj,
@@ -186,47 +188,25 @@ def create_listing(request):
                             end_time=slot["end_time"],
                         )
 
-                    # Merge overlapping slots if necessary
                     merge_listing_slots(new_listing)
-
-                    messages.success(
-                        request,
-                        f"Listing created successfully with {len(slots)} availability slots!",
+                    request.session["success_message"] = (
+                        f"Listing created successfully with {len(slots)} availability slots!"
                     )
-                    return redirect("view_listings")
+                    return redirect("manage_listings")
 
-                except ValueError as e:
-                    # Delete the listing we just created to avoid orphaned records
+                except Exception as e:
+                    # If an error occurs during slot creation, delete the listing
                     new_listing.delete()
                     alert_message = f"Error creating recurring listing: {str(e)}"
-
             else:
-                # Handle regular (non-recurring) creation
-                slot_formset = ListingSlotFormSet(
-                    request.POST, prefix="form", instance=new_listing
-                )
-                if slot_formset.is_valid():
-                    try:
-                        validate_non_overlapping_slots(slot_formset)
-                        slot_formset.save()
-                        merge_listing_slots(new_listing)
-                        messages.success(request, "Listing created successfully!")
-                        return redirect("view_listings")
-                    except Exception as e:
-                        # Delete the listing we just created to avoid orphaned records
-                        new_listing.delete()
-                        alert_message = f"Overlapping slots detected: {str(e)}"
-                else:
-                    # Delete the listing we just created to avoid orphaned records
-                    new_listing.delete()
-                    alert_message = "Please correct the errors in the slot form."
-        else:
-            alert_message = "Please correct the errors in the listing form."
-
-        # If we get here, there was an error
-        slot_formset = ListingSlotFormSet(request.POST, prefix="form")
-
+                # For non-recurring listings
+                slot_formset.instance = new_listing
+                slot_formset.save()
+                merge_listing_slots(new_listing)
+                request.session["success_message"] = "Listing created successfully!"
+                return redirect("manage_listings")
     else:
+        # GET request - initialize forms
         listing_form = ListingForm()
         recurring_form = RecurringListingForm()
         slot_formset = ListingSlotFormSet(prefix="form")
@@ -240,6 +220,7 @@ def create_listing(request):
             "slot_formset": slot_formset,
             "alert_message": alert_message,
             "half_hour_choices": HALF_HOUR_CHOICES,
+            "is_recurring": is_recurring,
         },
     )
 
@@ -264,7 +245,19 @@ def edit_listing(request, listing_id):
         )
         if listing_form.is_valid() and slot_formset.is_valid():
             try:
-                validate_non_overlapping_slots(slot_formset)
+                # Explicitly check for overlapping slots and RETURN without saving if they overlap
+                if not validate_non_overlapping_slots(slot_formset):
+                    alert_message = "Overlapping slots detected. Please correct."
+                    return render(
+                        request,
+                        "listings/edit_listing.html",
+                        {
+                            "form": listing_form,
+                            "slot_formset": slot_formset,
+                            "listing": listing,
+                            "alert_message": alert_message,
+                        },
+                    )
             except Exception:
                 alert_message = "Overlapping slots detected. Please correct."
                 return render(
@@ -371,7 +364,7 @@ def edit_listing(request, listing_id):
             # Merge continuous slots if needed.
             merge_listing_slots(listing)
 
-            messages.success(request, "Listing updated successfully!")
+            request.session["success_message"] = "Listing created successfully!"
             return redirect("manage_listings")
         else:
             alert_message = "Please correct the errors below."
@@ -572,29 +565,35 @@ def manage_listings(request):
 
     # Compute per-listing stats and accumulate earnings
     for listing in listings:
-        # Attach booking querysets for use in template and priority logic
         listing.pending_bookings = listing.booking_set.filter(status="PENDING")
         listing.approved_bookings = listing.booking_set.filter(status="APPROVED")
 
         # Total earnings to date
-        earned = listing.approved_bookings.aggregate(
-            Sum("total_price")
-        )["total_price__sum"] or 0
+        earned = (
+            listing.approved_bookings.aggregate(Sum("total_price"))["total_price__sum"]
+            or 0
+        )
         listing.total_earnings = earned
         total_earnings += earned
 
         # Earnings this month
-        earned_current = listing.approved_bookings.filter(
-            created_at__gte=first_day_current_month
-        ).aggregate(Sum("total_price"))["total_price__sum"] or 0
+        earned_current = (
+            listing.approved_bookings.filter(
+                created_at__gte=first_day_current_month
+            ).aggregate(Sum("total_price"))["total_price__sum"]
+            or 0
+        )
         listing.current_month_earnings = earned_current
         current_month_earnings += earned_current
 
         # Earnings last month
-        earned_last = listing.approved_bookings.filter(
-            created_at__gte=first_day_last_month,
-            created_at__lt=first_day_current_month
-        ).aggregate(Sum("total_price"))["total_price__sum"] or 0
+        earned_last = (
+            listing.approved_bookings.filter(
+                created_at__gte=first_day_last_month,
+                created_at__lt=first_day_current_month,
+            ).aggregate(Sum("total_price"))["total_price__sum"]
+            or 0
+        )
         listing.last_month_earnings = earned_last
         last_month_earnings += earned_last
 
@@ -625,9 +624,10 @@ def manage_listings(request):
     other_listings.sort(key=lambda x: x.created_at, reverse=True)
 
     # Combine in priority order
-    prioritized_listings = (
-        listings_with_pending + listings_with_active + other_listings
-    )
+    prioritized_listings = listings_with_pending + listings_with_active + other_listings
+
+    # Get success message from session and remove it
+    success_message = request.session.pop("success_message", None)
 
     return render(
         request,
@@ -635,8 +635,10 @@ def manage_listings(request):
         {
             "listings": prioritized_listings,
             "earnings_summary": earnings_summary,
+            "success_message": success_message,
         },
     )
+
 
 @login_required
 def delete_listing(request, listing_id):
