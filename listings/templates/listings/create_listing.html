@@ -104,7 +104,7 @@
                 </div>
 
                 <div class="row mb-4">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="mb-3">
                             <label for="{{ form.parking_spot_size.id_for_label }}" class="form-label">
                                 <i class="fas fa-car-side text-primary me-1"></i> Parking Spot Size
@@ -120,7 +120,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="mb-3">
                             <label for="{{ form.has_ev_charger.id_for_label }}" class="form-label">
                                 <i class="fas fa-charging-station text-primary me-1"></i> EV Charger Available
@@ -138,8 +138,8 @@
                         </div>
                     </div>
 
-                    <div class="col-md-4">
-                        <div class="mb-3 charger-level-container">
+                    <div class="col-md-3 charger-level-container">
+                        <div class="mb-3">
                             <label for="{{ form.charger_level.id_for_label }}" class="form-label">
                                 <i class="fas fa-bolt text-primary me-1"></i> Charger Level
                             </label>
@@ -153,11 +153,9 @@
                             {% endif %}
                         </div>
                     </div>
-                </div>
 
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <div class="mb-3 connector-type-container">
+                    <div class="col-md-3 connector-type-container">
+                        <div class="mb-3">
                             <label for="{{ form.connector_type.id_for_label }}" class="form-label">
                                 <i class="fas fa-plug text-primary me-1"></i> Connector Type
                             </label>
@@ -442,7 +440,7 @@
                     <a href="{% url 'view_listings' %}" class="btn btn-secondary">
                         <i class="fas fa-times me-1"></i> Cancel
                     </a>
-                    <button type="submit" class="btn btn-primary px-4">
+                    <button type="submit" class="btn btn-primary px-4" id="createListingBtn">
               <i class="fas fa-check me-1"></i> Post Parking Spot
             </button>
                 </div>
@@ -458,4 +456,5 @@
 <script src="{% static 'listings/js/map_utils.js' %}"></script>
 <script src="{% static 'listings/js/listing-form-shared.js' %}?v=4"></script>
 <script src="{% static 'listings/js/create_listings.js' %}"></script>
+<script src="{% static 'listings/js/prevent_duplicate_submit.js' %}"></script>
 {% endblock %}
