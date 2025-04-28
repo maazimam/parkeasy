@@ -18,20 +18,40 @@
             </a>
         </div>
     </div>
-    {% else %} {% if form.errors %}
-    <div class="alert alert-danger">
-        <i class="fas fa-exclamation-circle me-2"></i> Please correct the errors below:
-        <ul class="mb-0 mt-2">
-            {% for field, errors in form.errors.items %}
-            <li>{{ errors|join:", " }}</li>
-            {% endfor %}
-        </ul>
-    </div>
-    {% endif %}
-
+    {% else %} 
     <div class="card shadow-sm border-0">
         <div class="card-body p-4">
-            <form method="POST" id="create-listing-form">
+            {% if form.errors or alert_message or is_recurring and recurring_form.errors or not is_recurring and slot_formset.errors %}
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-2"></i> <strong>Please correct the following errors:</strong>
+                <ul class="mb-0 mt-2">
+                    {% if alert_message %}
+                        <li>{{ alert_message }}</li>
+                    {% endif %}
+                    
+                    {% for field, errors in form.errors.items %}
+                        <li><strong>{{ field|title }}</strong>: {{ errors|join:", " }}</li>
+                    {% endfor %}
+                    
+                    {% if not is_recurring %}
+                        {% for form_errors in slot_formset.errors %}
+                            {% for field, errors in form_errors.items %}
+                                {% if errors %}
+                                    <li><strong>Time Slot - {{ field|title }}</strong>: {{ errors|join:", " }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    {% endif %}
+                    
+                    {% if is_recurring %}
+                        {% for field, errors in recurring_form.errors.items %}
+                            <li><strong>Recurring {{ field|slice:"10:"|title }}</strong>: {{ errors|join:", " }}</li>
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+            </div>
+            {% endif %}
+            <form method="POST" id="create-listing-form" data-is-recurring="{{ is_recurring|yesno:'true,false' }}" novalidate>
                 {% csrf_token %}
 
                 <h4 class="section-header">
@@ -44,12 +64,26 @@
                             <label for="{{ form.title.id_for_label }}" class="form-label">
                   <i class="fas fa-heading text-secondary me-1"></i> Spot Title
                 </label> {{ form.title|add_class:"form-control"|attr:"placeholder:Short, descriptive title (e.g. Downtown Covered Spot)" }}
+                            {% if form.title.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.title.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
 
                         <div class="mb-3">
                             <label for="{{ form.rent_per_hour.id_for_label }}" class="form-label">
                   <i class="fas fa-tag text-secondary me-1"></i> Price per Hour ($)
                 </label> {{ form.rent_per_hour|add_class:"form-control"|attr:"placeholder:10.00" }}
+                            {% if form.rent_per_hour.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.rent_per_hour.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -58,6 +92,13 @@
                             <label for="{{ form.description.id_for_label }}" class="form-label">
                   <i class="fas fa-align-left text-secondary me-1"></i> Description
                 </label> {{ form.description|add_class:"form-control"|attr:"placeholder:Describe your spot (size, access instructions, features)"|attr:"rows:5" }}
+                            {% if form.description.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.description.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -69,6 +110,13 @@
                                 <i class="fas fa-car-side text-primary me-1"></i> Parking Spot Size
                             </label>
                             {{ form.parking_spot_size }}
+                            {% if form.parking_spot_size.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.parking_spot_size.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -80,6 +128,13 @@
                             <div class="form-check">
                                 {{ form.has_ev_charger|add_class:"form-check-input" }}
                             </div>
+                            {% if form.has_ev_charger.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.has_ev_charger.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -89,6 +144,13 @@
                                 <i class="fas fa-bolt text-primary me-1"></i> Charger Level
                             </label>
                             {{ form.charger_level }}
+                            {% if form.charger_level.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.charger_level.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -100,6 +162,13 @@
                                 <i class="fas fa-plug text-primary me-1"></i> Connector Type
                             </label>
                             {{ form.connector_type }}
+                            {% if form.connector_type.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.connector_type.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -133,6 +202,13 @@
                     <label for="{{ form.location.id_for_label }}" class="form-label">
               <i class="fas fa-map-pin text-secondary me-1"></i> Selected Location
             </label> {{ form.location|add_class:"form-control"|attr:"readonly:readonly" }}
+                    {% if form.location.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.location.errors %}
+                                <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
 
                 <h4 class="section-header">
@@ -166,6 +242,13 @@
                                 <div class="col-md-4">
                                     <label class="form-label">Start Date</label>
                                     {{ recurring_form.recurring_start_date }}
+                                    {% if recurring_form.recurring_start_date.errors %}
+                                        <div class="text-danger mt-1">
+                                            {% for error in recurring_form.recurring_start_date.errors %}
+                                                <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Start Time</label>
@@ -174,6 +257,13 @@
                                             <option value="{{ time_value }}">{{ time_display }}</option>
                                         {% endfor %}
                                     </select>
+                                    {% if recurring_form.recurring_start_time.errors %}
+                                        <div class="text-danger mt-1">
+                                            {% for error in recurring_form.recurring_start_time.errors %}
+                                                <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">End Time</label>
@@ -182,6 +272,13 @@
                                             <option value="{{ time_value }}">{{ time_display }}</option>
                                         {% endfor %}
                                     </select>
+                                    {% if recurring_form.recurring_end_time.errors %}
+                                        <div class="text-danger mt-1">
+                                            {% for error in recurring_form.recurring_end_time.errors %}
+                                                <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
 
@@ -195,6 +292,13 @@
                                     </div>
                                 </div>
                             </div>
+                            {% if recurring_form.recurring_overnight.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in recurring_form.recurring_overnight.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
 
                             <div class="row mt-3">
                                 <div class="col-12">
@@ -212,6 +316,13 @@
                                             <div class="input-group">
                                                 <span class="input-group-text">Until</span>
                                                 {{ recurring_form.recurring_end_date }}
+                                                {% if recurring_form.recurring_end_date.errors %}
+                                                    <div class="text-danger mt-1">
+                                                        {% for error in recurring_form.recurring_end_date.errors %}
+                                                            <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
                                             </div>
                                         </div>
                                         <!-- Weekly Pattern -->
@@ -228,8 +339,24 @@
                                                 <input type="number" class="form-control" id="recurring_weeks" name="recurring_weeks" min="1" max="52" value="4" required>
                                                 <span class="input-group-text">weeks</span>
                                             </div>
+                                            {% if recurring_form.recurring_weeks.errors %}
+                                                <div class="text-danger mt-1">
+                                                    {% for error in recurring_form.recurring_weeks.errors %}
+                                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
                                         </div>
                                     </div>
+                                </div>
+                                <div class="col-12">
+                                    {% if recurring_form.recurring_pattern.errors %}
+                                        <div class="text-danger mt-1">
+                                            {% for error in recurring_form.recurring_pattern.errors %}
+                                                <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -255,9 +382,23 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Start Date</label> {{ slot_form.start_date|add_class:"form-control" }}
+                                        {% if slot_form.start_date.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in slot_form.start_date.errors %}
+                                                    <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">End Date</label> {{ slot_form.end_date|add_class:"form-control" }}
+                                        {% if slot_form.end_date.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in slot_form.end_date.errors %}
+                                                    <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -265,9 +406,23 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Start Time</label> {{ slot_form.start_time|add_class:"form-select" }}
+                                        {% if slot_form.start_time.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in slot_form.start_time.errors %}
+                                                    <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">End Time</label> {{ slot_form.end_time|add_class:"form-select" }}
+                                        {% if slot_form.end_time.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in slot_form.end_time.errors %}
+                                                    <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>

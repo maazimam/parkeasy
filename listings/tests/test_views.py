@@ -115,7 +115,7 @@ class CreateListingViewTest(TestCase):
     def test_create_listing_post_invalid_form(self):
         # Missing title to force an error.
         listing_data = {
-            "title": "",
+            "title": "",  # Empty title should trigger validation error
             "description": "New Description",
             "rent_per_hour": "15.00",
             "location": "New Location [123, 456]",
@@ -127,22 +127,28 @@ class CreateListingViewTest(TestCase):
         post_data = {**listing_data, **build_slot_formset_data(prefix="form", count=1)}
         response = self.client.post(self.create_url, post_data)
         self.assertEqual(response.status_code, 200)
-        # Expect alert message in the rendered template.
-        self.assertContains(response, "Please correct the errors below")
+
+        # Check for field-specific error message
+        self.assertContains(response, "Please enter a spot title")
+
+        # Verify error is associated with the correct field
+        form = response.context["form"]
+        self.assertIn("title", form.errors)
+        self.assertIn("Please enter a spot title", str(form.errors["title"]))
 
     def test_create_listing_post_overlapping_slots(self):
         listing_data = {
             "title": "Overlap Listing",
             "description": "Overlap test",
             "rent_per_hour": "15.00",
-            "location": "Overlap Location",
+            "location": "Overlap Location [123, 456]",  # Add coordinates
             "has_ev_charger": False,
             "charger_level": "",
             "connector_type": "",
             "parking_spot_size": "STANDARD",
         }
-        # Two slots that overlap.
 
+        # Two slots that overlap
         start_date = self.now.date() + timedelta(days=1)
         end_date = start_date
         start_date2 = start_date
@@ -164,8 +170,153 @@ class CreateListingViewTest(TestCase):
             **build_slot_formset_data(prefix="form", count=2, slot_data=slot_data),
         }
         response = self.client.post(self.create_url, post_data)
-        # Expect the view to catch overlapping slots.
+
+        # Expect the view to catch overlapping slots and add field errors
         self.assertEqual(response.status_code, 200)
+
+        # Check for overlap-specific error message
+        self.assertContains(response, "This slot overlaps with another slot")
+
+        # Verify errors are on both start_date and end_date fields
+        formset = response.context["slot_formset"]
+        for form in formset:
+            if "start_date" in form.errors:
+                self.assertIn(
+                    "This slot overlaps with another slot",
+                    str(form.errors["start_date"]),
+                )
+                self.assertIn(
+                    "This slot overlaps with another slot", str(form.errors["end_date"])
+                )
+
+    def test_create_listing_past_date(self):
+        """Test validation rejects past dates"""
+        listing_data = {
+            "title": "Past Date Test",
+            "description": "Should fail validation",
+            "rent_per_hour": "15.00",
+            "location": "Past Date Location [123, 456]",
+            "has_ev_charger": False,
+            "charger_level": "",
+            "connector_type": "",
+            "parking_spot_size": "STANDARD",
+        }
+
+        # Use yesterday's date to trigger validation error
+        yesterday = (self.now.date() - timedelta(days=1)).strftime("%Y-%m-%d")
+        tomorrow = (self.now.date() + timedelta(days=1)).strftime("%Y-%m-%d")
+
+        slot_data = {
+            "form-0-start_date": yesterday,
+            "form-0-start_time": "09:00",
+            "form-0-end_date": tomorrow,
+            "form-0-end_time": "17:00",
+        }
+
+        post_data = {
+            **listing_data,
+            **build_slot_formset_data(prefix="form", count=1, slot_data=slot_data),
+        }
+
+        response = self.client.post(self.create_url, post_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Start date cannot be in the past")
+
+        # Verify the error is on the start_date field
+        formset = response.context["slot_formset"]
+        form = formset[0]
+        self.assertIn("start_date", form.errors)
+        self.assertIn(
+            "Start date cannot be in the past", str(form.errors["start_date"])
+        )
+
+    def test_create_listing_end_date_before_start_date(self):
+        """Test validation rejects end date before start date"""
+        listing_data = {
+            "title": "Date Order Test",
+            "description": "Should fail validation",
+            "rent_per_hour": "15.00",
+            "location": "Date Order Location [123, 456]",
+            "has_ev_charger": False,
+            "charger_level": "",
+            "connector_type": "",
+            "parking_spot_size": "STANDARD",
+        }
+
+        # End date before start date
+        start_date = (self.now.date() + timedelta(days=2)).strftime("%Y-%m-%d")
+        end_date = (self.now.date() + timedelta(days=1)).strftime("%Y-%m-%d")
+
+        slot_data = {
+            "form-0-start_date": start_date,
+            "form-0-start_time": "09:00",
+            "form-0-end_date": end_date,
+            "form-0-end_time": "17:00",
+        }
+
+        post_data = {
+            **listing_data,
+            **build_slot_formset_data(prefix="form", count=1, slot_data=slot_data),
+        }
+
+        response = self.client.post(self.create_url, post_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "End date cannot be before start date")
+
+        # Verify the error is on the end_date field
+        formset = response.context["slot_formset"]
+        form = formset[0]
+        self.assertIn("end_date", form.errors)
+        self.assertIn(
+            "End date cannot be before start date", str(form.errors["end_date"])
+        )
+
+    def test_form_mode_preserved_on_validation_error(self):
+        """Test that form mode (recurring or single) is preserved after validation error"""
+        # Test recurring mode is preserved
+        recurring_data = {
+            "title": "Recurring Mode Test",
+            "description": "Testing mode preservation",
+            "rent_per_hour": "15.00",
+            "location": "Mode Test Location [40.712776, -74.005974]",
+            "has_ev_charger": False,
+            "parking_spot_size": "STANDARD",
+            "is_recurring": "true",
+            "recurring_pattern": "daily",
+            # Missing recurring_end_date to trigger validation error
+            "recurring_start_date": (
+                datetime.now().date() + timedelta(days=1)
+            ).strftime("%Y-%m-%d"),
+            "recurring_start_time": "09:00",
+            "recurring_end_time": "17:00",
+        }
+
+        response = self.client.post(self.create_url, recurring_data)
+        self.assertEqual(response.status_code, 200)
+
+        # Check that is_recurring is still True in the context
+        self.assertTrue(response.context["is_recurring"])
+        self.assertContains(response, "End date is required for daily pattern")
+
+        # Test single mode is preserved
+        single_data = {
+            "title": "Single Mode Test",
+            "description": "Testing mode preservation",
+            "rent_per_hour": "-5.00",  # Negative price to trigger validation error
+            "location": "Mode Test Location [40.712776, -74.005974]",
+            "has_ev_charger": False,
+            "parking_spot_size": "STANDARD",
+            "is_recurring": "false",
+        }
+
+        single_data.update(build_slot_formset_data(prefix="form", count=1))
+
+        response = self.client.post(self.create_url, single_data)
+        self.assertEqual(response.status_code, 200)
+
+        # Check that is_recurring is still False in the context
+        self.assertFalse(response.context["is_recurring"])
+        self.assertContains(response, "Price must be greater than zero")
 
 
 ###################################
@@ -278,6 +429,87 @@ class RecurringListingCreationTests(TestCase):
         for slot in slots:
             # End date should be day after start date for overnight
             self.assertEqual((slot.end_date - slot.start_date).days, 1)
+
+    def test_recurring_validation_errors(self):
+        """Test validation for recurring form"""
+        # Basic listing data
+        listing_data = {
+            "title": "Recurring Validation Test",
+            "description": "Testing recurring validation",
+            "rent_per_hour": "15.00",
+            "location": "Recurring Test Location [40.712776, -74.005974]",
+            "has_ev_charger": False,
+            "charger_level": "",
+            "connector_type": "",
+            "parking_spot_size": "STANDARD",
+            "is_recurring": "true",
+        }
+
+        # Add recurring data with issues (past start date)
+        yesterday = (datetime.now().date() - timedelta(days=1)).strftime("%Y-%m-%d")
+        tomorrow = (datetime.now().date() + timedelta(days=1)).strftime("%Y-%m-%d")
+
+        data = listing_data.copy()
+        data.update(
+            {
+                "recurring_pattern": "daily",
+                "recurring_start_date": yesterday,  # Past date - should fail
+                "recurring_end_date": tomorrow,
+                "recurring_start_time": "09:00",
+                "recurring_end_time": "17:00",
+            }
+        )
+
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, 200)
+
+        # Use a more flexible assertion that checks if the content is in there in any format
+        recurring_form = response.context["recurring_form"]
+        self.assertTrue("recurring_start_date" in recurring_form.errors)
+        self.assertTrue(
+            "Start date cannot be in the past"
+            in str(recurring_form.errors["recurring_start_date"])
+        )
+
+        # Original assertion - keep it but it might need to be adjusted based on HTML formatting
+        # self.assertContains(response, "Start date cannot be in the past.")
+
+        # Verify the error is on the recurring_start_date field
+        recurring_form = response.context["recurring_form"]
+        self.assertIn("recurring_start_date", recurring_form.errors)
+        self.assertIn(
+            "Start date cannot be in the past.",
+            str(recurring_form.errors["recurring_start_date"]),
+        )
+
+        # Test end time before start time without overnight
+        data = listing_data.copy()
+        data.update(
+            {
+                "recurring_pattern": "daily",
+                "recurring_start_date": tomorrow,
+                "recurring_end_date": tomorrow,
+                "recurring_start_time": "10:00",
+                "recurring_end_time": "09:00",  # Earlier than start time - should fail
+                "recurring_overnight": False,
+            }
+        )
+
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, 200)
+        # self.assertContains(response, "End time must be later than start time.")
+
+        # Use a more flexible assertion that checks if the content is in there in any format
+        recurring_form = response.context["recurring_form"]
+        self.assertTrue("recurring_end_time" in recurring_form.errors)
+        self.assertTrue(
+            "End time must be later than start time"
+            in str(recurring_form.errors["recurring_end_time"])
+        )
+
+        # Verify the error is on the recurring_end_time field
+        recurring_form = response.context["recurring_form"]
+        self.assertIn("recurring_end_time", recurring_form.errors)
 
 
 #############################

@@ -306,33 +306,45 @@ document.addEventListener("DOMContentLoaded", function () {
   function checkOverlappingSlots() {
     const forms = document.querySelectorAll(".slot-form");
     const intervals = [];
+    let has_overlaps = false;
+    
+    // First check for slots with invalid time configurations
     for (const formDiv of forms) {
-      const startDateVal = formDiv.querySelector(
-        "input[name$='start_date']"
-      ).value;
-      const endDateVal = formDiv.querySelector("input[name$='end_date']").value;
-      const startTimeVal = formDiv.querySelector(
-        "select[name$='start_time']"
-      ).value;
-      const endTimeVal = formDiv.querySelector(
-        "select[name$='end_time']"
-      ).value;
-      if (startDateVal && startTimeVal && endDateVal && endTimeVal) {
-        const start = new Date(startDateVal + "T" + startTimeVal);
-        const end = new Date(endDateVal + "T" + endTimeVal);
-        if (start >= end) {
-          alert("Each slot's start time must be before its end time.");
-          return false;
+        const startDateVal = formDiv.querySelector("input[name$='start_date']").value;
+        const endDateVal = formDiv.querySelector("input[name$='end_date']").value;
+        const startTimeVal = formDiv.querySelector("select[name$='start_time']").value;
+        const endTimeVal = formDiv.querySelector("select[name$='end_time']").value;
+        
+        if (startDateVal && startTimeVal && endDateVal && endTimeVal) {
+            const start = new Date(startDateVal + "T" + startTimeVal);
+            const end = new Date(endDateVal + "T" + endTimeVal);
+            
+            if (start >= end) {
+                // We handle this with field validation already
+                return false;
+            }
+            
+            intervals.push({ start, end, form: formDiv });
         }
-        for (const interval of intervals) {
-          if (!(end <= interval.start || start >= interval.end)) {
-            alert("Availability slots cannot overlap.");
-            return false;
-          }
-        }
-        intervals.push({ start, end });
-      }
     }
+    
+    // Check for overlapping slots
+    for (let i = 0; i < intervals.length; i++) {
+        for (let j = i + 1; j < intervals.length; j++) {
+            if (!(intervals[i].end <= intervals[j].start || intervals[i].start >= intervals[j].end)) {
+                // Visually indicate the overlap
+                const form1 = intervals[i].form;
+                const form2 = intervals[j].form;
+                
+                // Add visual indication of overlap
+                form1.classList.add('border-danger');
+                form2.classList.add('border-danger');
+                has_overlaps = true;
+            }
+        }
+    }
+    
+    // Allow form submission even with overlaps - server will validate and show proper errors
     return true;
   }
 
@@ -452,12 +464,43 @@ document.addEventListener("DOMContentLoaded", function () {
   document
     .getElementById("create-listing-form")
     .addEventListener("submit", function (event) {
-      let isValid = true;
+      // Do client-side validation but don't prevent submission
+      // This allows both client and server validation
       document.querySelectorAll(".slot-form").forEach((formDiv) => {
-        if (!validateEndTime(formDiv)) isValid = false;
+        validateEndTime(formDiv);
       });
-      if (!isValid || !checkOverlappingSlots()) {
+      
+      // Check for Django validation errors
+      const hasErrors = document.querySelectorAll('.text-danger').length > 0;
+      
+      // Only prevent submission for critical overlapping slots
+      if (checkOverlappingSlots() === false) {
         event.preventDefault();
+      }
+    });
+
+  // Update the form submit handler to preserve form state
+  document
+    .getElementById("create-listing-form")
+    .addEventListener("submit", function (event) {
+      // Get the current form mode
+      const isRecurring = document.getElementById('is_recurring').value === 'true';
+      
+      // Only validate the relevant part of the form based on mode
+      if (isRecurring) {
+        // For recurring mode, we don't need to validate slots
+        // Just make sure hidden field is set correctly
+        document.getElementById('is_recurring').value = 'true';
+      } else {
+        // For single mode, validate each slot
+        document.querySelectorAll(".slot-form").forEach((formDiv) => {
+          validateEndTime(formDiv);
+        });
+        
+        // Check for overlapping slots only in single mode
+        if (checkOverlappingSlots() === false) {
+          event.preventDefault();
+        }
       }
     });
 
@@ -532,12 +575,62 @@ document.addEventListener("DOMContentLoaded", function () {
   const patternWeekly = document.getElementById('pattern_weekly');
   const dailyPatternFields = document.getElementById('daily-pattern-fields');
   const weeklyPatternFields = document.getElementById('weekly-pattern-fields');
+  const toggleInfoText = document.querySelector('#toggle-info-text');
+  const singleInfoText = document.querySelector('#single-info-text');
+
+  // Initialize form based on server-provided is_recurring value
+  function initializeRecurringState() {
+    console.log("Initializing recurring state, current value:", isRecurringField.value);
+    
+    // Check if an element with data-is-recurring="true" exists (server-side flag)
+    const serverIsRecurring = document.querySelector('[data-is-recurring="true"]') !== null;
+    
+    // Either use the hidden field or the data attribute
+    const shouldBeRecurring = isRecurringField.value === 'true' || serverIsRecurring;
+    
+    console.log("Should be recurring:", shouldBeRecurring);
+    
+    if (shouldBeRecurring) {
+      console.log("Setting UI to recurring mode");
+      // Set the hidden field
+      isRecurringField.value = 'true';
+      
+      // Set the UI to recurring mode
+      recurringPatternContainer.style.display = 'block';
+      if (slotFormsContainer) slotFormsContainer.style.display = 'none';
+      if (addSlotBtn) addSlotBtn.style.display = 'none';
+      
+      // Update the button
+      toggleRecurringBtn.innerHTML = '<i class="fas fa-calendar-day me-1"></i> Single Availability';
+      toggleRecurringBtn.classList.remove('btn-outline-primary');
+      toggleRecurringBtn.classList.add('btn-outline-secondary');
+      
+      // Change the info text
+      if (toggleInfoText) {
+        toggleInfoText.innerHTML = '<i class="fas fa-info-circle"></i> Create a listing in a single interval or multiple different intervals.';
+      }
+      if (singleInfoText) {
+        singleInfoText.style.display = 'none';
+      }
+      
+      // Make sure we show the correct pattern fields
+      if (patternDaily && patternDaily.checked) {
+        if (dailyPatternFields) dailyPatternFields.style.display = 'block';
+        if (weeklyPatternFields) weeklyPatternFields.style.display = 'none';
+      } else if (patternWeekly && patternWeekly.checked) {
+        if (dailyPatternFields) dailyPatternFields.style.display = 'none';
+        if (weeklyPatternFields) weeklyPatternFields.style.display = 'block';
+      }
+    }
+  }
+
+  // Call this function on page load
+  if (toggleRecurringBtn && isRecurringField) {
+    initializeRecurringState();
+  }
 
   // Modified toggle-recurring event listener
   if (toggleRecurringBtn) {
-    const toggleInfoText = document.querySelector('#toggle-info-text');
-    const singleInfoText = document.querySelector('#single-info-text');
-    
     toggleRecurringBtn.addEventListener('click', function() {
       // Check the current state using the hidden field
       if (isRecurringField.value !== 'true') {
@@ -578,10 +671,9 @@ document.addEventListener("DOMContentLoaded", function () {
           singleInfoText.style.display = 'block';
         }
         
-        // Disable recurring form fields to prevent validation issues
-        recurringPatternContainer.querySelectorAll('input:not([type=hidden]), select').forEach(field => {
-          field.disabled = true;
-        });
+        // Don't disable fields - just hide them
+        // This ensures they're still submitted with the form
+        recurringPatternContainer.style.display = 'none';
       }
     });
   }
@@ -602,5 +694,12 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   }
+
+  // Make sure this is one of the last things that runs
+  setTimeout(function() {
+    if (toggleRecurringBtn && isRecurringField) {
+      initializeRecurringState();
+    }
+  }, 0);
 
 }); // End DOMContentLoaded
